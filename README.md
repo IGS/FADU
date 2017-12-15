@@ -1,11 +1,16 @@
 # FADU
 Feature Aggregate Depth Utility
 
-Authors:
+## Authors:
 * Shaun Adkins (sadkins@som.umaryland.edu)
 * Matthew Chung (mattchung@umaryland.edu)
 
-'''
+## Description
+Generate counts of reads that map to non-overlapping portions of genes
+## Requirements
+Python 3, Pysam version 0.12.0.1
+
+```
 usage: fadu.py [-h]
                (--bam_file /path/to/alignment.bam | --bam_list /path/to/bam.list (--gff3 /path/to/annotation.gff3 | --gtf /path/to/annotation.gtf)
                --output_dir /path/to/output/dir [--tmp_dir /path/to/tmp/dir]
@@ -13,8 +18,6 @@ usage: fadu.py [-h]
                [--attribute_type ATTRIBUTE_TYPE] [--num_cores NUM_CORES]
                [--debug DEBUG/INFO/WARNING/ERROR/CRITICAL]
 
-Description: Generate counts of reads that map to non-overlapping portions of genes
-Requires: Python 3, Pysam version 0.12.0.1
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -51,4 +54,4 @@ optional arguments:
                         BAM list.
   --debug DEBUG/INFO/WARNING/ERROR/CRITICAL, -d DEBUG/INFO/WARNING/ERROR/CRITICAL
                         Set the debug level
-'''
+```
