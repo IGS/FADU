@@ -7,12 +7,36 @@ Feature Aggregate Depth Utility
 
 ## Description
 Generate counts of reads that map to non-overlapping portions of genes
+
 ## Requirements
 Python 3, Pysam version 0.12.0.1
 
+## Input
+* One of the following:
+** A single BAM file of reads
+** A file listing the paths of BAM files
+* One of the following:
+** A GFF3-formatted annotation file
+** A GTF-formatted annotation file
+
+## Output
+* Tab-delimited file containing gene statistics ending in 'uniquebp.stats.tsv'
+** These are the following fields:
+*** Name of the contig
+*** Strand
+*** Name of the feature
+*** length of the feature
+*** Number of bases in the feature the do not overlap with another feature of the same feature type
+*** Percent of non-overlapping bases in feature compared to feature length
+* Separate tab-delimited file for each BAM input ending in '.counts'
+** THese are the following fields:
+*** Name of feature
+*** Readcounts (total depth of non-overlapping bases in feature / length of reads)
+
 ```
 usage: fadu.py [-h]
-               (--bam_file /path/to/alignment.bam | --bam_list /path/to/bam.list (--gff3 /path/to/annotation.gff3 | --gtf /path/to/annotation.gtf)
+               (--bam_file /path/to/alignment.bam | --bam_list /path/to/bam.list)
+			   (--gff3 /path/to/annotation.gff3 | --gtf /path/to/annotation.gtf)
                --output_dir /path/to/output/dir [--tmp_dir /path/to/tmp/dir]
                [--stranded {yes,no,reverse}] [--feature_type FEATURE_TYPE]
                [--attribute_type ATTRIBUTE_TYPE] [--num_cores NUM_CORES]
