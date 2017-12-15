@@ -36,7 +36,7 @@ Python 3, Pysam version 0.12.0.1
 ```
 usage: fadu.py [-h]
                (--bam_file /path/to/alignment.bam | --bam_list /path/to/bam.list)
-			   (--gff3 /path/to/annotation.gff3 | --gtf /path/to/annotation.gtf)
+               (--gff3 /path/to/annotation.gff3 | --gtf /path/to/annotation.gtf)
                --output_dir /path/to/output/dir [--tmp_dir /path/to/tmp/dir]
                [--stranded {yes,no,reverse}] [--feature_type FEATURE_TYPE]
                [--attribute_type ATTRIBUTE_TYPE] [--num_cores NUM_CORES]
