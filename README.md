@@ -29,7 +29,7 @@ Python 3, Pysam version 0.12.0.1
     * Number of bases in the feature the do not overlap with another feature of the same feature type
     * Percent of non-overlapping bases in feature compared to feature length
 * Separate tab-delimited file for each BAM input ending in '.counts'
-  * THese are the following fields:
+  * These are the following fields:
     * Name of feature
     * Readcounts (total depth of non-overlapping bases in feature / length of reads)
 
