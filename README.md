@@ -13,25 +13,25 @@ Python 3, Pysam version 0.12.0.1
 
 ## Input
 * One of the following:
-** A single BAM file of reads
-** A file listing the paths of BAM files
+  * A single BAM file of reads
+  * A file listing the paths of BAM files
 * One of the following:
-** A GFF3-formatted annotation file
-** A GTF-formatted annotation file
+  * A GFF3-formatted annotation file
+  * A GTF-formatted annotation file
 
 ## Output
 * Tab-delimited file containing gene statistics ending in 'uniquebp.stats.tsv'
-** These are the following fields:
-*** Name of the contig
-*** Strand
-*** Name of the feature
-*** length of the feature
-*** Number of bases in the feature the do not overlap with another feature of the same feature type
-*** Percent of non-overlapping bases in feature compared to feature length
+  * These are the following fields:
+    * Name of the contig
+    * Strand
+    * Name of the feature
+    * length of the feature
+    * Number of bases in the feature the do not overlap with another feature of the same feature type
+    * Percent of non-overlapping bases in feature compared to feature length
 * Separate tab-delimited file for each BAM input ending in '.counts'
-** THese are the following fields:
-*** Name of feature
-*** Readcounts (total depth of non-overlapping bases in feature / length of reads)
+  * THese are the following fields:
+    * Name of feature
+    * Readcounts (total depth of non-overlapping bases in feature / length of reads)
 
 ```
 usage: fadu.py [-h]
