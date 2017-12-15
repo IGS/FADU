@@ -274,7 +274,7 @@ def update_base_mapping(contig, gene, strand, start, stop):
 
 def main():
     # Set up options parser and help statement
-    description = "FADU - Feature Aggregate Depth Utility\nGenerate counts of reads that map to non-overlapping portions of genes"
+    description = "Generate counts of reads that map to non-overlapping portions of genes"
     parser = ArgumentParser(description=description)
     bam_group = parser.add_mutually_exclusive_group(required=True)
     bam_group.add_argument("--bam_file", "-b", help="Path to BAM file. Choose between --bam_file or --bam_list.", metavar="/path/to/alignment.bam")
