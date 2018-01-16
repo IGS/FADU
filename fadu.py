@@ -91,8 +91,10 @@ def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stran
 def get_gene_from_attr(attr_field, ptrn):
     """ Only keep gene ID from attribute section of GFF3 file """
     match = ptrn.search(attr_field)
-    assert match.lastindex == 1, "Attribute field found to have more than one match or no matches for ptrn {}".format(ptrn)
-    return match.group(1)
+    if not match:
+        logging.error("Attribute field '{}' found to have no matches for ptrn {}".format(attr_field, ptrn))
+    assert match.lastindex == 2, "Attribute field '{}' found to have more than one match for ptrn {}".format(attr_field, ptrn)
+    return match.group(2)
 
 def get_start_stop(first, second):
     start = min(first, second)
@@ -115,11 +117,11 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     """ Parse the GFF3 or GTF annotation file """
     if is_gff3:
         logging.info("Parsing GFF3 file")
-        # Attribute field to parse IDs from
-        ptrn = re.compile(r';?{0}=([\w|.]+);?'.format(attr_type))
+        # Attribute field to parse IDs from.  Keeping number of matching groups for both GTF and GFF ptrns uniform
+        ptrn = re.compile(r'(;)?{0}=([\w|.]+);?'.format(attr_type))
     else:
         logging.info("Parsing GTF file")
-        ptrn = re.compile(r';? {0} \"([\w|.]+)\";'.format(attr_type))
+        ptrn = re.compile(r'(; )?{0} \"([\w|.]+)\";'.format(attr_type))
     assert(os.stat(annot_file).st_size > 0), "{} was empty".format(annot_file)
 
     # Dict -> contig_id -> plus/minus -> coord -> gene_id/overlap
@@ -157,7 +159,7 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     assert len(contig_bases.keys()), "Detected no {} entries in annotation file".format(feat_type)
     return (contig_bases, gene_info)
 
-def process_bam(bam, contig_bases, gene_info, stranded_type, tmp_dir, output_dir):
+def process_bam(bam, contig_bases, gene_info, stranded_type, count_by, tmp_dir, output_dir):
     bam = bam.rstrip()
     name = mp.current_process().name
     logging.info("{} - Processing BAM file {}".format(name, bam))
@@ -172,16 +174,26 @@ def process_bam(bam, contig_bases, gene_info, stranded_type, tmp_dir, output_dir
     read_len = calc_avg_read_len(bam_fh)
     bam_fh.close()
 
+    # Are depth counts fragment-based or read-based?
+    # NOT IMPLEMENTED YET
+    count_by_fragment = False
+    if count_by == "fragment":
+        count_by_fragment == True
+
     depth_dict = {}
     # Calculate depth of coverage for the BAM file or for split plus/minus BAM files
     if stranded_type == "no":
         calc_depth(depth_dict, ln_bam, "plus")
+    #if count_by_fragment:
+    #    adjust_depth(depth_dict)
     else:
         strand_list = ["plus", "minus"]
         (pos_bam, neg_bam) = split_bam_by_strand(ln_bam, stranded_type)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
             logging.info("{} - Processing {} stranded BAM file".format(name, strand_list[idx]))
             calc_depth(depth_dict, split_bam, strand_list[idx])
+            #if count_by_fragment:
+            #    adjust_depth(depth_dict)
     # Calculate readcount stats per gene
     out_bam = output_dir + "/" + os.path.basename(ln_bam)
     calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_len)
@@ -287,6 +299,7 @@ def main():
     parser.add_argument("--stranded", "-s", help="Indicate if BAM reads are from a strand-specific assay", default="yes", choices=['yes', 'no', 'reverse'], required=False)
     parser.add_argument("--feature_type", "-f", help="Which GFF3/GTF feature type (column 3) to obtain readcount statistics for.  Default is 'gene'.  Case-sensitive.", default="gene", required=False)
     parser.add_argument("--attribute_type", "-a", help="Which GFF3/GTF attribute type (column 9) to obtain readcount statistics for.  Default is 'ID'.  Case-sensitive.", default="ID", required=False)
+    parser.add_argument("--count_by", "-c", help="How to count the reads when performing depth calculations.  Default is 'read'.  CURRENTLY NOT IMPLEMENTED!", default="read", choices=['read', 'fragment'], required=False)
     parser.add_argument("--num_cores", "-n", help="Number of cores to spread processes to when processing BAM list.", default=10, type=check_positive, required=False)
     parser.add_argument("--debug", "-d", help="Set the debug level", default="INFO", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL")
     args = parser.parse_args()
@@ -308,14 +321,14 @@ def main():
 
     # If processing a single bam file...
     if args.bam_file:
-        process_bam( args.bam_file, contig_bases, gene_info, args.stranded, args.tmp_dir, args.output_dir )
+        process_bam( args.bam_file, contig_bases, gene_info, args.stranded, args.count_by, args.tmp_dir, args.output_dir )
         return
 
     # ... otherwise process a list using parallel workers
     logging.info('Creating pool with %d processes\n' % args.num_cores)
     with open(args.bam_list, 'r') as list, mp.Pool(processes=args.num_cores) as p:
         # "apply_async" blocks downstream code from executing after res.get() is called.
-        result = [p.apply_async(process_bam, (bam, contig_bases, gene_info, args.stranded, args.tmp_dir, args.output_dir)) for bam in list]
+        result = [p.apply_async(process_bam, (bam, contig_bases, gene_info, args.stranded, args.count_by, args.tmp_dir, args.output_dir)) for bam in list]
         [res.get() for res in result]
 
 def check_args(args, parser):
@@ -325,7 +338,7 @@ def check_args(args, parser):
 
     # Verify that our specified log_level has a numerical value associated
     if not isinstance(num_level, int):
-        raise ValueError('Invalid log level: %s' % log_level)
+        raise ValueError('Invalid log level: {}'.format(log_level))
 
     # Create the logger
     logging.basicConfig(level=num_level)
