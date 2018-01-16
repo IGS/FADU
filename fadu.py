@@ -116,10 +116,10 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     if is_gff3:
         logging.info("Parsing GFF3 file")
         # Attribute field to parse IDs from
-        ptrn = re.compile(r';?{0}=([\w|]+);?'.format(attr_type))
+        ptrn = re.compile(r';?{0}=([\w|.]+);?'.format(attr_type))
     else:
         logging.info("Parsing GTF file")
-        ptrn = re.compile(r';? {0} \"([\w|]+)\";'.format(attr_type))
+        ptrn = re.compile(r';? {0} \"([\w|.]+)\";'.format(attr_type))
     assert(os.stat(annot_file).st_size > 0), "{} was empty".format(annot_file)
 
     # Dict -> contig_id -> plus/minus -> coord -> gene_id/overlap
