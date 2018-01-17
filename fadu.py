@@ -47,7 +47,7 @@ def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_
     logging.debug("{} - Calculate readcounts per gene for BAM ...".format(name))
     counts_file = re.sub(r'\.bam', '.counts', out_bam)
     with open(counts_file, 'w') as f:
-        for gene, fields in gene_info.items():
+        for gene, fields in sorted(gene_info.items()):
             (contig, start, stop, strand) = fields
             strand = set_strand(strand)
             # Collect all uniq base positions for this gene, and total the depth for each position
