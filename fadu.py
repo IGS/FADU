@@ -300,7 +300,7 @@ def main():
     parser.add_argument("--feature_type", "-f", help="Which GFF3/GTF feature type (column 3) to obtain readcount statistics for.  Default is 'gene'.  Case-sensitive.", default="gene", required=False)
     parser.add_argument("--attribute_type", "-a", help="Which GFF3/GTF attribute type (column 9) to obtain readcount statistics for.  Default is 'ID'.  Case-sensitive.", default="ID", required=False)
     parser.add_argument("--count_by", "-c", help="How to count the reads when performing depth calculations.  Default is 'read'.  CURRENTLY NOT IMPLEMENTED!", default="read", choices=['read', 'fragment'], required=False)
-    parser.add_argument("--num_cores", "-n", help="Number of cores to spread processes to when processing BAM list.", default=10, type=check_positive, required=False)
+    parser.add_argument("--num_cores", "-n", help="Number of cores to spread processes to when processing BAM list.", default=1, type=check_positive, required=False)
     parser.add_argument("--debug", "-d", help="Set the debug level", default="INFO", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL")
     args = parser.parse_args()
     check_args(args, parser)
