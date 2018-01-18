@@ -72,7 +72,7 @@ def count_uniq_bases_per_gene(contig_bases, gene_info):
 def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stranded_type):
     """ Generate percentage of unique bases per gene """
     logging.debug("Generating overlap stats per gene")
-    if stranded_type == "unstranded":
+    if stranded_type == "no":
         ext = "unstranded.uniquebp.stats.tsv"
     else:
         ext = "stranded.uniquebp.stats.tsv"
@@ -149,7 +149,7 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
                 (start, stop) = get_start_stop( int(entry[3]), int(entry[4]) )
                 sign = entry[6]
                 if not stranded:
-                    sign = "+"
+                    sign = "*"
                 strand = set_strand(sign)
                 gene_info[gene_id] = (contig_id, start, stop, sign)
 
@@ -200,7 +200,7 @@ def process_bam(bam, contig_bases, gene_info, stranded_type, count_by, tmp_dir, 
     logging.info("{} - Finished processing BAM file {} !".format(name, bam))
 
 def set_strand(sign):
-    if sign == "+":
+    if sign == "+" or sign == "*":
         return "plus"
     return "minus"
 
