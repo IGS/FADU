@@ -47,8 +47,9 @@ def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_
     logging.debug("{} - Calculate readcounts per gene for BAM ...".format(name))
     counts_file = re.sub(r'\.bam', '.counts', out_bam)
     with open(counts_file, 'w') as f:
-        for gene, fields in sorted(gene_info.items()):
-            (contig, start, stop, strand) = fields
+        for gene, val_list in sorted(gene_info.items()):
+            # Assuming all coordinates for a given gene feature share the same contig and strand
+            (contig, start, stop, strand) = val_list[0]
             strand = set_strand(strand)
             # Collect all uniq base positions for this gene, and total the depth for each position
             uniq_coords = [key for key, val in contig_bases[contig][strand].items() if val == gene]
@@ -80,11 +81,20 @@ def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stran
     with open(stats_file, 'w') as f:
         headers = "contig\tstrand\tgene\tlength\tuniq_bases\tpct_uniq\n"
         f.write(headers)
-        for key, val in gene_info.items():
-            (contig, start, stop, strand) = val
-            length = stop - start + 1
+        for key, val_list in sorted(gene_info.items()):
+            length = 0
+            prev_stop = 0
+            for elem in val_list:
+                overlap = 0
+                (contig, start, stop, strand) = elem
+                # In some cases, the previous and current coords may have an overlap, possibly due to a frameshift
+                if start <= prev_stop:
+                    overlap = prev_stop - start + 1
+                length += stop - start + 1 - overlap
+                prev_stop = stop
             uniq_bases = uniq_gene_bases[key]
             pct_uniq = round(uniq_bases * 100 / length, 2)
+            # Assumption is that each feature ID is on the same contig and same strand
             row = ( contig, strand, key, str(length), str(uniq_bases), str(pct_uniq) )
             f.write('\t'.join(row) + "\n")
 
@@ -151,7 +161,10 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
                 if not stranded:
                     sign = "*"
                 strand = set_strand(sign)
-                gene_info[gene_id] = (contig_id, start, stop, sign)
+
+                #Store feature ID information to list.  A feature ID can be present in multiple GFF entries
+                gene_info.setdefault(gene_id, [])
+                gene_info[gene_id].append( (contig_id, start, stop, sign) )
 
                 # Iniitialize strand-specific dicts as contig key is created
                 contig_bases.setdefault(contig_id, { 'plus': {}, 'minus': {} })
@@ -175,7 +188,6 @@ def process_bam(bam, contig_bases, gene_info, stranded_type, count_by, tmp_dir, 
     bam_fh.close()
 
     # Are depth counts fragment-based or read-based?
-    # NOT IMPLEMENTED YET
     count_by_fragment = False
     if count_by == "fragment":
         count_by_fragment == True
@@ -184,16 +196,16 @@ def process_bam(bam, contig_bases, gene_info, stranded_type, count_by, tmp_dir, 
     # Calculate depth of coverage for the BAM file or for split plus/minus BAM files
     if stranded_type == "no":
         calc_depth(depth_dict, ln_bam, "plus")
-    #if count_by_fragment:
-    #    adjust_depth(depth_dict)
+    if count_by_fragment:
+        adjust_depth(depth_dict)
     else:
         strand_list = ["plus", "minus"]
         (pos_bam, neg_bam) = split_bam_by_strand(ln_bam, stranded_type)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
             logging.info("{} - Processing {} stranded BAM file".format(name, strand_list[idx]))
             calc_depth(depth_dict, split_bam, strand_list[idx])
-            #if count_by_fragment:
-            #    adjust_depth(depth_dict)
+            if count_by_fragment:
+                adjust_depth(depth_dict)
     # Calculate readcount stats per gene
     out_bam = output_dir + "/" + os.path.basename(ln_bam)
     calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_len)
@@ -299,7 +311,8 @@ def main():
     parser.add_argument("--stranded", "-s", help="Indicate if BAM reads are from a strand-specific assay", default="yes", choices=['yes', 'no', 'reverse'], required=False)
     parser.add_argument("--feature_type", "-f", help="Which GFF3/GTF feature type (column 3) to obtain readcount statistics for.  Default is 'gene'.  Case-sensitive.", default="gene", required=False)
     parser.add_argument("--attribute_type", "-a", help="Which GFF3/GTF attribute type (column 9) to obtain readcount statistics for.  Default is 'ID'.  Case-sensitive.", default="ID", required=False)
-    parser.add_argument("--count_by", "-c", help="How to count the reads when performing depth calculations.  Default is 'read'.  CURRENTLY NOT IMPLEMENTED!", default="read", choices=['read', 'fragment'], required=False)
+    parser.add_argument("--count_by", "-c", help="How to count the reads when performing depth calculations.  Default is 'read'.", default="read", choices=['read', 'fragment'], required=False)
+    parser.add_argument("--remove_singletons", help="Enable flag to remove singleton (unpaired) reads from the depth count statistics", action="store_false", required=False)
     parser.add_argument("--num_cores", "-n", help="Number of cores to spread processes to when processing BAM list.", default=1, type=check_positive, required=False)
     parser.add_argument("--debug", "-d", help="Set the debug level", default="INFO", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL")
     args = parser.parse_args()
