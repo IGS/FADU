@@ -122,22 +122,23 @@ def determine_pair_inserts_overlaps(read_pos):
         if first_end < second_start:
             # Counts bases from inserts
             for coord in range(first_end, second_start):
-                inserts[contig].setdefault(coord, { 'plus': 0, 'minus': 0 })
-                inserts[contig][coord][strand] += 1
+                str_coord = str(coord)
+                inserts[contig].setdefault(str_coord, { 'plus': 0, 'minus': 0 })
+                inserts[contig][str_coord][strand] += 1
         elif first_end > second_start:
             # Counts bases from overlaps
             for coord in range(second_start, first_end):
-                overlaps[contig].setdefault(coord, { 'plus': 0, 'minus': 0 })
-                overlaps[contig][coord][strand] += 1
+                str_coord = str(coord)
+                overlaps[contig].setdefault(str_coord, { 'plus': 0, 'minus': 0 })
+                overlaps[contig][str_coord][strand] += 1
     return (inserts, overlaps)
 
 def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stranded_type):
     """ Generate percentage of unique bases per gene """
     logging.debug("Generating overlap stats per gene")
-    if stranded_type == "no":
-        ext = "unstranded.uniquebp.stats.tsv"
-    else:
-        ext = "stranded.uniquebp.stats.tsv"
+    stranded = "unstranded" if stranded_type == "no" else "stranded"
+    ext = stranded + ".uniquebp.stats.tsv"
+
     stats_file = "{}/{}.{}".format(output_dir, gff3_base, ext)
     with open(stats_file, 'w') as f:
         headers = "contig\tstrand\tgene\tlength\tuniq_bases\tpct_uniq\n"
@@ -441,8 +442,8 @@ def write_fragment_depth(depth_dict, bam, stranded_type):
         depth_out_file = re.sub(r'\.bam', '.fragment.depth', bam)
         with open(depth_out_file, 'w') as ofh:
             for contig, vals in sorted(depth_dict.items()):
-                for coord, vals2 in sorted(vals.items()):
-                    row = [contig, str(coord), str(vals2['plus'])]
+                for coord in sorted(vals, key=int):
+                    row = [contig, coord, str(vals[coord]['plus'])]
                     ofh.write("\t".join(row) + "\n")
     else:
         strand_list = ["plus", "minus"]
@@ -450,8 +451,8 @@ def write_fragment_depth(depth_dict, bam, stranded_type):
             depth_out_file = re.sub(r'\.bam', '.{}.fragment.depth'.format(strand), bam)
             with open(depth_out_file, 'w') as ofh:
                 for contig, vals in sorted(depth_dict.items()):
-                    for coord, vals2 in sorted(vals.items()):
-                        row = [contig, str(coord), str(vals2[strand])]
+                    for coord in sorted(vals, key=int):
+                        row = [contig, coord, str(vals[coord][strand])]
                         ofh.write("\t".join(row) + "\n")
 
 ########
