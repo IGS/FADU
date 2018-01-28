@@ -23,17 +23,16 @@ import logging
 # Functions (in alphabetical order)
 ###########
 
-def adjust_depth(depth_dict, inserts, overlaps):
+def adjust_depth(depth_dict, read_pos):
     """ Adjust depth per coordinate position based on inserts and overlaps present in fragment """
     name = mp.current_process().name
     logging.debug("{} - Adjusting depth counts to account for fragments ...".format(name) )
-    for contig, vals in depth_dict.items():
-        for coord, vals2 in vals.items():
-            for strand in vals2:
-                if coord in inserts[contig]:
-                    depth_dict[contig][coord][strand] += inserts[contig][coord][strand]
-                if coord in overlaps[contig]:
-                    depth_dict[contig][coord][strand] -= overlaps[contig][coord][strand]
+    for query, vals in read_pos.items():
+        contig = vals['contig']
+        strand = vals['strand']
+        (inserts, overlaps) = determine_pair_inserts_overlaps(vals)
+        {depth_dict[contig][coord][strand] += 1 for str(coord) in inserts}
+        {depth_dict[contig][coord][strand] -= 1 for str(coord) in overlaps}
 
 def calc_avg_read_len(bam):
     """ Calculates average read len of all BAM reads """
@@ -95,42 +94,30 @@ def count_uniq_bases_per_gene(contig_bases, gene_info):
     counter.update( {gene: 0 for gene in gene_info if gene not in counter} )
     return counter
 
-def determine_pair_inserts_overlaps(read_pos):
+def determine_pair_inserts_overlaps(read_pair):
     """ Keep track of all paired read fragment inserts and overlaps per individual base """
-    inserts = {}
-    overlaps = {}
-    for query, vals in read_pos.items():
-        # reference start position is always the leftmost coordinate.  Also 0-based
-        # reference end is one base to the right of the last aligned residue
-        r1start = vals['r1start']
-        r2start = vals['r2start']
-        r1end = vals['r1end']
-        r2end = vals['r2end']
-        contig = vals['contig']
-        strand = vals['strand']
+    inserts = set()
+    overlaps = set()
 
-        inserts.setdefault(contig, {})
-        overlaps.setdefault(contig, {})
+    # reference start position is always the leftmost coordinate.  Also 0-based
+    # reference end is one base to the right of the last aligned residue
+    r1start = read_pair['r1start']
+    r2start = read_pair['r2start']
+    r1end = read_pair['r1end']
+    r2end = read_pair['r2end']
 
-        # Which of the reads is leftmost on the reference?
-        first_end = r1end
-        second_start = r2start
-        if min(r1start, r2start) == r2start:
-            first_end = r2end
-            second_start = r1start
+    # Which of the reads is leftmost on the reference?
+    first_end = r1end
+    second_start = r2start
+    if min(r1start, r2start) == r2start:
+        first_end = r2end
+        second_start = r1start
 
-        if first_end < second_start:
-            # Counts bases from inserts
-            for coord in range(first_end, second_start):
-                str_coord = str(coord)
-                inserts[contig].setdefault(str_coord, { 'plus': 0, 'minus': 0 })
-                inserts[contig][str_coord][strand] += 1
-        elif first_end > second_start:
-            # Counts bases from overlaps
-            for coord in range(second_start, first_end):
-                str_coord = str(coord)
-                overlaps[contig].setdefault(str_coord, { 'plus': 0, 'minus': 0 })
-                overlaps[contig][str_coord][strand] += 1
+    if first_end < second_start:
+        inserts.update(range(first_end, second_start))
+    elif first_end > second_start:
+        overlaps.update(range(second_start, first_end))
+
     return (inserts, overlaps)
 
 def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stranded_type):
@@ -317,9 +304,7 @@ def process_bam(bam, contig_bases, gene_info, args):
     # Adjust depth information for read pair fragments
     if count_by_fragment:
         logging.info("{} - Elected to count by fragments instead of reads".format(name))
-        # TODO: Possibly convert read positions into a file, and process file here to save memory
-        (insert_dict, overlap_dict) = determine_pair_inserts_overlaps(read_positions)
-        adjust_depth(depth_dict, insert_dict, overlap_dict)
+        adjust_depth(depth_dict, read_positions)
         write_fragment_depth(depth_dict, working_bam, stranded_type)
 
     # Calculate readcount stats per gene
