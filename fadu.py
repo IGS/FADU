@@ -299,6 +299,7 @@ def process_bam(bam, contig_bases, gene_info, args):
         (pos_bam, neg_bam) = split_bam_by_strand(working_bam, stranded_type)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
             logging.info("{} - Processing {} stranded BAM file".format(name, strand_list[idx]))
+            index_bam(split_bam)
             # Collect read information for each split BAM file
             parse_bam_for_proper_pairs(split_bam, read_positions, strand_list[idx])
             calc_depth(depth_dict, split_bam, strand_list[idx])
@@ -353,7 +354,6 @@ def split_bam_by_strand(bam, strand_type):
         pos_bam = re.sub(r'\.bam', '.plus{}.bam'.format(idx), bam)
         # Adding 'catch_stdout=False' prevents redirection of output to stdout stream
         pysam.view("-f", str(flag), "-o", pos_bam, bam, catch_stdout=False)
-        index_bam(pos_bam)
         bam_list.append(pos_bam)
     pos_bam = re.sub(r'\.bam', '.plus.bam', bam)
     merge_bam(bam_list, pos_bam)
@@ -363,7 +363,6 @@ def split_bam_by_strand(bam, strand_type):
     for idx, flag in enumerate(neg_flags):
         neg_bam = re.sub(r'\.bam', '.minus{}.bam'.format(idx), bam)
         pysam.view("-f", str(flag), "-o", neg_bam, bam, catch_stdout=False)
-        index_bam(neg_bam)
         bam_list.append(neg_bam)
     neg_bam = re.sub(r'\.bam', '.minus.bam', bam)
     merge_bam(bam_list, neg_bam)
