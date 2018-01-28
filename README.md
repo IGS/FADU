@@ -39,7 +39,8 @@ usage: fadu.py [-h]
                (--gff3 /path/to/annotation.gff3 | --gtf /path/to/annotation.gtf)
                --output_dir /path/to/output/dir [--tmp_dir /path/to/tmp/dir]
                [--stranded {yes,no,reverse}] [--feature_type FEATURE_TYPE]
-               [--attribute_type ATTRIBUTE_TYPE] [--num_cores NUM_CORES]
+               [--attribute_type ATTRIBUTE_TYPE] [--count_by {read,fragment}]
+			   [--remove_singletons] [--num_cores NUM_CORES]
                [--debug DEBUG/INFO/WARNING/ERROR/CRITICAL]
 
 
@@ -73,9 +74,23 @@ optional arguments:
                         Which GFF3/GTF attribute type (column 9) to obtain
                         readcount statistics for. Default is 'ID'. Case-
                         sensitive.
+  --count_by {read,fragment}, -c {read,fragment}
+                        How to count the reads when performing depth
+                        calculations. Default is 'read'.
+  --remove_singletons   Enable flag to remove singleton (unpaired) reads from
+                        the depth count statistics. Only applies if --stranded
+                        is 'no'.
   --num_cores NUM_CORES, -n NUM_CORES
                         Number of cores to spread processes to when processing
                         BAM list.
   --debug DEBUG/INFO/WARNING/ERROR/CRITICAL, -d DEBUG/INFO/WARNING/ERROR/CRITICAL
                         Set the debug level
 ```
+
+## Notes about kept reads for depth and coverage calculations
+### Default
+By default, all reads that map to the reference are kept.  Unmapped reads would not factor into depth calculations, and so they are removed in advance so they do not factor into calculating the average read length
+### With stranded or reverse-stranded reads
+If the reads are stranded or reverse-stranded, then singleton reads are thrown out, as well as any read pair where the read or its mate does not map to the reference.  Depth will be calculated seperately per strand
+### With --remove\_singletons enabled
+If this option is enabled, and the reads are unstranded, the same rules apply for the "With stranded or reverse-stranded reads" section.  However, depth will not be split per strand.
