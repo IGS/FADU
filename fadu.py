@@ -31,8 +31,12 @@ def adjust_depth(depth_dict, read_pos):
         contig = vals['contig']
         strand = vals['strand']
         (inserts, overlaps) = determine_pair_inserts_overlaps(vals)
-        {depth_dict[contig][coord][strand] += 1 for str(coord) in inserts}
-        {depth_dict[contig][coord][strand] -= 1 for str(coord) in overlaps}
+        for coords in inserts:
+            str_coords = str(coords)
+            depth_dict[contig][str_coords][strand] += 1
+        for coords in overlaps:
+            str_coords = str(coords)
+            depth_dict[contig][str(coord)][strand] -= 1
 
 def calc_avg_read_len(bam):
     """ Calculates average read len of all BAM reads """
