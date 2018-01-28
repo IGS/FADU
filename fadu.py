@@ -36,7 +36,7 @@ def adjust_depth(depth_dict, read_pos):
             depth_dict[contig][str_coords][strand] += 1
         for coords in overlaps:
             str_coords = str(coords)
-            depth_dict[contig][str(coord)][strand] -= 1
+            depth_dict[contig][str_coords][strand] -= 1
 
 def calc_avg_read_len(bam):
     """ Calculates average read len of all BAM reads """
@@ -176,18 +176,17 @@ def merge_bam(bam_list, bam_out):
     assert len(bam_list), "BAM list has no files!"
     pysam.merge("-f", bam_out, *bam_list)
 
-def parse_bam_alignments(bam, read_positions, strand, **kwargs):
-    """ Iterate through the BAM file to get information about the paired, mapped read alignments """
+def parse_bam_for_proper_pairs(bam, read_positions, strand, **kwargs):
+    """ Iterate through the BAM file to get information about the properly paired read alignments """
     bam_fh = pysam.AlignmentFile(bam, "rb")
     ofh = None
     if kwargs and "write_to" in kwargs:
         ofh = pysam.AlignmentFile(kwargs["write_to"], "wb", template=bam_fh)
     # NOTE: if there are lots of reference IDs, may be necessary to change to bam_fh.fetch(until_eof=True)
     for read in bam_fh.fetch():
-        # Both reads in the pair must map
-        good_read = not (read.is_unmapped or read.mate_is_unmapped) and read.is_paired
-        if good_read:
-            store_read_aln_info(read_positions, read, strand)
+        # Both reads in the pair must map to the same reference contig
+        if read.is_proper_pair:
+            store_properly_paired_read(read_positions, read, strand)
             # Optionally, write read to a passed in outfile
             if ofh:
                 ofh.write(read)
@@ -277,7 +276,7 @@ def process_bam(bam, contig_bases, gene_info, args):
     read_len = 0
 
     # Stranded reads will always remove singletons and unmapped reads via split_bam_by_strand
-    # Anytime singletons are removed, read length should be calculated from just paired, mapped reads
+    # Anytime singletons are removed, read length should be calculated from just properly paired, mapped reads
     # If counting by fragments instead of reads, also need to store information about read pair coordinates
 
     # Strandedness determines if the working BAM file needs to be split by strand
@@ -285,12 +284,12 @@ def process_bam(bam, contig_bases, gene_info, args):
         if rm_singletons:
             logging.info("{} - Removing singletons from unstranded reads".format(name))
             working_bam = re.sub(r'\.bam', '.paired.bam', ln_bam)
-            parse_bam_alignments(ln_bam, read_positions, "plus", write_to=working_bam)
+            parse_bam_for_proper_pairs(ln_bam, read_positions, "plus", write_to=working_bam)
             logging.info("{} - New working BAM file is {}".format(name, working_bam))
             index_bam(working_bam)
         else:
             if count_by_fragment:
-                parse_bam_alignments(working_bam, read_positions, "plus")
+                parse_bam_for_proper_pairs(working_bam, read_positions, "plus")
 
         calc_depth(depth_dict, working_bam, "plus")
         # Get the average read length of either the main BAM file or the paired BAM file
@@ -300,9 +299,9 @@ def process_bam(bam, contig_bases, gene_info, args):
         (pos_bam, neg_bam) = split_bam_by_strand(working_bam, stranded_type)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
             logging.info("{} - Processing {} stranded BAM file".format(name, strand_list[idx]))
-            calc_depth(depth_dict, split_bam, strand_list[idx])
             # Collect read information for each split BAM file
-            parse_bam_alignments(split_bam, read_positions, strand_list[idx])
+            parse_bam_for_proper_pairs(split_bam, read_positions, strand_list[idx])
+            calc_depth(depth_dict, split_bam, strand_list[idx])
         read_len = calc_avg_paired_read_len(read_positions)
 
     # Adjust depth information for read pair fragments
@@ -382,7 +381,7 @@ def store_depth(depth_dict, depth_out, strand):
         depth_dict[contig].setdefault(coord, {})
         depth_dict[contig][coord][strand] = int(depth)
 
-def store_read_aln_info(read_pos, read, strand):
+def store_properly_paired_read(read_pos, read, strand):
     """ Store alignment information about the current read """
     q_len = read.query_length
     query_name = read.query_name

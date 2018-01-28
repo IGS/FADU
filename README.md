@@ -89,8 +89,8 @@ optional arguments:
 
 ## Notes about kept reads for depth and coverage calculations
 ### Default
-By default, all reads that map to the reference are kept.  Unmapped reads would not factor into depth calculations, and so they are removed in advance so they do not factor into calculating the average read length
+By default, all reads that map to the reference are kept (SAM flag 0x4).  Unmapped reads would not factor into depth calculations, and so they are removed in advance so they do not factor into calculating the average read length
 ### With stranded or reverse-stranded reads
-If the reads are stranded or reverse-stranded, then singleton reads are thrown out, as well as any read pair where the read or its mate does not map to the reference.  Depth will be calculated seperately per strand
+If the reads are stranded or reverse-stranded, then only properly paired reads are kept (SAM flag 0x2).  Depth will be calculated seperately per strand
 ### With --remove\_singletons enabled
-If this option is enabled, and the reads are unstranded, the same rules apply for the "With stranded or reverse-stranded reads" section.  However, depth will not be split per strand.
+If this option is enabled and the reads are unstranded, the same rules apply for the "With stranded or reverse-stranded reads" section.  However, depth will not be split per strand.
