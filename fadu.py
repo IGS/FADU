@@ -166,7 +166,7 @@ def get_start_stop(first, second):
 
 def index_bam(bam):
     name = mp.current_process().name
-    logging.debug("{} - Indexing BAM ...".format(name))
+    logging.debug("{} - Indexing BAM file {}...".format(name, bam))
     pysam.index(bam)
 
 def merge_bam(bam_list, bam_out):
