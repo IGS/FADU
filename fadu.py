@@ -38,6 +38,43 @@ def adjust_depth(depth_dict, read_pos):
             str_coords = str(coords)
             depth_dict[contig][str_coords][strand] -= 1
 
+def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
+    """ Use the bitwise flags to assign the paired read to the correct strand """
+
+    # Forward-stranded assay
+    ## Positive Strand:
+    ### R1 - forward (96), R2 - revcom (144)
+    ## Negative Strand
+    ### R1 - revcom (80), R2 - forward (160)
+    # Reverse-stranded assay (i.e. Illumina)
+    ## Positive Strand
+    ### R1 - revcom (80), R2 - forward (160)
+    ## Negative Strand
+    ### R1 - forward (96), R2 - revcom (144)
+    # (Note - Bitflags 1 and 2 are assumed for all of these)
+
+    # Forward strand flags
+    flag_99 = read.is_read1 and read.mate_is_reverse
+    flag_147 = read.is_read2 and read.is_reverse
+    # Reverse strand flags
+    flag_83 = read.is_read1 and read.is_reverse
+    flag_163 = read.is_read2 and read.mate_is_reverse
+
+    pos_flags = {flag_99, flag_147}
+    neg_flags = {flag_83, flag_163}
+    if strand_type == "reverse":
+        pos_flags = {flag_83, flag_163}
+        neg_flags = {flag_99, flag_147}
+
+    if any(flags for flags in pos_flags):
+        pos_fh.write(read)
+        return "plus"
+    if any(flags for flags in neg_flags):
+        neg_fh.write(read)
+        return "minus"
+    logger.warning("Read {} did not have flags to match it to either strand.  Something isn't right".format(read.name))
+    return "skip"
+
 def calc_avg_read_len(bam):
     """ Calculates average read len of all BAM reads """
     name = mp.current_process().name
@@ -169,30 +206,45 @@ def index_bam(bam):
     logging.debug("{} - Indexing BAM file {}...".format(name, bam))
     pysam.index(bam)
 
-def merge_bam(bam_list, bam_out):
-    """ Merge a list of BAM files """
-    name = mp.current_process().name
-    logging.debug("{} - Merging BAM files ...".format(name))
-    assert len(bam_list), "BAM list has no files!"
-    pysam.merge("-f", bam_out, *bam_list)
-
-def parse_bam_for_proper_pairs(bam, read_positions, strand, **kwargs):
+def parse_bam_for_proper_pairs(bam, read_positions, stranded_type="no", **kwargs):
     """ Iterate through the BAM file to get information about the properly paired read alignments """
     bam_fh = pysam.AlignmentFile(bam, "rb")
-    ofh = None
-    if kwargs and "write_to" in kwargs:
-        ofh = pysam.AlignmentFile(kwargs["write_to"], "wb", template=bam_fh)
+    ofh = None; pos_ofh = None; neg_ofh = None
+    until_eof_flag = False
+    strand_type = "no"
+    strand = "plus"
+    if stranded_type != "no":
+        pos_bam = re.sub(r'\.bam', '.plus.bam', bam)
+        pos_ofh = pysam.AlignmentFile(pos_bam, "wb", template=bam_fh)
+        neg_bam = re.sub(r'\.bam', '.minus.bam', bam)
+        neg_ofh = pysam.AlignmentFile(neg_bam, "wb", template=bam_fh)
+
+    if kwargs:
+        if "until_eof" in kwargs:
+            until_eof_flag = True
+        if "write_to" in kwargs:
+            ofh = pysam.AlignmentFile(kwargs["write_to"], "wb", template=bam_fh)
     # NOTE: if there are lots of reference IDs, may be necessary to change to bam_fh.fetch(until_eof=True)
-    for read in bam_fh.fetch():
+    for read in bam_fh.fetch(until_eof=until_eof_flag):
         # Both reads in the pair must map to the same reference contig
         if read.is_proper_pair:
+            if stranded_type != "no":
+                strand = assign_read_to_strand(read, stranded_type, pos_ofh, neg_ofh)
+            # Will trigger if 'assign_read_to_strand' cannot do so
+            if strand == "skip":
+                continue
             store_properly_paired_read(read_positions, read, strand)
             # Optionally, write read to a passed in outfile
             if ofh:
                 ofh.write(read)
+
+    # Close any open BAM files
     bam_fh.close()
     if ofh:
         ofh.close()
+    if stranded_type != "no":
+        pos_ofh.close()
+        neg_ofh.close()
 
 def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     """ Parse the GFF3 or GTF annotation file """
@@ -284,24 +336,21 @@ def process_bam(bam, contig_bases, gene_info, args):
         if rm_singletons:
             logging.info("{} - Removing singletons from unstranded reads".format(name))
             working_bam = re.sub(r'\.bam', '.paired.bam', ln_bam)
-            parse_bam_for_proper_pairs(ln_bam, read_positions, "plus", write_to=working_bam)
+            parse_bam_for_proper_pairs(ln_bam, read_positions, write_to=working_bam)
             logging.info("{} - New working BAM file is {}".format(name, working_bam))
-            index_bam(working_bam)
+            #index_bam(working_bam)
         else:
             if count_by_fragment:
-                parse_bam_for_proper_pairs(working_bam, read_positions, "plus")
-
+                parse_bam_for_proper_pairs(working_bam, read_positions)
         calc_depth(depth_dict, working_bam, "plus")
         # Get the average read length of either the main BAM file or the paired BAM file
         read_len = calc_avg_paired_read_len(read_positions) if rm_singletons else calc_avg_read_len(working_bam)
     else:
+        parse_bam_for_proper_pairs(working_bam, read_positions, stranded_type=stranded_type)
         strand_list = ["plus", "minus"]
-        (pos_bam, neg_bam) = split_bam_by_strand(working_bam, stranded_type)
+        pos_bam = re.sub(r'\.bam', '.plus.bam', working_bam)
+        neg_bam = re.sub(r'\.bam', '.minus.bam', working_bam)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
-            logging.info("{} - Processing {} stranded BAM file".format(name, strand_list[idx]))
-            index_bam(split_bam)
-            # Collect read information for each split BAM file
-            parse_bam_for_proper_pairs(split_bam, read_positions, strand_list[idx])
             calc_depth(depth_dict, split_bam, strand_list[idx])
         read_len = calc_avg_paired_read_len(read_positions)
 
@@ -320,54 +369,6 @@ def set_strand(sign):
     if sign == "+" or sign == "*":
         return "plus"
     return "minus"
-
-def split_bam_by_strand(bam, strand_type):
-    """ Split the input BAM file by plus/minus strands using the bitwise flag """
-    name = mp.current_process().name
-    logging.debug("{} - Splitting BAM into positive and negative strands".format(name))
-
-    # Forward-stranded assay
-    ## Positive Strand:
-    ### R1 - forward (96), R2 - revcom (144)
-    ## Negative Strand
-    ### R1 - revcom (80), R2 - forward (160)
-    # Reverse-stranded assay (i.e. Illumina)
-    ## Positive Strand
-    ### R1 - revcom (80), R2 - forward (160)
-    ## Negative Strand
-    ### R1 - forward (96), R2 - revcom (144)
-    # (Note - Bitflags 1 and 2 are assumed for all of these)
-
-    fwd_flags = {99, 147}
-    rev_flags = {83, 163}
-
-    pos_flags = fwd_flags; neg_flags = rev_flags
-    if strand_type == "reverse":
-        pos_flags = rev_flags; neg_flags = fwd_flags
-
-    # TODO: Look into using pySam.AlignedSegment.is_reverse (and mate) to split file
-    # into positive and negative strands.  Write file using pysam.AlignmentFile.write
-
-    logging.debug("{} - Positive strand...".format(name))
-    bam_list = []
-    for idx, flag in enumerate(pos_flags):
-        pos_bam = re.sub(r'\.bam', '.plus{}.bam'.format(idx), bam)
-        # Adding 'catch_stdout=False' prevents redirection of output to stdout stream
-        pysam.view("-f", str(flag), "-o", pos_bam, bam, catch_stdout=False)
-        bam_list.append(pos_bam)
-    pos_bam = re.sub(r'\.bam', '.plus.bam', bam)
-    merge_bam(bam_list, pos_bam)
-
-    logging.debug("{} - Negative strand...".format(name))
-    bam_list = []
-    for idx, flag in enumerate(neg_flags):
-        neg_bam = re.sub(r'\.bam', '.minus{}.bam'.format(idx), bam)
-        pysam.view("-f", str(flag), "-o", neg_bam, bam, catch_stdout=False)
-        bam_list.append(neg_bam)
-    neg_bam = re.sub(r'\.bam', '.minus.bam', bam)
-    merge_bam(bam_list, neg_bam)
-
-    return (pos_bam, neg_bam)
 
 def store_depth(depth_dict, depth_out, strand):
     """ Store depth coverage information from 'samtools depth' command """
