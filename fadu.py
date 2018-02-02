@@ -71,7 +71,7 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     if any(flags for flags in neg_flags):
         neg_fh.write(read)
         return "minus"
-    logger.warning("Read {} did not have flags to match it to either strand.  Something isn't right".format(read.name))
+    logging.warning("Read {} did not have flags to match it to either strand.  Something isn't right".format(read.name))
 
 def calc_avg_read_len(bam):
     """ Calculates average read len of all BAM reads """
