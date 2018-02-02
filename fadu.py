@@ -127,12 +127,11 @@ def count_uniq_bases_per_gene(contig_bases, gene_info):
 def determine_pair_inserts_overlaps(read_pair):
     """ Keep track of all paired read fragment inserts and overlaps per individual base """
 
-    # reference start position is always the leftmost coordinate.  Also 0-based
-    # reference end is one base to the right of the last aligned residue
-    r1start = read_pair['r1start']
-    r2start = read_pair['r2start']
-    r1end = read_pair['r1end']
-    r2end = read_pair['r2end']
+    # Need to make coords 1-based since the depth output is 1-based
+    r1start = read_pair['r1start'] + 1
+    r2start = read_pair['r2start'] + 1
+    r1end = read_pair['r1end'] + 1
+    r2end = read_pair['r2end'] + 1
 
     min_coord = min(r1start, r2start, r1end, r2end)
     max_coord = max(r1start, r2start, r1end, r2end)
@@ -358,12 +357,13 @@ def store_depth(depth_dict, depth_out, strand):
 
 def store_properly_paired_read(read_pos, read, strand):
     """ Store alignment information about the current read """
-    q_len = read.query_length
     query_name = read.query_name
     # The contig or chromosome name
     ref_name = read.reference_name
 
-    # Originally used bam_fh.mate(read) to get mate, but it severely slows down processing
+    # NOTE: PySAM coords are 0-based, BAM are 1-based
+    # reference start position is always the leftmost coordinate.
+    # reference end is one base to the right of the last aligned residue
     if query_name not in read_pos:
         read_pos.setdefault(query_name, {
             'r1start': None,
@@ -374,9 +374,11 @@ def store_properly_paired_read(read_pos, read, strand):
             'strand': strand
         })
         read_pos[query_name]['r1start'] = read.reference_start
-        read_pos[query_name]['r2start'] = read.next_reference_start
         read_pos[query_name]['r1end'] = read.reference_end
-        read_pos[query_name]['r2end'] = read.next_reference_start + q_len
+    else:
+        read_pos[query_name]['r2start'] = read.reference_start
+        read_pos[query_name]['r2end'] = read.reference_end
+
 
 def symlink_bam(bam, outdir):
     ln_bam = outdir + "/" + os.path.basename(bam)
