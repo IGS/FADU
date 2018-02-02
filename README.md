@@ -40,7 +40,7 @@ usage: fadu.py [-h]
                --output_dir /path/to/output/dir [--tmp_dir /path/to/tmp/dir]
                [--stranded {yes,no,reverse}] [--feature_type FEATURE_TYPE]
                [--attribute_type ATTRIBUTE_TYPE] [--count_by {read,fragment}]
-			   [--remove_singletons] [--num_cores NUM_CORES]
+               [--keep_only_properly_paired] [--num_cores NUM_CORES]
                [--debug DEBUG/INFO/WARNING/ERROR/CRITICAL]
 
 
@@ -77,9 +77,9 @@ optional arguments:
   --count_by {read,fragment}, -c {read,fragment}
                         How to count the reads when performing depth
                         calculations. Default is 'read'.
-  --remove_singletons   Enable flag to remove singleton (unpaired) reads from
-                        the depth count statistics. Only applies if --stranded
-                        is 'no'.
+  --keep_only_properly_paired
+                        Enable flag to remove any reads that are not properly
+                        paired from the depth count statistics.
   --num_cores NUM_CORES, -n NUM_CORES
                         Number of cores to spread processes to when processing
                         BAM list.
@@ -90,7 +90,5 @@ optional arguments:
 ## Notes about kept reads for depth and coverage calculations
 ### Default
 By default, all reads that map to the reference are kept (SAM flag 0x4).  Unmapped reads would not factor into depth calculations, and so they are removed in advance so they do not factor into calculating the average read length
-### With stranded or reverse-stranded reads
-If the reads are stranded or reverse-stranded, then only properly paired reads are kept (SAM flag 0x2).  Depth will be calculated seperately per strand
-### With --remove\_singletons enabled
-If this option is enabled and the reads are unstranded, the same rules apply for the "With stranded or reverse-stranded reads" section.  However, depth will not be split per strand.
+### With --keep_only_properly_paired enabled
+If this option is enabled, then only properly paired reads are kept (SAM flag 0x2)

@@ -51,20 +51,19 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     ### R1 - revcom (80), R2 - forward (160)
     ## Negative Strand
     ### R1 - forward (96), R2 - revcom (144)
-    # (Note - Bitflags 1 and 2 are assumed for all of these)
 
     # Forward strand flags
-    flag_99 = read.is_read1 and read.mate_is_reverse
-    flag_147 = read.is_read2 and read.is_reverse
+    flag_96 = read.is_read1 and read.mate_is_reverse
+    flag_144 = read.is_read2 and read.is_reverse
     # Reverse strand flags
-    flag_83 = read.is_read1 and read.is_reverse
-    flag_163 = read.is_read2 and read.mate_is_reverse
+    flag_80 = read.is_read1 and read.is_reverse
+    flag_160 = read.is_read2 and read.mate_is_reverse
 
-    pos_flags = {flag_99, flag_147}
-    neg_flags = {flag_83, flag_163}
+    pos_flags = {flag_96, flag_144}
+    neg_flags = {flag_80, flag_160}
     if strand_type == "reverse":
-        pos_flags = {flag_83, flag_163}
-        neg_flags = {flag_99, flag_147}
+        pos_flags = {flag_80, flag_160}
+        neg_flags = {flag_96, flag_144}
 
     if any(flags for flags in pos_flags):
         pos_fh.write(read)
@@ -73,7 +72,6 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
         neg_fh.write(read)
         return "minus"
     logger.warning("Read {} did not have flags to match it to either strand.  Something isn't right".format(read.name))
-    return "skip"
 
 def calc_avg_read_len(bam):
     """ Calculates average read len of all BAM reads """
@@ -85,15 +83,6 @@ def calc_avg_read_len(bam):
     num_reads = bam_fh.count()
     bam_fh.close()
     return round(total_query_len / num_reads)
-
-def calc_avg_paired_read_len(read_pos):
-    """ Calculate average read length of just mapped, paired reads """
-    name = mp.current_process().name
-    logging.debug("{} - Calculating average read length ...".format(name) )
-    # Will not assume all query_lengths are the same, so double value per read to account for its mate
-    total_query_len = sum( read_pos[read]['read_len']*2 for read in read_pos )
-    # Total reads is read_pos.keys * 2
-    return round(total_query_len / (len(read_pos)*2))
 
 def calc_depth(depth_dict, bam, strand):
     """ Calculate depth of coverage using 'samtools deptha' """
@@ -137,8 +126,6 @@ def count_uniq_bases_per_gene(contig_bases, gene_info):
 
 def determine_pair_inserts_overlaps(read_pair):
     """ Keep track of all paired read fragment inserts and overlaps per individual base """
-    inserts = set()
-    overlaps = set()
 
     # reference start position is always the leftmost coordinate.  Also 0-based
     # reference end is one base to the right of the last aligned residue
@@ -147,17 +134,16 @@ def determine_pair_inserts_overlaps(read_pair):
     r1end = read_pair['r1end']
     r2end = read_pair['r2end']
 
-    # Which of the reads is leftmost on the reference?
-    first_end = r1end
-    second_start = r2start
-    if min(r1start, r2start) == r2start:
-        first_end = r2end
-        second_start = r1start
+    min_coord = min(r1start, r2start, r1end, r2end)
+    max_coord = max(r1start, r2start, r1end, r2end)
+    r1_range = set(range(r1start, r1end))
+    r2_range = set(range(r2start, r2end))
+    combined_range = set(range(min_coord, max_coord))
 
-    if first_end < second_start:
-        inserts.update(range(first_end, second_start))
-    elif first_end > second_start:
-        overlaps.update(range(second_start, first_end))
+    # Insert coords will not appear in either read
+    inserts = combined_range.difference(*(r1_range, r2_range))
+    # Overlapping coords will be common to both reads
+    overlaps = r1_range.intersection(r2_range)
 
     return (inserts, overlaps)
 
@@ -206,37 +192,40 @@ def index_bam(bam):
     logging.debug("{} - Indexing BAM file {}...".format(name, bam))
     pysam.index(bam)
 
-def parse_bam_for_proper_pairs(bam, read_positions, stranded_type="no", **kwargs):
+def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, count_by_fragment, **kwargs):
     """ Iterate through the BAM file to get information about the properly paired read alignments """
     bam_fh = pysam.AlignmentFile(bam, "rb")
     ofh = None; pos_ofh = None; neg_ofh = None
     until_eof_flag = False
-    strand_type = "no"
     strand = "plus"
+
+    # BAM file that will be returned for downstream processing
+    working_bam = bam
+
     if stranded_type != "no":
         pos_bam = re.sub(r'\.bam', '.plus.bam', bam)
         pos_ofh = pysam.AlignmentFile(pos_bam, "wb", template=bam_fh)
         neg_bam = re.sub(r'\.bam', '.minus.bam', bam)
         neg_ofh = pysam.AlignmentFile(neg_bam, "wb", template=bam_fh)
 
+    if pp_only:
+        working_bam = re.sub(r'\.bam', '.p_paired.bam', bam)
+        ofh = pysam.AlignmentFile(working_bam, "wb", template=bam_fh)
+
     if kwargs:
         if "until_eof" in kwargs:
             until_eof_flag = True
-        if "write_to" in kwargs:
-            ofh = pysam.AlignmentFile(kwargs["write_to"], "wb", template=bam_fh)
+
     # NOTE: if there are lots of reference IDs, may be necessary to change to bam_fh.fetch(until_eof=True)
     for read in bam_fh.fetch(until_eof=until_eof_flag):
-        # Both reads in the pair must map to the same reference contig
-        if read.is_proper_pair:
-            if stranded_type != "no":
-                strand = assign_read_to_strand(read, stranded_type, pos_ofh, neg_ofh)
-            # Will trigger if 'assign_read_to_strand' cannot do so
-            if strand == "skip":
-                continue
+        if stranded_type != "no":
+            strand = assign_read_to_strand(read, stranded_type, pos_ofh, neg_ofh)
+        # Store properly paired reads for adjusting depth by fragments later
+        if count_by_fragment and read.is_proper_pair:
             store_properly_paired_read(read_positions, read, strand)
-            # Optionally, write read to a passed in outfile
-            if ofh:
-                ofh.write(read)
+        # If only keep properly paired reads, write to file
+        if ofh:
+            ofh.write(read)
 
     # Close any open BAM files
     bam_fh.close()
@@ -245,6 +234,7 @@ def parse_bam_for_proper_pairs(bam, read_positions, stranded_type="no", **kwargs
     if stranded_type != "no":
         pos_ofh.close()
         neg_ofh.close()
+    return working_bam
 
 def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     """ Parse the GFF3 or GTF annotation file """
@@ -303,7 +293,7 @@ def process_bam(bam, contig_bases, gene_info, args):
     # Extract the argument variables that are needed
     stranded_type = args.stranded
     count_by = args.count_by
-    rm_singletons = args.remove_singletons
+    pp_only = args.keep_only_properly_paired
     tmp_dir = args.tmp_dir
     output_dir = args.output_dir
 
@@ -315,9 +305,6 @@ def process_bam(bam, contig_bases, gene_info, args):
     # Index BAM
     index_bam(ln_bam)
 
-    # BAM file that will be used downstream in processing
-    working_bam = ln_bam
-
     # Are depth counts fragment-based or read-based?
     count_by_fragment = False
     if count_by.lower() == "fragment":
@@ -327,32 +314,20 @@ def process_bam(bam, contig_bases, gene_info, args):
     depth_dict = {}
     read_len = 0
 
-    # Stranded reads will always remove singletons and unmapped reads via split_bam_by_strand
-    # Anytime singletons are removed, read length should be calculated from just properly paired, mapped reads
-    # If counting by fragments instead of reads, also need to store information about read pair coordinates
+    working_bam = parse_bam_for_proper_pairs(ln_bam, read_positions, pp_only, stranded_type, count_by_fragment)
 
     # Strandedness determines if the working BAM file needs to be split by strand
     if stranded_type == "no":
-        if rm_singletons:
-            logging.info("{} - Removing singletons from unstranded reads".format(name))
-            working_bam = re.sub(r'\.bam', '.paired.bam', ln_bam)
-            parse_bam_for_proper_pairs(ln_bam, read_positions, write_to=working_bam)
-            logging.info("{} - New working BAM file is {}".format(name, working_bam))
-            #index_bam(working_bam)
-        else:
-            if count_by_fragment:
-                parse_bam_for_proper_pairs(working_bam, read_positions)
         calc_depth(depth_dict, working_bam, "plus")
-        # Get the average read length of either the main BAM file or the paired BAM file
-        read_len = calc_avg_paired_read_len(read_positions) if rm_singletons else calc_avg_read_len(working_bam)
     else:
-        parse_bam_for_proper_pairs(working_bam, read_positions, stranded_type=stranded_type)
         strand_list = ["plus", "minus"]
         pos_bam = re.sub(r'\.bam', '.plus.bam', working_bam)
         neg_bam = re.sub(r'\.bam', '.minus.bam', working_bam)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
             calc_depth(depth_dict, split_bam, strand_list[idx])
-        read_len = calc_avg_paired_read_len(read_positions)
+
+    # Get the average read length of working bam file
+    read_len = calc_avg_read_len(working_bam)
 
     # Adjust depth information for read pair fragments
     if count_by_fragment:
@@ -395,7 +370,6 @@ def store_properly_paired_read(read_pos, read, strand):
             'r1end': None,
             'r2start': None,
             'r2end': None,
-            'read_len': q_len,
             'contig': ref_name,
             'strand': strand
         })
@@ -463,7 +437,7 @@ def main():
     parser.add_argument("--feature_type", "-f", help="Which GFF3/GTF feature type (column 3) to obtain readcount statistics for.  Default is 'gene'.  Case-sensitive.", default="gene", required=False)
     parser.add_argument("--attribute_type", "-a", help="Which GFF3/GTF attribute type (column 9) to obtain readcount statistics for.  Default is 'ID'.  Case-sensitive.", default="ID", required=False)
     parser.add_argument("--count_by", "-c", help="How to count the reads when performing depth calculations.  Default is 'read'.", default="read", choices=['read', 'fragment'], required=False)
-    parser.add_argument("--remove_singletons", help="Enable flag to remove singleton (unpaired) reads from the depth count statistics.  Only applies if --stranded is 'no'.", action="store_true", required=False)
+    parser.add_argument("--keep_only_properly_paired", help="Enable flag to remove any reads that are not properly paired from the depth count statistics.", action="store_true", required=False)
     parser.add_argument("--num_cores", "-n", help="Number of cores to spread processes to when processing BAM list.", default=1, type=check_positive, required=False)
     parser.add_argument("--debug", "-d", help="Set the debug level", default="INFO", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL")
     args = parser.parse_args()
@@ -522,9 +496,6 @@ def check_args(args, parser):
     if not args.tmp_dir:
         logging.debug("--tmp_dir not specified.  Will write temp files to output directory")
         args.tmp_dir = args.output_dir
-
-    if args.remove_singletons and not args.stranded == "no":
-        logging.warn("Singletons are already removed by default when --stranded is equal to 'yes' or 'reverse'.  Ignoring --remove_singletons option.")
 
 def check_positive(value):
     """ Verify the integer argument passed in is positive """
