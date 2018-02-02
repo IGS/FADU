@@ -71,7 +71,6 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     if any(flags for flags in neg_flags):
         neg_fh.write(read)
         return "minus"
-    logging.warning("Read {} did not have flags to match it to either strand.  Something isn't right".format(read.query_name))
 
 def calc_avg_read_len(bam):
     """ Calculates average read len of all BAM reads """
@@ -218,17 +217,21 @@ def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, coun
     # NOTE: if there are lots of reference IDs, may be necessary to change to bam_fh.fetch(until_eof=True)
     for read in bam_fh.fetch(until_eof=until_eof_flag):
         if stranded_type != "no":
+            if pp_only and not read.is_proper_pair:
+                continue
             strand = assign_read_to_strand(read, stranded_type, pos_ofh, neg_ofh)
-        # Store properly paired reads for adjusting depth by fragments later
-        if count_by_fragment and read.is_proper_pair:
-            store_properly_paired_read(read_positions, read, strand)
-        # If only keep properly paired reads, write to file
-        if ofh:
-            ofh.write(read)
+
+        if read.is_proper_pair
+            # Store properly paired reads for adjusting depth by fragments later
+            if count_by_fragment:
+                store_properly_paired_read(read_positions, read, strand)
+            # If only keep properly paired reads, write to file
+            if pp_only:
+                ofh.write(read)
 
     # Close any open BAM files
     bam_fh.close()
-    if ofh:
+    if pp_only:
         ofh.close()
     if stranded_type != "no":
         pos_ofh.close()
