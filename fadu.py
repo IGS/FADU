@@ -75,6 +75,8 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     if any(flags for flags in neg_flags):
         neg_fh.write(read)
         return "minus"
+    logging.warning("Read %s did not get assigned to either strand apparently.", read.query_name)
+    return "skip"
 
 def calc_avg_read_len(bam):
     """ Calculates average read len of all mapped BAM reads """
@@ -101,7 +103,8 @@ def calc_avg_frag_len(bam, read_pos, pp_only):
     num_reads = len(read_pos) * 2
     total_query_len = sum(vals['frag_len'] * 2 for query, vals in read_pos.items())
     avg_frag_len = round(total_query_len / num_reads)
-    logging.info("%s - Average fragment length of just properly paired reads - %d", name, avg_frag_len)
+    logging.info("%s - Average fragment length of just properly paired reads - %d",
+                 name, avg_frag_len)
     if not pp_only:
         bam_fh = pysam.AlignmentFile(bam, "rb")
         # Overwrite existing num_reads as this value will include all properly paired reads
@@ -141,9 +144,10 @@ def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_
             uniq_coords = [key for key, val in contig_bases[contig][strand].items() if val == gene]
             total_depth = 0
             for coord in uniq_coords:
-                assert(coord in depth_dict[contig]), \
-                    "Coordinate {} for contig {} should have been in the 'samtools depth' output".format(coord, contig)
-                total_depth += sum(depth_dict[contig][coord][s] for s in depth_dict[contig][coord] if s == strand)
+                assert(coord in depth_dict[contig]), "Coordinate {} for contig {} should have \
+                    been in the 'samtools depth' output".format(coord, contig)
+                total_depth += sum(depth_dict[contig][coord][s]
+                                   for s in depth_dict[contig][coord] if s == strand)
             readcounts = round(total_depth / read_len, 2)
             f.write("{}\t{}\n".format(gene, readcounts))
 
@@ -186,7 +190,8 @@ def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stran
             for elem in val_list:
                 overlap = 0
                 (contig, start, stop, strand) = elem
-                # In some cases, the previous and current coords may have an overlap, possibly due to a frameshift
+                # In some cases, the previous and current coords may have an overlap,
+                # possibly due to a frameshift
                 if start <= prev_stop:
                     overlap = prev_stop - start + 1
                 length += stop - start + 1 - overlap
@@ -201,8 +206,10 @@ def get_gene_from_attr(attr_field, ptrn):
     """ Only keep gene ID from attribute section of GFF3 file """
     match = ptrn.search(attr_field)
     if not match:
-        logging.error("Attribute field '%s' found to have no matches for ptrn %s", attr_field, ptrn)
-    assert match.lastindex == 2, "Attribute field '{}' found to have more than one match for ptrn {}".format(attr_field, ptrn)
+        logging.error("Attribute field '%s' found to have no matches \
+                      for ptrn %s", attr_field, ptrn)
+    assert match.lastindex == 2, "Attribute field '{}' found to have \
+        more than one match for ptrn {}".format(attr_field, ptrn)
     return match.group(2)
 
 def get_start_stop(first, second):
@@ -218,8 +225,10 @@ def index_bam(bam):
     pysam.index(bam)
 
 #@profile
-def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, count_by_fragment, **kwargs):
-    """ Iterate through the BAM file to get information about the properly paired read alignments """
+def parse_bam_for_proper_pairs(
+        bam, read_positions, pp_only, stranded_type, count_by_fragment, **kwargs):
+    """ Iterate through the BAM file to get information
+    about the properly paired read alignments """
     name = mp.current_process().name
     bam_fh = pysam.AlignmentFile(bam, "rb")
     ofh = None
@@ -247,7 +256,8 @@ def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, coun
         if "until_eof" in kwargs:
             until_eof_flag = True
 
-    # NOTE: if there are lots of reference IDs, may be necessary to change to bam_fh.fetch(until_eof=True)
+    # NOTE: if there are lots of reference IDs,
+    # may be necessary to change to bam_fh.fetch(until_eof=True)
     for read in bam_fh.fetch(until_eof=until_eof_flag):
         if stranded_type != "no":
             if pp_only and not read.is_proper_pair:
@@ -275,7 +285,8 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     """ Parse the GFF3 or GTF annotation file """
     if is_gff3:
         logging.info("Parsing GFF3 file")
-        # Attribute field to parse IDs from.  Keeping number of matching groups for both GTF and GFF ptrns uniform
+        # Attribute field to parse IDs from.
+        # Keeping number of matching groups for both GTF and GFF ptrns uniform
         ptrn = re.compile(r'(;)?{0}=([\w|.]+);?'.format(attr_type))
     else:
         logging.info("Parsing GTF file")
@@ -303,14 +314,16 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
             if entry[2] == feat_type:
                 contig_id = entry[0]
                 gene_id = get_gene_from_attr(entry[8], ptrn)
-                assert gene_id, "ID for attribute {} was not found for contig {} with feature {} ".format(attr_type, contig_id, feat_type)
+                assert gene_id, "ID for attribute {} was not found for contig {} with \
+                    feature {}".format(attr_type, contig_id, feat_type)
                 (start, stop) = get_start_stop(int(entry[3]), int(entry[4]))
                 sign = entry[6]
                 if not stranded:
                     sign = "*"
                 strand = set_strand(sign)
 
-                #Store feature ID information to list.  A feature ID can be present in multiple GFF entries
+                # Store feature ID information to list.
+                # A feature ID can be present in multiple GFF entries
                 gene_info.setdefault(gene_id, [])
                 gene_info[gene_id].append((contig_id, start, stop, sign))
 
@@ -334,7 +347,7 @@ def process_bam(bam, contig_bases, gene_info, args):
 
     logging.info("%s - Processing BAM file %s", name, bam)
     if not os.path.isfile(bam):
-        logging.error(bam + " does not seem to exist")
+        logging.error("%s does not seem to exist", bam)
     assert(os.stat(bam).st_size > 0), "{} was empty".format(bam)
     ln_bam = symlink_bam(bam, tmp_dir)
     # Index BAM
@@ -349,7 +362,8 @@ def process_bam(bam, contig_bases, gene_info, args):
     depth_dict = {}
     read_len = 0
 
-    working_bam = parse_bam_for_proper_pairs(ln_bam, read_positions, pp_only, stranded_type, count_by_fragment)
+    working_bam = parse_bam_for_proper_pairs(
+        ln_bam, read_positions, pp_only, stranded_type, count_by_fragment)
 
     # Strandedness determines if the working BAM file needs to be split by strand
     if stranded_type == "no":
@@ -432,7 +446,8 @@ def store_properly_paired_read(read_pos, read, strand):
         r2end = read_pos[query_name]['r2end']
         read_pos[query_name]['min_coord'] = min(r1start, r2start, r1end, r2end)
         read_pos[query_name]['max_coord'] = max(r1start, r2start, r1end, r2end)
-        read_pos[query_name]['frag_len'] = read_pos[query_name]['max_coord'] - read_pos[query_name]['min_coord']
+        read_pos[query_name]['frag_len'] = \
+            read_pos[query_name]['max_coord'] - read_pos[query_name]['min_coord']
 
 def symlink_bam(bam, outdir):
     """ Create symlink for passed in BAM file if it does not exist """
@@ -460,7 +475,8 @@ def write_fragment_depth(depth_dict, bam, strand):
 
     bam_fh = pysam.AlignmentFile(bam, "rb")
     if bam_fh.count(read_callback='all') == 0:
-        logging.info("%s - BAM file %s was empty of mapped reads. Cannot write fragment depth for this file.", name, bam)
+        logging.info("%s - BAM file %s was empty of mapped reads. \
+                     Cannot write fragment depth for this file.", name, bam)
         return
     bam_fh.close()
 
@@ -481,20 +497,42 @@ def main():
     description = "Generate counts of reads that map to non-overlapping portions of genes"
     parser = argparse.ArgumentParser(description=description)
     bam_group = parser.add_mutually_exclusive_group(required=True)
-    bam_group.add_argument("--bam_file", "-b", help="Path to BAM file. Choose between --bam_file or --bam_list.", metavar="/path/to/alignment.bam")
-    bam_group.add_argument("--bam_list", "-B", help="List file of BAM-formatted files (no SAM at this time).  Choose between --bam_file or --bam_list.", metavar="/path/to/bam.list")
+    bam_group.add_argument("--bam_file", "-b", metavar="/path/to/alignment.bam",
+                           help="Path to BAM file. Choose between --bam_file or --bam_list.")
+    bam_group.add_argument("--bam_list", "-B", metavar="/path/to/bam.list",
+                           help="List file of BAM-formatted files (no SAM at this time). \
+                           Choose between --bam_file or --bam_list.")
     gff_group = parser.add_mutually_exclusive_group(required=True)
-    gff_group.add_argument("--gff3", "-g", help="Path to GFF3-formatted annotation file. Choose between --gff3 or --gtf.", metavar="/path/to/annotation.gff3")
-    gff_group.add_argument("--gtf", "-G", help="Path to GTF-formatted annotation file. Choose between --gff3 or --gtf.", metavar="/path/to/annotation.gtf")
-    parser.add_argument("--output_dir", "-o", help="Required. Directory to store output.", metavar="/path/to/output/dir", required=True)
-    parser.add_argument("--tmp_dir", "-t", help="Directory to store temporary output.  If not provided, the output directory will serve as the temporary directory also", metavar="/path/to/tmp/dir", required=False)
-    parser.add_argument("--stranded", "-s", help="Indicate if BAM reads are from a strand-specific assay", default="yes", choices=['yes', 'no', 'reverse'], required=False)
-    parser.add_argument("--feature_type", "-f", help="Which GFF3/GTF feature type (column 3) to obtain readcount statistics for.  Default is 'gene'.  Case-sensitive.", default="gene", required=False)
-    parser.add_argument("--attribute_type", "-a", help="Which GFF3/GTF attribute type (column 9) to obtain readcount statistics for.  Default is 'ID'.  Case-sensitive.", default="ID", required=False)
-    parser.add_argument("--count_by", "-c", help="How to count the reads when performing depth calculations.  Default is 'read'.", default="read", choices=['read', 'fragment'], required=False)
-    parser.add_argument("--keep_only_properly_paired", help="Enable flag to remove any reads that are not properly paired from the depth count statistics.", action="store_true", required=False)
-    parser.add_argument("--num_cores", "-n", help="Number of cores to spread processes to when processing BAM list.", default=1, type=check_positive, required=False)
-    parser.add_argument("--debug", "-d", help="Set the debug level", default="INFO", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL")
+    gff_group.add_argument("--gff3", "-g", metavar="/path/to/annotation.gff3",
+                           help="Path to GFF3-formatted annotation file. \
+                           Choose between --gff3 or --gtf.")
+    gff_group.add_argument("--gtf", "-G", metavar="/path/to/annotation.gtf",
+                           help="Path to GTF-formatted annotation file. \
+                           Choose between --gff3 or --gtf.")
+    parser.add_argument("--output_dir", "-o", metavar="/path/to/output/dir", required=True,
+                        help="Required. Directory to store output.")
+    parser.add_argument("--tmp_dir", "-t", metavar="/path/to/tmp/dir", required=False,
+                        help="Directory to store temporary output. If not provided, \
+                        the output directory will serve as the temporary directory also")
+    parser.add_argument("--stranded", "-s", default="yes",
+                        choices=['yes', 'no', 'reverse'], required=False,
+                        help="Indicate if BAM reads are from a strand-specific assay")
+    parser.add_argument("--feature_type", "-f", default="gene", required=False,
+                        help="Which GFF3/GTF feature type (column 3) to obtain \
+                        readcount statistics for. Default is 'gene'. Case-sensitive.")
+    parser.add_argument("--attribute_type", "-a", default="ID", required=False,
+                        help="Which GFF3/GTF attribute type (column 9) to obtain \
+                        readcount statistics for. Default is 'ID'. Case-sensitive.")
+    parser.add_argument("--count_by", "-c", default="read", choices=['read', 'fragment'],
+                        required=False, help="How to count the reads when \
+                        performing depth calculations.  Default is 'read'.")
+    parser.add_argument("--keep_only_properly_paired", action="store_true", required=False,
+                        help="Enable flag to remove any reads that \
+                        are not properly paired from the depth count statistics.")
+    parser.add_argument("--num_cores", "-n", default=1, type=check_positive, required=False,
+                        help="Number of cores to spread processes to when processing BAM list.")
+    parser.add_argument("--debug", "-d", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL",
+                        default="INFO", help="Set the debug level")
     args = parser.parse_args()
     check_args(args)
 
@@ -506,7 +544,8 @@ def main():
         annot_file = args.gtf
 
     # Generate uniq bases per gene in GFF3
-    (contig_bases, gene_info) = parse_gff3(annot_file, is_gff3, args.stranded, args.feature_type, args.attribute_type)
+    (contig_bases, gene_info) = parse_gff3(
+        annot_file, is_gff3, args.stranded, args.feature_type, args.attribute_type)
     uniq_gene_bases = count_uniq_bases_per_gene(contig_bases, gene_info)
     annot_basename = os.path.basename(annot_file)
     annot_base = os.path.splitext(annot_basename)[0]
