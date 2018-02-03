@@ -343,13 +343,23 @@ def process_bam(bam, contig_bases, gene_info, args):
         pos_bam = re.sub(r'\.bam', '.plus.bam', working_bam)
         neg_bam = re.sub(r'\.bam', '.minus.bam', working_bam)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
+            index_bam(split_bam)
             calc_depth(depth_dict, split_bam, strand_list[idx])
 
     # Adjust depth information for read pair fragments
     if count_by_fragment:
         logging.info("{} - Elected to count by fragments instead of reads".format(name))
         adjust_depth(depth_dict, read_positions)
-        write_fragment_depth(depth_dict, working_bam, stranded_type)
+        if stranded_type == "no":
+            write_fragment_depth(depth_dict, working_bam, "plus")
+        else:
+            strand_list = ["plus", "minus"]
+            pos_bam = re.sub(r'\.bam', '.plus.bam', working_bam)
+            neg_bam = re.sub(r'\.bam', '.minus.bam', working_bam)
+            for idx, split_bam in enumerate([pos_bam, neg_bam]):
+                write_fragment_depth(depth_dict, split_bam, strand_list[idx])
+
+    if count_by_fragment:
         read_len = calc_avg_frag_len(working_bam, read_positions, pp_only)
     else:
         read_len = calc_avg_read_len(working_bam)
@@ -425,30 +435,23 @@ def update_base_mapping(contig, gene, strand, start, stop):
         else:
             contig[strand][str_coord] = gene
 
-def write_fragment_depth(depth_dict, bam, stranded_type):
+def write_fragment_depth(depth_dict, bam, strand):
     """ Write fragment depth to a file, or two files if input BAM was stranded """
     name = mp.current_process().name
     logging.debug("{} - Writing depth file(s) based on fragments ...".format(name))
-    if stranded_type == "no":
-        depth_out_file = re.sub(r'\.bam', '.fragment.depth', bam)
-        with open(depth_out_file, 'w') as ofh:
-            for contig, vals in sorted(depth_dict.items()):
-                for coord in sorted(vals, key=int):
-                    row = [contig, coord, str(vals[coord]['plus'])]
-                    ofh.write("\t".join(row) + "\n")
-    else:
-        strand_list = ["plus", "minus"]
-        for strand in strand_list:
-            bam_fh = pysam.AlignmentFile(bam, "rb")
-            if bam_fh.count(read_callback='all') == 0:
-                logging.info("{} - {} BAM file was empty of mapped reads. Cannot write fragment depth for this strand.".format(name, strand))
-                continue
-            depth_out_file = re.sub(r'\.bam', '.{}.fragment.depth'.format(strand), bam)
-            with open(depth_out_file, 'w') as ofh:
-                for contig, vals in sorted(depth_dict.items()):
-                    for coord in sorted(vals, key=int):
-                        row = [contig, coord, str(vals[coord][strand])]
-                        ofh.write("\t".join(row) + "\n")
+
+    bam_fh = pysam.AlignmentFile(bam, "rb")
+    if bam_fh.count(read_callback='all') == 0:
+        logging.info("{} - BAM file {} was empty of mapped reads. Cannot write fragment depth for this file.".format(name, bam))
+        return
+    bam_fh.close()
+
+    depth_out_file = re.sub(r'\.bam', '.fragment.depth', bam)
+    with open(depth_out_file, 'w') as ofh:
+        for contig, vals in sorted(depth_dict.items()):
+            for coord in sorted(vals, key=int):
+                row = [contig, coord, str(vals[coord][strand])]
+                ofh.write("\t".join(row) + "\n")
 
 ########
 # Main #
