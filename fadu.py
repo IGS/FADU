@@ -105,7 +105,7 @@ def calc_avg_frag_len(bam, read_pos, pp_only):
         # Overwrite existing num_reads as this value will include all properly paired reads
         num_reads = bam_fh.count(read_callback='all')
         # Properly paired reads were taken care of above for frag length... get read len of other mapped reads here
-        total_query_len += sum( read.query_length for read in bam_fh.fetch() if not (read.is_unmapped and read.is_proper_pair) )
+        total_query_len += sum( read.query_length for read in bam_fh.fetch() if not (read.is_unmapped or read.is_proper_pair) )
         bam_fh.close()
     avg_frag_len = round(total_query_len / num_reads)
     logging.info("{} - Final average fragment length - {}".format(name, avg_frag_len))
