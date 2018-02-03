@@ -10,14 +10,15 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 """
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
-from argparse import ArgumentParser
 from collections import Counter
+import argparse
 import multiprocessing as mp
 import os
-import pysam
 import re
 import sys
 import logging
+import pysam
+
 
 #from memory_profiler import profile
 
@@ -29,7 +30,7 @@ import logging
 def adjust_depth(depth_dict, read_pos):
     """ Adjust depth per coordinate position based on inserts and overlaps present in fragment """
     name = mp.current_process().name
-    logging.debug("{} - Adjusting depth counts to account for fragments ...".format(name) )
+    logging.debug("%s - Adjusting depth counts to account for fragments ...", name)
     for query, vals in read_pos.items():
         contig = vals['contig']
         strand = vals['strand']
@@ -78,43 +79,46 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
 def calc_avg_read_len(bam):
     """ Calculates average read len of all mapped BAM reads """
     name = mp.current_process().name
-    logging.debug("{} - Calculating average read length ...".format(name) )
+    logging.debug("%s - Calculating average read length ...", name)
     bam_fh = pysam.AlignmentFile(bam, "rb")
     # Unmapped reads will not factor downstream
-    total_query_len = sum( read.query_length for read in bam_fh.fetch() if not read.is_unmapped)
+    total_query_len = sum(read.query_length for read in bam_fh.fetch() if not read.is_unmapped)
     # Skip unmapped reads in counts
     num_reads = bam_fh.count(read_callback='all')
     bam_fh.close()
     avg_read_len = round(total_query_len / num_reads)
-    logging.info("{} - Average read length - {}".format(name, avg_read_len))
+    logging.info("%s - Average read length - %d", name, avg_read_len)
     return avg_read_len
 
 def calc_avg_frag_len(bam, read_pos, pp_only):
-    """ Calculates average fragment length of properly paired reads, including read length of reads that are just mapped """
+    """ Calculates average fragment length of properly paired reads,
+    including read length of reads that are just mapped """
     name = mp.current_process().name
-    logging.debug("{} - Calculating average fragment length ...".format(name) )
+    logging.debug("%s - Calculating average fragment length ...", name)
 
     # read_pos dictionary uses the pair as a key, not each read
-	# Multiply both by 2, to give singletons and singly-mapped reads less weight if added to the mix
+    # Multiply both by 2, to give singletons and singly-mapped reads less weight if added to the mix
     num_reads = len(read_pos) * 2
-    total_query_len = sum( vals['frag_len'] * 2 for query, vals in read_pos.items())
+    total_query_len = sum(vals['frag_len'] * 2 for query, vals in read_pos.items())
     avg_frag_len = round(total_query_len / num_reads)
-    logging.info("{} - Average fragment length of just properly paired reads - {}".format(name, avg_frag_len))
+    logging.info("%s - Average fragment length of just properly paired reads - %d", name, avg_frag_len)
     if not pp_only:
         bam_fh = pysam.AlignmentFile(bam, "rb")
         # Overwrite existing num_reads as this value will include all properly paired reads
         num_reads = bam_fh.count(read_callback='all')
-        # Properly paired reads were taken care of above for frag length... get read len of other mapped reads here
-        total_query_len += sum( read.query_length for read in bam_fh.fetch() if not (read.is_unmapped or read.is_proper_pair) )
+        # Properly paired reads were taken care of above for frag length...
+        # get read len of other mapped reads here
+        total_query_len += sum(read.query_length \
+            for read in bam_fh.fetch() if not (read.is_unmapped or read.is_proper_pair))
         bam_fh.close()
     avg_frag_len = round(total_query_len / num_reads)
-    logging.info("{} - Final average fragment length - {}".format(name, avg_frag_len))
+    logging.info("%s - Final average fragment length - %d", name, avg_frag_len)
     return avg_frag_len
 
 def calc_depth(depth_dict, bam, strand):
     """ Calculate depth of coverage using 'samtools deptha' """
     name = mp.current_process().name
-    logging.debug("{} - Calculating depth of coverage of BAM ...".format(name))
+    logging.debug("%s - Calculating depth of coverage of BAM ...", name)
     depth_out = pysam.depth("-aa", "-m", "10000000", bam).splitlines(True)
     depth_out_file = re.sub(r'\.bam', '.read.depth', bam)
     with open(depth_out_file, 'w') as f:
@@ -126,7 +130,7 @@ def calc_depth(depth_dict, bam, strand):
 def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_len):
     """ Calculate number of reads that map to the uniq bases of a gene """
     name = mp.current_process().name
-    logging.debug("{} - Calculate readcounts per gene for BAM ...".format(name))
+    logging.debug("%s - Calculate readcounts per gene for BAM ...", name)
     counts_file = re.sub(r'\.bam', '.counts', out_bam)
     with open(counts_file, 'w') as f:
         for gene, val_list in sorted(gene_info.items()):
@@ -137,7 +141,8 @@ def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_
             uniq_coords = [key for key, val in contig_bases[contig][strand].items() if val == gene]
             total_depth = 0
             for coord in uniq_coords:
-                assert(coord in depth_dict[contig]), "Coordinate {} for contig {} should have been in the 'samtools depth' output".format(coord, contig)
+                assert(coord in depth_dict[contig]), \
+                    "Coordinate {} for contig {} should have been in the 'samtools depth' output".format(coord, contig)
                 total_depth += sum(depth_dict[contig][coord][s] for s in depth_dict[contig][coord] if s == strand)
             readcounts = round(total_depth / read_len, 2)
             f.write("{}\t{}\n".format(gene, readcounts))
@@ -149,7 +154,7 @@ def count_uniq_bases_per_gene(contig_bases, gene_info):
         for strand in contig_bases[contig]:
             counter += Counter(val for key, val in contig_bases[contig][strand].items())
     #Address genes that were completely overlapped
-    counter.update( {gene: 0 for gene in gene_info if gene not in counter} )
+    counter.update({gene: 0 for gene in gene_info if gene not in counter})
     return counter
 
 def determine_pair_inserts_overlaps(read_pair):
@@ -189,25 +194,27 @@ def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stran
             uniq_bases = uniq_gene_bases[key]
             pct_uniq = round(uniq_bases * 100 / length, 2)
             # Assumption is that each feature ID is on the same contig and same strand
-            row = ( contig, strand, key, str(length), str(uniq_bases), str(pct_uniq) )
+            row = (contig, strand, key, str(length), str(uniq_bases), str(pct_uniq))
             f.write("\t".join(row) + "\n")
 
 def get_gene_from_attr(attr_field, ptrn):
     """ Only keep gene ID from attribute section of GFF3 file """
     match = ptrn.search(attr_field)
     if not match:
-        logging.error("Attribute field '{}' found to have no matches for ptrn {}".format(attr_field, ptrn))
+        logging.error("Attribute field '%s' found to have no matches for ptrn %s", attr_field, ptrn)
     assert match.lastindex == 2, "Attribute field '{}' found to have more than one match for ptrn {}".format(attr_field, ptrn)
     return match.group(2)
 
 def get_start_stop(first, second):
+    """ Determine start and stop coordinates """
     start = min(first, second)
     stop = max(first, second)
     return (start, stop)
 
 def index_bam(bam):
+    """ Index BAM file """
     name = mp.current_process().name
-    logging.debug("{} - Indexing BAM file {}...".format(name, bam))
+    logging.debug("%s - Indexing BAM file %s...", name, bam)
     pysam.index(bam)
 
 #@profile
@@ -215,7 +222,9 @@ def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, coun
     """ Iterate through the BAM file to get information about the properly paired read alignments """
     name = mp.current_process().name
     bam_fh = pysam.AlignmentFile(bam, "rb")
-    ofh = None; pos_ofh = None; neg_ofh = None
+    ofh = None
+    pos_ofh = None
+    neg_ofh = None
     until_eof_flag = False
     strand = "plus"
 
@@ -223,14 +232,14 @@ def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, coun
     working_bam = bam
 
     if stranded_type != "no":
-        logging.info("{} - Will split BAM by strand ...".format(name) )
+        logging.info("%s - Will split BAM by strand ...", name)
         pos_bam = re.sub(r'\.bam', '.plus.bam', bam)
         pos_ofh = pysam.AlignmentFile(pos_bam, "wb", template=bam_fh)
         neg_bam = re.sub(r'\.bam', '.minus.bam', bam)
         neg_ofh = pysam.AlignmentFile(neg_bam, "wb", template=bam_fh)
 
     if pp_only:
-        logging.info("{} - Will remove all reads that are not properly paired ...".format(name) )
+        logging.info("%s - Will remove all reads that are not properly paired ...", name)
         working_bam = re.sub(r'\.bam', '.p_paired.bam', bam)
         ofh = pysam.AlignmentFile(working_bam, "wb", template=bam_fh)
 
@@ -294,8 +303,8 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
             if entry[2] == feat_type:
                 contig_id = entry[0]
                 gene_id = get_gene_from_attr(entry[8], ptrn)
-                assert len(gene_id), "ID for attribute {} was not found for contig {} with feature {} ".format(attr_type, contig_id, feat_type)
-                (start, stop) = get_start_stop( int(entry[3]), int(entry[4]) )
+                assert gene_id, "ID for attribute {} was not found for contig {} with feature {} ".format(attr_type, contig_id, feat_type)
+                (start, stop) = get_start_stop(int(entry[3]), int(entry[4]))
                 sign = entry[6]
                 if not stranded:
                     sign = "*"
@@ -303,12 +312,12 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
 
                 #Store feature ID information to list.  A feature ID can be present in multiple GFF entries
                 gene_info.setdefault(gene_id, [])
-                gene_info[gene_id].append( (contig_id, start, stop, sign) )
+                gene_info[gene_id].append((contig_id, start, stop, sign))
 
                 # Iniitialize strand-specific dicts as contig key is created
-                contig_bases.setdefault(contig_id, { 'plus': {}, 'minus': {} })
-                update_base_mapping( contig_bases[contig_id], gene_id, strand, start, stop)
-    assert len(contig_bases.keys()), "Detected no {} entries in annotation file".format(feat_type)
+                contig_bases.setdefault(contig_id, {'plus': {}, 'minus': {}})
+                update_base_mapping(contig_bases[contig_id], gene_id, strand, start, stop)
+    assert contig_bases.keys(), "Detected no {} entries in annotation file".format(feat_type)
     return (contig_bases, gene_info)
 
 def process_bam(bam, contig_bases, gene_info, args):
@@ -323,7 +332,7 @@ def process_bam(bam, contig_bases, gene_info, args):
     tmp_dir = args.tmp_dir
     output_dir = args.output_dir
 
-    logging.info("{} - Processing BAM file {}".format(name, bam))
+    logging.info("%s - Processing BAM file %s", name, bam)
     if not os.path.isfile(bam):
         logging.error(bam + " does not seem to exist")
     assert(os.stat(bam).st_size > 0), "{} was empty".format(bam)
@@ -355,7 +364,7 @@ def process_bam(bam, contig_bases, gene_info, args):
 
     # Adjust depth information for read pair fragments
     if count_by_fragment:
-        logging.info("{} - Elected to count by fragments instead of reads".format(name))
+        logging.info("%s - Elected to count by fragments instead of reads", name)
         adjust_depth(depth_dict, read_positions)
         if stranded_type == "no":
             write_fragment_depth(depth_dict, working_bam, "plus")
@@ -374,9 +383,10 @@ def process_bam(bam, contig_bases, gene_info, args):
     # Calculate readcount stats per gene
     out_bam = output_dir + "/" + os.path.basename(working_bam)
     calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_len)
-    logging.info("{} - Finished processing BAM file {} !".format(name, bam))
+    logging.info("%s - Finished processing BAM file %s !", name, bam)
 
 def set_strand(sign):
+    """ Assign a name to the strand """
     if sign == "+" or sign == "*":
         return "plus"
     return "minus"
@@ -385,7 +395,7 @@ def set_strand(sign):
 def store_depth(depth_dict, depth_out, strand):
     """ Store depth coverage information from 'samtools depth' command """
     name = mp.current_process().name
-    logging.debug("{} - Storing 'samtools depth' output".format(name))
+    logging.debug("%s - Storing 'samtools depth' output", name)
     for line in depth_out:
         line = line.rstrip()
         (contig, coord, depth) = re.split(r'\t', line)
@@ -425,12 +435,13 @@ def store_properly_paired_read(read_pos, read, strand):
         read_pos[query_name]['frag_len'] = read_pos[query_name]['max_coord'] - read_pos[query_name]['min_coord']
 
 def symlink_bam(bam, outdir):
+    """ Create symlink for passed in BAM file if it does not exist """
     ln_bam = outdir + "/" + os.path.basename(bam)
     if os.path.islink(ln_bam):
         return ln_bam
     os.symlink(bam, ln_bam)
     name = mp.current_process().name
-    logging.debug("{} - Symlinking {} to {}".format(name, bam, ln_bam))
+    logging.debug("%s - Symlinking %s to %s", name, bam, ln_bam)
     return ln_bam
 
 def update_base_mapping(contig, gene, strand, start, stop):
@@ -445,11 +456,11 @@ def update_base_mapping(contig, gene, strand, start, stop):
 def write_fragment_depth(depth_dict, bam, strand):
     """ Write fragment depth to a file, or two files if input BAM was stranded """
     name = mp.current_process().name
-    logging.debug("{} - Writing depth file(s) based on fragments ...".format(name))
+    logging.debug("%s - Writing depth file(s) based on fragments ...", name)
 
     bam_fh = pysam.AlignmentFile(bam, "rb")
     if bam_fh.count(read_callback='all') == 0:
-        logging.info("{} - BAM file {} was empty of mapped reads. Cannot write fragment depth for this file.".format(name, bam))
+        logging.info("%s - BAM file %s was empty of mapped reads. Cannot write fragment depth for this file.", name, bam)
         return
     bam_fh.close()
 
@@ -461,13 +472,14 @@ def write_fragment_depth(depth_dict, bam, strand):
                 ofh.write("\t".join(row) + "\n")
 
 ########
-# Main #
+# Main # type error
 ########
 
 def main():
+    """ Entryway to program. """
     # Set up options parser and help statement
     description = "Generate counts of reads that map to non-overlapping portions of genes"
-    parser = ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(description=description)
     bam_group = parser.add_mutually_exclusive_group(required=True)
     bam_group.add_argument("--bam_file", "-b", help="Path to BAM file. Choose between --bam_file or --bam_list.", metavar="/path/to/alignment.bam")
     bam_group.add_argument("--bam_list", "-B", help="List file of BAM-formatted files (no SAM at this time).  Choose between --bam_file or --bam_list.", metavar="/path/to/bam.list")
@@ -484,7 +496,7 @@ def main():
     parser.add_argument("--num_cores", "-n", help="Number of cores to spread processes to when processing BAM list.", default=1, type=check_positive, required=False)
     parser.add_argument("--debug", "-d", help="Set the debug level", default="INFO", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL")
     args = parser.parse_args()
-    check_args(args, parser)
+    check_args(args)
 
     # Decide if annotation file is gff3 or gtf
     is_gff3 = True
@@ -502,17 +514,17 @@ def main():
 
     # If processing a single bam file...
     if args.bam_file:
-        process_bam( args.bam_file, contig_bases, gene_info, args )
+        process_bam(args.bam_file, contig_bases, gene_info, args)
         return
 
     # ... otherwise process a list using parallel workers
-    logging.info('Creating pool with %d processes\n' % args.num_cores)
+    logging.info('Creating pool with %d processes\n', args.num_cores)
     with open(args.bam_list, 'r') as list, mp.Pool(processes=args.num_cores) as p:
         # "apply_async" blocks downstream code from executing after res.get() is called.
-        result = [p.apply_async(process_bam, (bam, contig_bases, gene_info, args )) for bam in list]
+        result = [p.apply_async(process_bam, (bam, contig_bases, gene_info, args)) for bam in list]
         [res.get() for res in result]
 
-def check_args(args, parser):
+def check_args(args):
     """ Validate the passed arguments """
     log_level = args.debug.upper()
     num_level = getattr(logging, log_level)
@@ -544,7 +556,7 @@ def check_positive(value):
     """ Verify the integer argument passed in is positive """
     ivalue = int(value)
     if ivalue <= 0:
-         raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
     return ivalue
 
 if __name__ == '__main__':
