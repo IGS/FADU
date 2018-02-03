@@ -85,7 +85,9 @@ def calc_avg_read_len(bam):
     # Skip unmapped reads in counts
     num_reads = bam_fh.count(read_callback='all')
     bam_fh.close()
-    return round(total_query_len / num_reads)
+    avg_read_len = round(total_query_len / num_reads)
+    logging.info("{} - Average read length - {}".format(name, avg_read_len))
+    return avg_read_len
 
 def calc_avg_frag_len(bam, read_pos, pp_only):
     """ Calculates average fragment length of properly paired reads, including read length of reads that are just mapped """
@@ -95,6 +97,8 @@ def calc_avg_frag_len(bam, read_pos, pp_only):
     # read_pos dictionary uses the pair as a key, not each read
     num_reads = len(read_pos) * 2
     total_query_len = sum( vals['frag_len'] for query, vals in read_pos.items())
+    avg_frag_len = round(total_query_len / num_reads)
+    logging.info("{} - Average fragment length of just properly paired reads - {}".format(name, avg_frag_len))
     if not pp_only:
         bam_fh = pysam.AlignmentFile(bam, "rb")
         # Overwrite existing num_reads as this value will include all properly paired reads
@@ -102,7 +106,9 @@ def calc_avg_frag_len(bam, read_pos, pp_only):
         # Properly paired reads were taken care of above for frag length... get read len of other mapped reads here
         total_query_len += sum( read.query_length for read in bam_fh.fetch() if not (read.is_unmapped and read.is_proper_pair) )
         bam_fh.close()
-    return round(total_query_len / num_reads)
+    avg_frag_len = round(total_query_len / num_reads)
+    logging.info("{} - Final average fragment length - {}".format(name, avg_frag_len))
+    return avg_frag_len
 
 def calc_depth(depth_dict, bam, strand):
     """ Calculate depth of coverage using 'samtools deptha' """
