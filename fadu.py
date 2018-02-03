@@ -439,6 +439,10 @@ def write_fragment_depth(depth_dict, bam, stranded_type):
     else:
         strand_list = ["plus", "minus"]
         for strand in strand_list:
+            bam_fh = pysam.AlignmentFile(bam, "rb")
+            if bam_fh.count(read_callback='all') == 0:
+                logging.info("{} - {} BAM file was empty of mapped reads. Cannot write fragment depth for this strand.".format(name, strand)
+                continue
             depth_out_file = re.sub(r'\.bam', '.{}.fragment.depth'.format(strand), bam)
             with open(depth_out_file, 'w') as ofh:
                 for contig, vals in sorted(depth_dict.items()):
