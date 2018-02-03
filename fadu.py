@@ -19,10 +19,13 @@ import re
 import sys
 import logging
 
+#from memory_profiler import profile
+
 ###########
 # Functions (in alphabetical order)
 ###########
 
+#@profile
 def adjust_depth(depth_dict, read_pos):
     """ Adjust depth per coordinate position based on inserts and overlaps present in fragment """
     name = mp.current_process().name
@@ -94,6 +97,7 @@ def calc_depth(depth_dict, bam, strand):
             f.write(line)
     store_depth(depth_dict, depth_out, strand)
 
+#@profile
 def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_len):
     """ Calculate number of reads that map to the uniq bases of a gene """
     name = mp.current_process().name
@@ -125,18 +129,9 @@ def count_uniq_bases_per_gene(contig_bases, gene_info):
 
 def determine_pair_inserts_overlaps(read_pair):
     """ Keep track of all paired read fragment inserts and overlaps per individual base """
-
-    # Need to make coords 1-based since the depth output is 1-based
-    r1start = read_pair['r1start'] + 1
-    r2start = read_pair['r2start'] + 1
-    r1end = read_pair['r1end'] + 1
-    r2end = read_pair['r2end'] + 1
-
-    min_coord = min(r1start, r2start, r1end, r2end)
-    max_coord = max(r1start, r2start, r1end, r2end)
-    r1_range = set(range(r1start, r1end))
-    r2_range = set(range(r2start, r2end))
-    combined_range = set(range(min_coord, max_coord))
+    r1_range = set(range(read_pair['r1start'], read_pair['r1end']))
+    r2_range = set(range(read_pair['r2start'], read_pair['r2end']))
+    combined_range = set(range(read_pair['min_coord'], read_pair['max_coord']))
 
     # Insert coords will not appear in either read
     inserts = combined_range.difference(*(r1_range, r2_range))
@@ -190,8 +185,10 @@ def index_bam(bam):
     logging.debug("{} - Indexing BAM file {}...".format(name, bam))
     pysam.index(bam)
 
+#@profile
 def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, count_by_fragment, **kwargs):
     """ Iterate through the BAM file to get information about the properly paired read alignments """
+    name = mp.current_process().name
     bam_fh = pysam.AlignmentFile(bam, "rb")
     ofh = None; pos_ofh = None; neg_ofh = None
     until_eof_flag = False
@@ -201,12 +198,14 @@ def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, coun
     working_bam = bam
 
     if stranded_type != "no":
+        logging.info("{} - Will split BAM by strand ...".format(name) )
         pos_bam = re.sub(r'\.bam', '.plus.bam', bam)
         pos_ofh = pysam.AlignmentFile(pos_bam, "wb", template=bam_fh)
         neg_bam = re.sub(r'\.bam', '.minus.bam', bam)
         neg_ofh = pysam.AlignmentFile(neg_bam, "wb", template=bam_fh)
 
     if pp_only:
+        logging.info("{} - Will remove all reads that are not properly paired ...".format(name) )
         working_bam = re.sub(r'\.bam', '.p_paired.bam', bam)
         ofh = pysam.AlignmentFile(working_bam, "wb", template=bam_fh)
 
@@ -221,7 +220,7 @@ def parse_bam_for_proper_pairs(bam, read_positions, pp_only, stranded_type, coun
                 continue
             strand = assign_read_to_strand(read, stranded_type, pos_ofh, neg_ofh)
 
-        if read.is_proper_pair
+        if read.is_proper_pair:
             # Store properly paired reads for adjusting depth by fragments later
             if count_by_fragment:
                 store_properly_paired_read(read_positions, read, strand)
@@ -331,6 +330,8 @@ def process_bam(bam, contig_bases, gene_info, args):
     # Get the average read length of working bam file
     read_len = calc_avg_read_len(working_bam)
 
+    # TODO: If counting by fragments calculate average fragment length.  Reads that aren't properly paired will just use the read length
+
     # Adjust depth information for read pair fragments
     if count_by_fragment:
         logging.info("{} - Elected to count by fragments instead of reads".format(name))
@@ -347,6 +348,7 @@ def set_strand(sign):
         return "plus"
     return "minus"
 
+#@profile
 def store_depth(depth_dict, depth_out, strand):
     """ Store depth coverage information from 'samtools depth' command """
     name = mp.current_process().name
@@ -364,7 +366,7 @@ def store_properly_paired_read(read_pos, read, strand):
     # The contig or chromosome name
     ref_name = read.reference_name
 
-    # NOTE: PySAM coords are 0-based, BAM are 1-based
+    # NOTE: PySAM coords are 0-based, BAM are 1-based, so adjust dict to 1-based
     # reference start position is always the leftmost coordinate.
     # reference end is one base to the right of the last aligned residue
     if query_name not in read_pos:
@@ -376,11 +378,17 @@ def store_properly_paired_read(read_pos, read, strand):
             'contig': ref_name,
             'strand': strand
         })
-        read_pos[query_name]['r1start'] = read.reference_start
-        read_pos[query_name]['r1end'] = read.reference_end
+        read_pos[query_name]['r1start'] = read.reference_start + 1
+        read_pos[query_name]['r1end'] = read.reference_end + 1
     else:
-        read_pos[query_name]['r2start'] = read.reference_start
-        read_pos[query_name]['r2end'] = read.reference_end
+        read_pos[query_name]['r2start'] = read.reference_start + 1
+        read_pos[query_name]['r2end'] = read.reference_end + 1
+        r1start = read_pos[query_name]['r1start']
+        r1end = read_pos[query_name]['r1end']
+        r2start = read_pos[query_name]['r2start']
+        r2end = read_pos[query_name]['r2end']
+        read_pos[query_name]['min_coord'] = min(r1start, r2start, r1end, r2end)
+        read_pos[query_name]['max_coord'] = max(r1start, r2start, r1end, r2end)
 
 
 def symlink_bam(bam, outdir):
