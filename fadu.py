@@ -76,14 +76,32 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
         return "minus"
 
 def calc_avg_read_len(bam):
-    """ Calculates average read len of all BAM reads """
+    """ Calculates average read len of all mapped BAM reads """
     name = mp.current_process().name
     logging.debug("{} - Calculating average read length ...".format(name) )
     bam_fh = pysam.AlignmentFile(bam, "rb")
-    # Since singletons are kept here, we also keep a paired read if the mate is unmapped
+    # Unmapped reads will not factor downstream
     total_query_len = sum( read.query_length for read in bam_fh.fetch() if not read.is_unmapped)
-    num_reads = bam_fh.count()
+    # Skip unmapped reads in counts
+    num_reads = bam_fh.count(read_callback='all')
     bam_fh.close()
+    return round(total_query_len / num_reads)
+
+def calc_avg_frag_len(bam, read_pos, pp_only):
+    """ Calculates average fragment length of properly paired reads, including read length of reads that are just mapped """
+    name = mp.current_process().name
+    logging.debug("{} - Calculating average fragment length ...".format(name) )
+
+    # read_pos dictionary uses the pair as a key, not each read
+    num_reads = len(read_pos) * 2
+    total_query_len = sum( vals['frag_len'] for query, vals in read_pos.items())
+    if not pp_only:
+        bam_fh = pysam.AlignmentFile(bam, "rb")
+        # Overwrite existing num_reads as this value will include all properly paired reads
+        num_reads = bam_fh.count(read_callback='all')
+        # Properly paired reads were taken care of above for frag length... get read len of other mapped reads here
+        total_query_len += sum( read.query_length for read in bam_fh.fetch() if not (read.is_unmapped and read.is_proper_pair) )
+        bam_fh.close()
     return round(total_query_len / num_reads)
 
 def calc_depth(depth_dict, bam, strand):
@@ -327,16 +345,14 @@ def process_bam(bam, contig_bases, gene_info, args):
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
             calc_depth(depth_dict, split_bam, strand_list[idx])
 
-    # Get the average read length of working bam file
-    read_len = calc_avg_read_len(working_bam)
-
-    # TODO: If counting by fragments calculate average fragment length.  Reads that aren't properly paired will just use the read length
-
     # Adjust depth information for read pair fragments
     if count_by_fragment:
         logging.info("{} - Elected to count by fragments instead of reads".format(name))
         adjust_depth(depth_dict, read_positions)
         write_fragment_depth(depth_dict, working_bam, stranded_type)
+        read_len = calc_avg_frag_len(working_bam, read_positions, pp_only)
+    else:
+        read_len = calc_avg_read_len(working_bam)
 
     # Calculate readcount stats per gene
     out_bam = output_dir + "/" + os.path.basename(working_bam)
@@ -389,7 +405,7 @@ def store_properly_paired_read(read_pos, read, strand):
         r2end = read_pos[query_name]['r2end']
         read_pos[query_name]['min_coord'] = min(r1start, r2start, r1end, r2end)
         read_pos[query_name]['max_coord'] = max(r1start, r2start, r1end, r2end)
-
+        read_pos[query_name]['frag_len'] = read_pos[query_name]['max_coord'] - read_pos[query_name]['min_coord']
 
 def symlink_bam(bam, outdir):
     ln_bam = outdir + "/" + os.path.basename(bam)
