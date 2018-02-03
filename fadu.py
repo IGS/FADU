@@ -95,8 +95,9 @@ def calc_avg_frag_len(bam, read_pos, pp_only):
     logging.debug("{} - Calculating average fragment length ...".format(name) )
 
     # read_pos dictionary uses the pair as a key, not each read
+	# Multiply both by 2, to give singletons and singly-mapped reads less weight if added to the mix
     num_reads = len(read_pos) * 2
-    total_query_len = sum( vals['frag_len'] for query, vals in read_pos.items())
+    total_query_len = sum( vals['frag_len'] * 2 for query, vals in read_pos.items())
     avg_frag_len = round(total_query_len / num_reads)
     logging.info("{} - Average fragment length of just properly paired reads - {}".format(name, avg_frag_len))
     if not pp_only:
