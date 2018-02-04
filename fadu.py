@@ -33,12 +33,14 @@ def adjust_depth(depth_dict, read_pos):
         contig = vals['contig']
         strand = vals['strand']
         (inserts, overlaps) = determine_pair_inserts_overlaps(vals)
-        for coords in inserts:
-            str_coords = str(coords)
-            depth_dict[contig][str_coords][strand] += 1
-        for coords in overlaps:
-            str_coords = str(coords)
-            depth_dict[contig][str_coords][strand] -= 1
+        for coord in inserts:
+            str_coord = str(coord)
+            # Insert coord may originally be depth 0
+            depth_dict[contig].setdefault(str_coord, {strand:0})
+            depth_dict[contig][str_coord][strand] += 1
+        for coord in overlaps:
+            str_coord = str(coord)
+            depth_dict[contig][str_coord][strand] -= 1
 
 def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     """ Use the bitwise flags to assign the paired read to the correct strand """
@@ -118,12 +120,16 @@ def calc_avg_frag_len(bam, read_pos, pp_only):
 
 #@profile
 def calc_depth(depth_dict, bam, strand):
-    """ Calculate depth of coverage using 'samtools deptha' """
+    """ Calculate depth of coverage using 'samtools depth' """
     name = mp.current_process().name
     logging.debug("%s - Calculating depth of coverage of BAM ...", name)
     depth_out = pysam.depth("-aa", "-m", "10000000", bam).splitlines(True)
-    depth_out_file = re.sub(r'\.bam', '.read.depth', bam)
-    store_depth(depth_dict, depth_out, depth_out_file, strand)
+    depth_outfile = re.sub(r'\.bam', '.read.depth', bam)
+    # Write to outfile and reopen that to store depth to dict (saves memory)
+    with open(depth_outfile, 'w') as f:
+        for line in depth_out:
+            f.write(line)
+    store_depth(depth_dict, depth_outfile, strand)
 
 #@profile
 def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_len):
@@ -140,8 +146,9 @@ def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_
             uniq_coords = [key for key, val in contig_bases[contig][strand].items() if val == gene]
             total_depth = 0
             for coord in uniq_coords:
-                assert(coord in depth_dict[contig]), "Coordinate {} for contig {} should have \
-                    been in the 'samtools depth' output".format(coord, contig)
+                # Coords with depth are not kept.
+                if coord not in depth_dict[contig]:
+                    continue
                 total_depth += sum(depth_dict[contig][coord][s]
                                    for s in depth_dict[contig][coord] if s == strand)
             readcounts = round(total_depth / read_len, 2)
@@ -202,10 +209,10 @@ def get_gene_from_attr(attr_field, ptrn):
     """ Only keep gene ID from attribute section of GFF3 file """
     match = ptrn.search(attr_field)
     if not match:
-        logging.error("Attribute field '%s' found to have no matches \
-                      for ptrn %s", attr_field, ptrn)
-    assert match.lastindex == 2, "Attribute field '{}' found to have \
-        more than one match for ptrn {}".format(attr_field, ptrn)
+        logging.error("Attribute field '%s' found to have no matches"
+                      " for ptrn %s", attr_field, ptrn)
+    assert match.lastindex == 2, ("Attribute field '{}' found to have"
+        " more than one match for ptrn {}".format(attr_field, ptrn))
     return match.group(2)
 
 def get_start_stop(first, second):
@@ -305,12 +312,11 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
             elif line.startswith('#'):
                 continue
             entry = re.split(r'\t', line)
-            #logging.debug(entry)
             if entry[2] == feat_type:
                 contig_id = entry[0]
                 gene_id = get_gene_from_attr(entry[8], ptrn)
-                assert gene_id, "ID for attribute {} was not found for contig {} with \
-                    feature {}".format(attr_type, contig_id, feat_type)
+                assert gene_id, ("ID for attribute {} was not found for contig {} with"
+                    " feature {}".format(attr_type, contig_id, feat_type))
                 (start, stop) = get_start_stop(int(entry[3]), int(entry[4]))
                 sign = entry[6]
                 if not stranded:
@@ -401,19 +407,20 @@ def set_strand(sign):
     return "minus"
 
 #@profile
-def store_depth(depth_dict, depth_out, outfile, strand):
-    """ Store depth coverage information from 'samtools depth' command.
-    Also write to file the read depth """
+def store_depth(depth_dict, outfile, strand):
+    """ Store depth coverage information from 'samtools depth' command. """
     name = mp.current_process().name
     logging.debug("%s - Storing 'samtools depth' output", name)
-    with open(depth_out_file, 'w') as f:
-        for line in depth_out:
-            f.write(line)
+    with open(outfile, 'r') as f:
+        for line in f:
             line = line.rstrip()
             (contig, coord, depth) = re.split(r'\t', line)
             depth_dict.setdefault(contig, {})
-            depth_dict[contig].setdefault(coord, {})
-            depth_dict[contig][coord][strand] = int(depth)
+            int_depth = int(depth)
+            # Reducing memory
+            if int_depth > 0:
+                depth_dict[contig].setdefault(coord, {})
+                depth_dict[contig][coord][strand] = int_depth
 
 def store_properly_paired_read(read_pos, read, strand):
     """ Store alignment information about the current read """
@@ -469,20 +476,29 @@ def update_base_mapping(contig, gene, strand, start, stop):
 def write_fragment_depth(depth_dict, bam, strand):
     """ Write fragment depth to a file, or two files if input BAM was stranded """
     name = mp.current_process().name
-    logging.debug("%s - Writing depth file(s) based on fragments ...", name)
+    logging.debug("%s - Writing depth file(s) based on fragments for BAM file %s ...", name, bam)
 
     bam_fh = pysam.AlignmentFile(bam, "rb")
     if bam_fh.count(read_callback='all') == 0:
-        logging.info("%s - BAM file %s was empty of mapped reads. \
-                     Cannot write fragment depth for this file.", name, bam)
+        logging.info("%s - BAM file was empty of mapped reads."
+                     " Cannot write fragment depth for this file.", name)
         return
+    # Get lengths of references associated with BAM file
+    assert len(bam_fh.references) == len(bam_fh.lengths), "Different number of reference names and lengths"
+    ref_lens = dict(zip(bam_fh.references,bam_fh.lengths))
     bam_fh.close()
 
     depth_out_file = re.sub(r'\.bam', '.fragment.depth', bam)
     with open(depth_out_file, 'w') as ofh:
         for contig, vals in sorted(depth_dict.items()):
-            for coord in sorted(vals, key=int):
-                row = [contig, coord, str(vals[coord][strand])]
+            assert contig in ref_lens, "Contig {} was not in the BAM file list of references.".format(contig)
+            for coord in range(1, ref_lens[contig]+1):
+                str_coord = str(coord)
+                # Write a 0 if depth was not in the dictionary
+                depth = 0
+                if str_coord in vals:
+                    depth = vals[str_coord][strand]
+                row = [contig, str_coord, str(depth)]
                 ofh.write("\t".join(row) + "\n")
 
 ########
@@ -498,35 +514,35 @@ def main():
     bam_group.add_argument("--bam_file", "-b", metavar="/path/to/alignment.bam",
                            help="Path to BAM file. Choose between --bam_file or --bam_list.")
     bam_group.add_argument("--bam_list", "-B", metavar="/path/to/bam.list",
-                           help="List file of BAM-formatted files (no SAM at this time). \
-                           Choose between --bam_file or --bam_list.")
+                           help="List file of BAM-formatted files (no SAM at this time)."
+                           " Choose between --bam_file or --bam_list.")
     gff_group = parser.add_mutually_exclusive_group(required=True)
     gff_group.add_argument("--gff3", "-g", metavar="/path/to/annotation.gff3",
-                           help="Path to GFF3-formatted annotation file. \
-                           Choose between --gff3 or --gtf.")
+                           help="Path to GFF3-formatted annotation file."
+                           " Choose between --gff3 or --gtf.")
     gff_group.add_argument("--gtf", "-G", metavar="/path/to/annotation.gtf",
-                           help="Path to GTF-formatted annotation file. \
-                           Choose between --gff3 or --gtf.")
+                           help="Path to GTF-formatted annotation file."
+                           " Choose between --gff3 or --gtf.")
     parser.add_argument("--output_dir", "-o", metavar="/path/to/output/dir", required=True,
                         help="Required. Directory to store output.")
     parser.add_argument("--tmp_dir", "-t", metavar="/path/to/tmp/dir", required=False,
-                        help="Directory to store temporary output. If not provided, \
-                        the output directory will serve as the temporary directory also")
+                        help="Directory to store temporary output. If not provided"
+                        " the output directory will serve as the temporary directory also")
     parser.add_argument("--stranded", "-s", default="yes",
                         choices=['yes', 'no', 'reverse'], required=False,
                         help="Indicate if BAM reads are from a strand-specific assay")
     parser.add_argument("--feature_type", "-f", default="gene", required=False,
-                        help="Which GFF3/GTF feature type (column 3) to obtain \
-                        readcount statistics for. Default is 'gene'. Case-sensitive.")
+                        help="Which GFF3/GTF feature type (column 3) to obtain"
+                        " readcount statistics for. Default is 'gene'. Case-sensitive.")
     parser.add_argument("--attribute_type", "-a", default="ID", required=False,
-                        help="Which GFF3/GTF attribute type (column 9) to obtain \
-                        readcount statistics for. Default is 'ID'. Case-sensitive.")
+                        help="Which GFF3/GTF attribute type (column 9) to obtain"
+                        " readcount statistics for. Default is 'ID'. Case-sensitive.")
     parser.add_argument("--count_by", "-c", default="read", choices=['read', 'fragment'],
-                        required=False, help="How to count the reads when \
-                        performing depth calculations.  Default is 'read'.")
+                        required=False, help="How to count the reads when"
+                        " performing depth calculations.  Default is 'read'.")
     parser.add_argument("--keep_only_properly_paired", action="store_true", required=False,
-                        help="Enable flag to remove any reads that \
-                        are not properly paired from the depth count statistics.")
+                        help="Enable flag to remove any reads that"
+                        " are not properly paired from the depth count statistics.")
     parser.add_argument("--num_cores", "-n", default=1, type=check_positive, required=False,
                         help="Number of cores to spread processes to when processing BAM list.")
     parser.add_argument("--debug", "-d", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL",
