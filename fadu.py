@@ -406,7 +406,7 @@ def store_depth(depth_dict, depth_out, outfile, strand):
     Also write to file the read depth """
     name = mp.current_process().name
     logging.debug("%s - Storing 'samtools depth' output", name)
-    with open(depth_out_file, 'w') as f:
+    with open(outfile, 'w') as f:
         for line in depth_out:
             f.write(line)
             line = line.rstrip()
