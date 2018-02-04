@@ -19,14 +19,12 @@ import sys
 import logging
 import pysam
 
-
 #from memory_profiler import profile
 
 ###########
 # Functions (in alphabetical order)
 ###########
 
-#@profile
 def adjust_depth(depth_dict, read_pos):
     """ Adjust depth per coordinate position based on inserts and overlaps present in fragment """
     name = mp.current_process().name
@@ -118,16 +116,14 @@ def calc_avg_frag_len(bam, read_pos, pp_only):
     logging.info("%s - Final average fragment length - %d", name, avg_frag_len)
     return avg_frag_len
 
+#@profile
 def calc_depth(depth_dict, bam, strand):
     """ Calculate depth of coverage using 'samtools deptha' """
     name = mp.current_process().name
     logging.debug("%s - Calculating depth of coverage of BAM ...", name)
     depth_out = pysam.depth("-aa", "-m", "10000000", bam).splitlines(True)
     depth_out_file = re.sub(r'\.bam', '.read.depth', bam)
-    with open(depth_out_file, 'w') as f:
-        for line in depth_out:
-            f.write(line)
-    store_depth(depth_dict, depth_out, strand)
+    store_depth(depth_dict, depth_out, depth_out_file, strand)
 
 #@profile
 def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_len):
@@ -224,7 +220,6 @@ def index_bam(bam):
     logging.debug("%s - Indexing BAM file %s...", name, bam)
     pysam.index(bam)
 
-#@profile
 def parse_bam_for_proper_pairs(
         bam, read_positions, pp_only, stranded_type, count_by_fragment, **kwargs):
     """ Iterate through the BAM file to get information
@@ -406,16 +401,19 @@ def set_strand(sign):
     return "minus"
 
 #@profile
-def store_depth(depth_dict, depth_out, strand):
-    """ Store depth coverage information from 'samtools depth' command """
+def store_depth(depth_dict, depth_out, outfile, strand):
+    """ Store depth coverage information from 'samtools depth' command.
+    Also write to file the read depth """
     name = mp.current_process().name
     logging.debug("%s - Storing 'samtools depth' output", name)
-    for line in depth_out:
-        line = line.rstrip()
-        (contig, coord, depth) = re.split(r'\t', line)
-        depth_dict.setdefault(contig, {})
-        depth_dict[contig].setdefault(coord, {})
-        depth_dict[contig][coord][strand] = int(depth)
+    with open(depth_out_file, 'w') as f:
+        for line in depth_out:
+            f.write(line)
+            line = line.rstrip()
+            (contig, coord, depth) = re.split(r'\t', line)
+            depth_dict.setdefault(contig, {})
+            depth_dict[contig].setdefault(coord, {})
+            depth_dict[contig][coord][strand] = int(depth)
 
 def store_properly_paired_read(read_pos, read, strand):
     """ Store alignment information about the current read """
