@@ -411,14 +411,8 @@ def store_depth(depth_dict, outfile, strand):
     """ Store depth coverage information from 'samtools depth' command. """
     name = mp.current_process().name
     logging.debug("%s - Storing 'samtools depth' output", name)
-<<<<<<< HEAD
     with open(outfile, 'r') as f:
         for line in f:
-=======
-    with open(outfile, 'w') as f:
-        for line in depth_out:
-            f.write(line)
->>>>>>> a826fef250d2eca089f9115e1673cdd4c245aeb6
             line = line.rstrip()
             (contig, coord, depth) = re.split(r'\t', line)
             depth_dict.setdefault(contig, {})
