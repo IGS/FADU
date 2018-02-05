@@ -71,7 +71,7 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     flag_113 = read.is_read1 and read.is_reverse and read.mate_is_reverse
     flag_177 = read.is_read2 and read.is_reverse and read.mate_is_reverse
 
-    pos_flags = {flag_97, flag_146, flag_65, flag_129}
+    pos_flags = {flag_97, flag_145, flag_65, flag_129}
     neg_flags = {flag_81, flag_161, flag_113, flag_177}
     if strand_type == "reverse":
         pos_flags = {flag_81, flag_161, flag_113, flag_177}
