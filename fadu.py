@@ -38,7 +38,7 @@ def adjust_depth(depth_dict, read_pos):
             # Insert coord may originally be depth 0
             depth_dict[contig].setdefault(str_coord, {strand:0})
             # One strand may have depth but not the other
-            depth_dict[contig][str_coord].get(strand, 0)
+            depth_dict[contig][str_coord].setdefault(strand, 0)
             depth_dict[contig][str_coord][strand] += 1
         for coord in overlaps:
             str_coord = str(coord)
@@ -519,7 +519,7 @@ def write_fragment_depth(depth_dict, bam, strand):
                 str_coord = str(coord)
                 # Write a 0 if depth was not in the dictionary
                 depth = 0
-                if str_coord in vals:
+                if str_coord in vals and strand in vals[str_coord]:
                     depth = vals[str_coord][strand]
                 row = [contig, str_coord, str(depth)]
                 ofh.write("\t".join(row) + "\n")
