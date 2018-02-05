@@ -37,6 +37,8 @@ def adjust_depth(depth_dict, read_pos):
             str_coord = str(coord)
             # Insert coord may originally be depth 0
             depth_dict[contig].setdefault(str_coord, {strand:0})
+            # One strand may have depth but not the other
+            depth_dict[contig][str_coord].get(strand, 0)
             depth_dict[contig][str_coord][strand] += 1
         for coord in overlaps:
             str_coord = str(coord)
@@ -47,27 +49,33 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
 
     # Forward-stranded assay
     ## Positive Strand:
-    ### R1 - forward (96), R2 - revcom (144)
+    ### R1 - forward (97), R2 - revcom (145)
     ## Negative Strand
-    ### R1 - revcom (80), R2 - forward (160)
+    ### R1 - revcom (81), R2 - forward (161)
     # Reverse-stranded assay (i.e. Illumina)
     ## Positive Strand
-    ### R1 - revcom (80), R2 - forward (160)
+    ### R1 - revcom (81), R2 - forward (161)
     ## Negative Strand
-    ### R1 - forward (96), R2 - revcom (144)
+    ### R1 - forward (97), R2 - revcom (145)
+    # More rare, but flags 65, 129, 113, and 177 follow the same strandedness
+    # Singletons will either have flag 0 or 16
 
     # Forward strand flags
-    flag_96 = read.is_read1 and read.mate_is_reverse
-    flag_144 = read.is_read2 and read.is_reverse
+    flag_97 = read.is_read1 and read.mate_is_reverse
+    flag_145 = read.is_read2 and read.is_reverse
+    flag_65 = read.is_read1 and not (read.is_reverse or read.mate_is_reverse)
+    flag_129 = read.is_read2 and not (read.is_reverse or read.mate_is_reverse)
     # Reverse strand flags
-    flag_80 = read.is_read1 and read.is_reverse
-    flag_160 = read.is_read2 and read.mate_is_reverse
+    flag_81 = read.is_read1 and read.is_reverse
+    flag_161 = read.is_read2 and read.mate_is_reverse
+    flag_113 = read.is_read1 and read.is_reverse and read.mate_is_reverse
+    flag_177 = read.is_read2 and read.is_reverse and read.mate_is_reverse
 
-    pos_flags = {flag_96, flag_144}
-    neg_flags = {flag_80, flag_160}
+    pos_flags = {flag_97, flag_146, flag_65, flag_129}
+    neg_flags = {flag_81, flag_161, flag_113, flag_177}
     if strand_type == "reverse":
-        pos_flags = {flag_80, flag_160}
-        neg_flags = {flag_96, flag_144}
+        pos_flags = {flag_81, flag_161, flag_113, flag_177}
+        neg_flags = {flag_97, flag_145, flag_65, flag_129)}
 
     if any(flags for flags in pos_flags):
         pos_fh.write(read)
@@ -75,6 +83,21 @@ def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     if any(flags for flags in neg_flags):
         neg_fh.write(read)
         return "minus"
+    # Read must be a singleton
+    if read.is_reverse:
+        if strand_type == "reverse":
+            neg_fh.write(read)
+            return "minus"
+        else:
+            pos_fh.write(read)
+            return "plus"
+    else:
+        if strand_type == "reverse":
+            pos_fh.write(read)
+            return "plus"
+        else:
+            neg_fh.write(read)
+            return "minus"
     logging.warning("Read %s did not get assigned to either strand apparently.", read.query_name)
     return "skip"
 
