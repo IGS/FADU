@@ -267,7 +267,6 @@ def index_bam(bam):
     logging.debug("%s - Indexing BAM file %s...", name, bam)
     pysam.index(bam)
 
-#@profile
 def parse_bam_for_proper_pairs(
         bam, pp_flatfile, pp_only, stranded_type, count_by_fragment, **kwargs):
     """ Iterate through the BAM file to get information
@@ -460,6 +459,7 @@ def set_strand(sign):
         return "plus"
     return "minus"
 
+#@profile
 def store_depth(depth_dict, outfile, strand):
     """ Store depth coverage information from 'samtools depth' command. """
     name = mp.current_process().name
