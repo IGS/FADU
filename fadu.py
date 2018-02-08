@@ -19,8 +19,6 @@ import sys
 import logging
 import pysam
 
-#from memory_profiler import profile
-
 ###########
 # Functions (in alphabetical order)
 ###########
@@ -459,7 +457,6 @@ def set_strand(sign):
         return "plus"
     return "minus"
 
-#@profile
 def store_depth(depth_dict, outfile, strand):
     """ Store depth coverage information from 'samtools depth' command. """
     name = mp.current_process().name
