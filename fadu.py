@@ -541,7 +541,7 @@ def write_fragment_depth(depth_dict, bam, strand):
                 ofh.write("\t".join(row) + "\n")
 
 ########
-# Main # type error
+# Main #
 ########
 
 def main():
