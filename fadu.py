@@ -177,7 +177,7 @@ def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_
             uniq_coords = [key for key, val in contig_bases[contig][strand].items() if val == gene]
             total_depth = 0
             for coord in uniq_coords:
-                # Coords with depth are not kept.
+                # Coords without depth are not kept.
                 if coord not in depth_dict[contig]:
                     continue
                 total_depth += sum(depth_dict[contig][coord][s]
