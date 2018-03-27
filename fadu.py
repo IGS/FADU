@@ -640,7 +640,11 @@ def check_args(args):
     if not os.path.isdir(args.output_dir):
         logging.debug("Creating output directory")
         os.mkdir(args.output_dir)
-    if not args.tmp_dir:
+    if args.tmp_dir:
+        if not os.path.isdir(args.tmp_dir):
+            logging.debug("Creating temporary directory")
+            os.mkdir(args.tmp_dir)
+    else:
         logging.debug("--tmp_dir not specified.  Will write temp files to output directory")
         args.tmp_dir = args.output_dir
 
