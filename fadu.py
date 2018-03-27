@@ -244,10 +244,11 @@ def get_gene_from_attr(attr_field, ptrn):
     """Only keep gene ID from attribute section of GFF3 file."""
     match = ptrn.search(attr_field)
     if not match:
-        logging.error("Attribute field '%s' found to have no matches"
-                      " for ptrn %s", attr_field, ptrn)
-    assert match.lastindex == 2, ("Attribute field '{}' found to have"
-                                  " more than one match for ptrn {}".format(attr_field, ptrn))
+        raise RuntypeError("Attribute field '%s' found to have no matches"
+                          " for ptrn %s", attr_field, ptrn)
+    if not match.lastindex == 2:
+        raise RuntypeError("Attribute field '{}' found to have"
+                           " more than one match for ptrn {}".format(attr_field, ptrn))
     return match.group(2)
 
 def get_start_stop(first, second):
@@ -358,8 +359,9 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
             if entry[2] == feat_type:
                 contig_id = entry[0]
                 gene_id = get_gene_from_attr(entry[8], ptrn)
-                assert gene_id, ("ID for attribute {} was not found for contig {} with"
-                                 " feature {}".format(attr_type, contig_id, feat_type))
+                if not gene_id:
+                    raise AttributeError("ID for attribute {} was not found for contig {} with"
+                                         " feature {}".format(attr_type, contig_id, feat_type))
                 (start, stop) = get_start_stop(int(entry[3]), int(entry[4]))
                 sign = entry[6]
                 if not stranded:
@@ -391,7 +393,7 @@ def process_bam(bam, contig_bases, gene_info, args):
 
     logging.info("%s - Processing BAM file %s", name, bam)
     if not os.path.isfile(bam):
-        logging.error("%s does not seem to exist", bam)
+        raise FileNotFoundError("%s does not seem to exist", bam)
     assert(os.stat(bam).st_size > 0), "{} was empty".format(bam)
     ln_bam = symlink_bam(bam, tmp_dir)
     # Index BAM
@@ -630,13 +632,13 @@ def check_args(args):
 
     # Args-specific checks
     if args.gff3 and not os.path.isfile(args.gff3):
-        logging.error("GFF3 file does not seem to exist. Please check supplied path.")
+        raise FileNotFoundError("GFF3 file does not seem to exist. Please check supplied path.")
     if args.gtf and not os.path.isfile(args.gtf):
-        logging.error("GTf file does not seem to exist. Please check supplied path.")
+        raise FileNotFoundError("GTf file does not seem to exist. Please check supplied path.")
     if args.bam_file and not os.path.isfile(args.bam_file):
-        logging.error("BAM file does not seem to exist. Please check supplied path.")
+        raise FileNotFoundError("BAM file does not seem to exist. Please check supplied path.")
     if args.bam_list and not os.path.isfile(args.bam_list):
-        logging.error("BAM list file does not seem to exist. Please check supplied path.")
+        raise FileNotFoundError("BAM list file does not seem to exist. Please check supplied path.")
     if not os.path.isdir(args.output_dir):
         logging.debug("Creating output directory")
         os.mkdir(args.output_dir)
