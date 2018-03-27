@@ -244,10 +244,10 @@ def get_gene_from_attr(attr_field, ptrn):
     """Only keep gene ID from attribute section of GFF3 file."""
     match = ptrn.search(attr_field)
     if not match:
-        raise RuntypeError("Attribute field '%s' found to have no matches"
+        raise RuntimeError("Attribute field '%s' found to have no matches"
                           " for ptrn %s", attr_field, ptrn)
     if not match.lastindex == 2:
-        raise RuntypeError("Attribute field '{}' found to have"
+        raise RuntimeError("Attribute field '{}' found to have"
                            " more than one match for ptrn {}".format(attr_field, ptrn))
     return match.group(2)
 
