@@ -43,24 +43,9 @@ def adjust_depth(depth_dict, pp_flatfile):
                 # One strand may have depth but not the other
                 depth_dict[contig][str_coord].setdefault(strand, 0)
                 depth_dict[contig][str_coord][strand] += 1
-            #for coord in overlaps:
-            #    str_coord = str(coord)
-            #    depth_dict[contig][str_coord][strand] -= 1
-
-            coords_list = [int(i) for i in coords_list]
-            (r1start, r1end, r2start, r2end) = coords_list
-            r1_range = set(range(r1start, r1end))
-            r2_range = set(range(r2start, r2end))
-            for coord in r1_range:
+            for coord in overlaps:
                 str_coord = str(coord)
-                depth_dict[contig][str_coord][strand] -=1
-                if depth_dict[contig][str_coord][strand] < 0:
-                    depth_dict[contig][str_coord][strand] = 0
-            for coord in r2_range:
-                str_coord = str(coord)
-                depth_dict[contig][str_coord][strand] -=1
-                if depth_dict[contig][str_coord][strand] < 0:
-                    depth_dict[contig][str_coord][strand] = 0
+                depth_dict[contig][str_coord][strand] -= 1
 
 def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     """Use the bitwise flags to assign the paired read to the correct strand."""
@@ -544,7 +529,7 @@ def write_fragment_depth(depth_dict, bam, strand):
     ref_lens = dict(zip(bam_fh.references, bam_fh.lengths))
     bam_fh.close()
 
-    depth_out_file = re.sub(r'\.bam', '.insert.depth', bam)
+    depth_out_file = re.sub(r'\.bam', '.fragment.depth', bam)
     with open(depth_out_file, 'w') as ofh:
         for contig, vals in sorted(depth_dict.items()):
             assert contig in ref_lens, "Contig {} was not in the BAM file list of references.".format(contig)
