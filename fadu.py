@@ -321,6 +321,7 @@ def parse_bam_for_proper_pairs(
     if count_by_fragment:
         ppff_ofh.close()
     if pp_only:
+        index_bam(working_bam)
         ofh.close()
     if stranded_type != "no":
         pos_ofh.close()
