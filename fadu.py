@@ -277,18 +277,16 @@ def parse_bam_for_proper_pairs(
 
     # BAM file that will be returned for downstream processing
     working_bam = bam
-
-    if stranded_type != "no":
-        logging.info("%s - Will split BAM by strand ...", name)
-        pos_bam = re.sub(r'\.bam', '.plus.bam', bam)
-        pos_ofh = pysam.AlignmentFile(pos_bam, "wb", template=bam_fh)
-        neg_bam = re.sub(r'\.bam', '.minus.bam', bam)
-        neg_ofh = pysam.AlignmentFile(neg_bam, "wb", template=bam_fh)
-
     if pp_only:
         logging.info("%s - Will remove all reads that are not properly paired ...", name)
         working_bam = re.sub(r'\.bam', '.p_paired.bam', bam)
         ofh = pysam.AlignmentFile(working_bam, "wb", template=bam_fh)
+    if stranded_type != "no":
+        logging.info("%s - Will split BAM by strand ...", name)
+        pos_bam = re.sub(r'\.bam', '.plus.bam', working_bam)
+        pos_ofh = pysam.AlignmentFile(pos_bam, "wb", template=bam_fh)
+        neg_bam = re.sub(r'\.bam', '.minus.bam', working_bam)
+        neg_ofh = pysam.AlignmentFile(neg_bam, "wb", template=bam_fh)
     if count_by_fragment:
         ppff_ofh = open(pp_flatfile, 'w')
 
@@ -321,8 +319,8 @@ def parse_bam_for_proper_pairs(
     if count_by_fragment:
         ppff_ofh.close()
     if pp_only:
-        index_bam(working_bam)
         ofh.close()
+        index_bam(working_bam)
     if stranded_type != "no":
         pos_ofh.close()
         neg_ofh.close()
