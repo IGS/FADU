@@ -478,17 +478,26 @@ def store_properly_paired_read(pp_fh, read_pos, read, strand):
 
     # NOTE: PySAM coords are 0-based, BAM are 1-based, so adjust dict to 1-based
     # reference start position is always the leftmost coordinate.
-    # reference end is the same (https://www.biostars.org/p/84686/)
     if query_name not in read_pos:
-        read_pos.setdefault(query_name, {
-            'r1start': read.reference_start + 1,
-            'r1end': read.reference_end + 1,
-        })
+        if read.is_reverse:
+            read_pos.setdefault(query_name, {
+                'r1start': read.reference_start + 1,
+                'r1end': read.reference_end,
+            })
+        else:
+            read_pos.setdefault(query_name, {
+                'r1start': read.reference_start + 1,
+                'r1end': read.reference_end + 1,
+            })
     else:
         r1start = str(read_pos[query_name]['r1start'])
         r1end = str(read_pos[query_name]['r1end'])
+        # For reverse string, only the start needs to be adjusted
         r2start = str(read.reference_start + 1)
-        r2end = str(read.reference_end)
+        if read.is_reverse:
+            r2end = str(read.reference_end)
+        else:
+            r2end = str(read.reference_end + 1)
         row = (contig, strand, r1start, r1end, r2start, r2end)
         pp_fh.write("\t".join(row) + "\n")
         # Do not need this entry anymore
