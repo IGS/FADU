@@ -131,7 +131,8 @@ def calc_avg_frag_len(bam, pp_flatfile, pp_only):
             (r1start, r1end, r2start, r2end) = coords_list
             min_coord = min(r1start, r2start, r1end, r2end)
             max_coord = max(r1start, r2start, r1end, r2end)
-            frag_len = max_coord - min_coord
+            # Must add 1 because dict coords are 1-based
+            frag_len = max_coord - min_coord + 1
             total_query_len += frag_len * 2
             num_reads += 2
     avg_frag_len = round(total_query_len / num_reads)
@@ -475,7 +476,6 @@ def store_properly_paired_read(pp_fh, read_pos, read, strand):
     # The contig or chromosome name
     contig = read.reference_name
 
-    print ("{}\t{}".format(read.reference_start, read.reference_end))
     # NOTE: PySAM coords are 0-based, BAM are 1-based, so adjust dict to 1-based
     # reference start position is always the leftmost coordinate.
     # reference end is the same (https://www.biostars.org/p/84686/)
