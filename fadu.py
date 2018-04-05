@@ -482,7 +482,7 @@ def store_properly_paired_read(pp_fh, read_pos, read, strand):
     if query_name not in read_pos:
         read_pos.setdefault(query_name, {
             'r1start': read.reference_start + 1,
-            'r1end': read.reference_end,
+            'r1end': read.reference_end + 1,
         })
     else:
         r1start = str(read_pos[query_name]['r1start'])
