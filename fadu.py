@@ -200,6 +200,9 @@ def determine_pair_inserts_overlaps(coords_list):
     """Keep track of all paired read fragment inserts and overlaps per read pair coordinates."""
     coords_list = [int(i) for i in coords_list]
     (r1start, r1end, r2start, r2end) = coords_list
+    # Final coord is not included in range, so adjust by 1
+    r1end = r1end+1
+    r2end = r2end+1
     min_coord = min(r1start, r2start, r1end, r2end)
     max_coord = max(r1start, r2start, r1end, r2end)
     r1_range = set(range(r1start, r1end))
@@ -478,26 +481,18 @@ def store_properly_paired_read(pp_fh, read_pos, read, strand):
 
     # NOTE: PySAM coords are 0-based, BAM are 1-based, so adjust dict to 1-based
     # reference start position is always the leftmost coordinate.
+    # end coordinates are not incremented so the tab file is all-inclusive coords
     if query_name not in read_pos:
-        if read.is_reverse:
-            read_pos.setdefault(query_name, {
-                'r1start': read.reference_start + 1,
-                'r1end': read.reference_end,
-            })
-        else:
-            read_pos.setdefault(query_name, {
-                'r1start': read.reference_start + 1,
-                'r1end': read.reference_end + 1,
-            })
+        read_pos.setdefault(query_name, {
+            'r1start': read.reference_start + 1,
+            'r1end': read.reference_end,
+        })
     else:
         r1start = str(read_pos[query_name]['r1start'])
         r1end = str(read_pos[query_name]['r1end'])
         # For reverse string, only the start needs to be adjusted
         r2start = str(read.reference_start + 1)
-        if read.is_reverse:
-            r2end = str(read.reference_end)
-        else:
-            r2end = str(read.reference_end + 1)
+        r2end = str(read.reference_end)
         row = (contig, strand, r1start, r1end, r2start, r2end)
         pp_fh.write("\t".join(row) + "\n")
         # Do not need this entry anymore
