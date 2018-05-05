@@ -305,6 +305,12 @@ def parse_bam_for_proper_pairs(
     # NOTE: if there are lots of reference IDs,
     # may be necessary to change to bam_fh.fetch(until_eof=True)
     for read in bam_fh.fetch(until_eof=until_eof_flag):
+        # Skip duplicate reads (samtools depth ignores anyways which can break things if kept)
+        if read.is_duplicate:
+            continue
+        # Skip multi-mapped reads also
+        if read.has_tag('NH') and read.get_tag('NH') > 1:
+            continue
         if stranded_type != "no":
             if pp_only and not read.is_proper_pair:
                 continue
