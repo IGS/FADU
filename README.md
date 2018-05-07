@@ -40,7 +40,8 @@ usage: fadu.py [-h]
                --output_dir /path/to/output/dir [--tmp_dir /path/to/tmp/dir]
                [--stranded {yes,no,reverse}] [--feature_type FEATURE_TYPE]
                [--attribute_type ATTRIBUTE_TYPE] [--count_by {read,fragment}]
-               [--keep_only_properly_paired] [--num_cores NUM_CORES]
+               [--keep_only_properly_paired] [--rm_multimapped_reads]
+               [--num_cores NUM_CORES]
                [--debug DEBUG/INFO/WARNING/ERROR/CRITICAL]
 
 
@@ -80,6 +81,8 @@ optional arguments:
   --keep_only_properly_paired
                         Enable flag to remove any reads that are not properly
                         paired from the depth count statistics.
+  --rm_multimapped_reads
+                        Enable flag to remove any multimapped reads ('NH' tag > 1)
   --num_cores NUM_CORES, -n NUM_CORES
                         Number of cores to spread processes to when processing
                         BAM list.
@@ -92,3 +95,6 @@ optional arguments:
 By default, all reads that map to the reference are kept (SAM flag 0x4).  Unmapped reads would not factor into depth calculations, and so they are removed in advance so they do not factor into calculating the average read length
 ### With --keep_only_properly_paired enabled
 If this option is enabled, then only properly paired reads are kept (SAM flag 0x2)
+
+## Note about optical or PCR duplicate reads
+Because `samtools depth` excludes any reads with the 0x400 bit flag, FADU will also throw out these reads.  If you want duplicates to be included in the analysis, ensure no reads have this bit flag enabled.  This includes refraining from running tools to detect duplicates, such as PicardTools "MarkDuplicates" utility.

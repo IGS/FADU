@@ -268,7 +268,7 @@ def index_bam(bam):
     pysam.index(bam)
 
 def parse_bam_for_proper_pairs(
-        bam, pp_flatfile, pp_only, stranded_type, count_by_fragment, **kwargs):
+        bam, pp_flatfile, pp_only, rm_mm_reads, stranded_type, count_by_fragment, **kwargs):
     """Iterate through the BAM file to get information about the properly paired read alignments."""
     name = mp.current_process().name
     bam_fh = pysam.AlignmentFile(bam, "rb")
@@ -309,7 +309,7 @@ def parse_bam_for_proper_pairs(
         if read.is_duplicate:
             continue
         # Skip multi-mapped reads also
-        if read.has_tag('NH') and read.get_tag('NH') > 1:
+        if rm_mm_reads and read.has_tag('NH') and read.get_tag('NH') > 1:
             continue
         if stranded_type != "no":
             if pp_only and not read.is_proper_pair:
@@ -397,6 +397,7 @@ def process_bam(bam, contig_bases, gene_info, args):
     stranded_type = args.stranded
     count_by = args.count_by
     pp_only = args.keep_only_properly_paired
+    rm_mm_reads = args.rm_multimapped_reads
     tmp_dir = args.tmp_dir
     output_dir = args.output_dir
 
@@ -418,7 +419,7 @@ def process_bam(bam, contig_bases, gene_info, args):
 
     pp_flatfile = re.sub(r'\.bam', '.properly_paired.tsv', ln_bam)
     working_bam = parse_bam_for_proper_pairs(
-        ln_bam, pp_flatfile, pp_only, stranded_type, count_by_fragment)
+        ln_bam, pp_flatfile, pp_only, rm_mm_reads, stranded_type, count_by_fragment)
 
     # Strandedness determines if the working BAM file needs to be split by strand
     if stranded_type == "no":
@@ -597,6 +598,8 @@ def main():
     parser.add_argument("--keep_only_properly_paired", action="store_true", required=False,
                         help="Enable flag to remove any reads that"
                         " are not properly paired from the depth count statistics.")
+    parser.add_argument("--rm_multimapped_reads", action="store_true", required=False,
+                        help="Enable flag to remove any multimapped reads ('NH' tag > 1)"
     parser.add_argument("--num_cores", "-n", default=1, type=check_positive, required=False,
                         help="Number of cores to spread processes to when processing BAM list.")
     parser.add_argument("--debug", "-d", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL",
