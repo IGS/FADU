@@ -599,7 +599,7 @@ def main():
                         help="Enable flag to remove any reads that"
                         " are not properly paired from the depth count statistics.")
     parser.add_argument("--rm_multimapped_reads", action="store_true", required=False,
-                        help="Enable flag to remove any multimapped reads ('NH' tag > 1)"
+                        help="Enable flag to remove any multimapped reads ('NH' tag > 1)")
     parser.add_argument("--num_cores", "-n", default=1, type=check_positive, required=False,
                         help="Number of cores to spread processes to when processing BAM list.")
     parser.add_argument("--debug", "-d", metavar="DEBUG/INFO/WARNING/ERROR/CRITICAL",
