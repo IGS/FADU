@@ -508,6 +508,7 @@ def store_properly_paired_read(pp_fh, read_pos, read, strand):
 
 def symlink_bam(bam, outdir):
     """Create symlink for passed in BAM file if it does not exist."""
+    bam = os.path.abspath(bam)
     ln_bam = outdir + "/" + os.path.basename(bam)
     # Cannot symlink if source file is already in destination directory
     if outdir in bam:

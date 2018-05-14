@@ -13,8 +13,8 @@ Python 3, Pysam version 0.12.0.1
 
 ## Input
 * One of the following:
-  * A single BAM file of reads
-  * A file listing the paths of BAM files
+  * A single BAM file of reads (sorted by position)
+  * A file listing the paths of BAM files (each file sorted by position)
 * One of the following:
   * A GFF3-formatted annotation file
   * A GTF-formatted annotation file
