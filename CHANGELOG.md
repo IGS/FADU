@@ -9,3 +9,5 @@ NOTE: I haven't really kept track of changes onto now, so this will generally st
 * Properly paired BAM files will also be indexed
 * Fixed issue where the range of fragment depth was not including the ending coordinate
 * Ran the code through a couple of Python linters to clean it up
+* Found issues if the BAM file was being operated on as a relative path, so ensuring absolute paths are read.
+* Fixing bug where KeyError was encountered if properly paired reads overlap and there is a gap in the overlap leading to 0-depth for some coordinates

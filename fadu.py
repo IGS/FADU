@@ -28,6 +28,7 @@ def adjust_depth(depth_dict, pp_flatfile):
     """Adjust depth per coordinate position based on inserts and overlaps present in fragment."""
     name = mp.current_process().name
     logging.debug("%s - Adjusting depth counts to account for fragments ...", name)
+    neg_depth = set()
     with open(pp_flatfile, 'r') as f:
         for line in f:
             entry = process_read_pair_line(line)
@@ -40,12 +41,30 @@ def adjust_depth(depth_dict, pp_flatfile):
                 str_coord = str(coord)
                 # Insert coord may originally be depth 0
                 depth_dict[contig].setdefault(str_coord, {strand: 0})
-                # One strand may have depth but not the other
+                # Opposite strand may have depth but not this one
                 depth_dict[contig][str_coord].setdefault(strand, 0)
                 depth_dict[contig][str_coord][strand] += 1
             for coord in overlaps:
                 str_coord = str(coord)
+                # Observed issue where gaps in properly paired reads ('N' CIGAR value)
+                # can have 0 depth, but one read fully overlaps the other
+                # In this case we want to adjust depth back to 0 if negative value at end.
+                depth_dict[contig].setdefault(str_coord, {strand: 0})
+                depth_dict[contig][str_coord].setdefault(strand, 0)
                 depth_dict[contig][str_coord][strand] -= 1
+                bad_depth = "{}/{}/{}".format(contig, str_coord, strand)
+                # If depth ever goes into a negative value, keep track of it
+                if depth_dict[contig][str_coord][strand] < 0:
+                    neg_depth.add(bad_depth)
+                else:
+                    neg_depth.remove(bad_depth)
+    adjust_negative_depths(depth_dict, neg_depth)
+
+def adjust_negative_depths(depth_dict, neg_depth):
+    """Adjust rare cases where fragment depth is negative to now be 0."""
+    for bad_depth in neg_depth:
+        (contig, str_coord, strand) = bad_depth.split("/")
+        depth_dict[contig][str_coord][strand] = 0
 
 def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     """Use the bitwise flags to assign the paired read to the correct strand."""
@@ -155,8 +174,8 @@ def calc_avg_frag_len(bam, pp_flatfile, pp_only):
 def calc_depth(depth_dict, bam, strand):
     """Calculate depth of coverage using 'samtools depth'."""
     name = mp.current_process().name
-    logging.debug("%s - Calculating depth of coverage of BAM ...", name)
-    depth_out = pysam.depth("-aa", "-m", "10000000", bam).splitlines(True)
+    logging.debug("%s - Calculating depth of coverage of BAM file - %s ...", name, bam)
+    depth_out = pysam.depth("-aa", "-m", "0", bam).splitlines(True)
     depth_outfile = re.sub(r'\.bam', '.read.depth', bam)
     # Write to outfile and reopen that to store depth to dict (saves memory)
     with open(depth_outfile, 'w') as f:
@@ -255,6 +274,17 @@ def get_gene_from_attr(attr_field, ptrn):
                            " more than one match for ptrn {}".format(attr_field, ptrn))
     return match.group(2)
 
+def get_id_parse_ptrn(is_gff3, attr_type):
+    """Return correct pattern for parsing attribute IDs."""
+    if is_gff3:
+        logging.info("Parsing GFF3 file")
+        # Attribute field to parse IDs from.
+        # Keeping number of matching groups for both GTF and GFF ptrns uniform
+        return re.compile(r'(;)?{0}=([\w|.]+);?'.format(attr_type))
+    else:
+        logging.info("Parsing GTF file")
+        return re.compile(r'(; )?{0} \"([\w|.]+)\";'.format(attr_type))
+
 def get_start_stop(first, second):
     """Determine start and stop coordinates."""
     start = min(first, second)
@@ -338,16 +368,8 @@ def parse_bam_for_proper_pairs(
 
 def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     """Parse the GFF3 or GTF annotation file."""
-    if is_gff3:
-        logging.info("Parsing GFF3 file")
-        # Attribute field to parse IDs from.
-        # Keeping number of matching groups for both GTF and GFF ptrns uniform
-        ptrn = re.compile(r'(;)?{0}=([\w|.]+);?'.format(attr_type))
-    else:
-        logging.info("Parsing GTF file")
-        ptrn = re.compile(r'(; )?{0} \"([\w|.]+)\";'.format(attr_type))
-    assert(os.stat(annot_file).st_size > 0), "{} was empty".format(annot_file)
 
+    assert(os.stat(annot_file).st_size > 0), "{} was empty".format(annot_file)
     # Dict -> contig_id -> plus/minus -> coord -> gene_id/overlap
     contig_bases = {}
     # Dict -> gene_id -> [ (contig_id/start/stop/sign) ]
@@ -357,6 +379,7 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
     if stranded_type == "no":
         stranded = 0
 
+    ptrn = get_id_parse_ptrn(is_gff3, attr_type)
     with open(annot_file, 'r') as f:
         for line in f:
             line = line.rstrip()
@@ -391,6 +414,7 @@ def parse_gff3(annot_file, is_gff3, stranded_type, feat_type, attr_type):
 def process_bam(bam, contig_bases, gene_info, args):
     """Process a single BAM alignment file for various metrics."""
     bam = bam.rstrip()
+    bam = os.path.abspath(bam)
     name = mp.current_process().name
 
     # Extract the argument variables that are needed
@@ -429,6 +453,7 @@ def process_bam(bam, contig_bases, gene_info, args):
         pos_bam = re.sub(r'\.bam', '.plus.bam', working_bam)
         neg_bam = re.sub(r'\.bam', '.minus.bam', working_bam)
         for idx, split_bam in enumerate([pos_bam, neg_bam]):
+            split_bam = os.path.abspath(split_bam)
             index_bam(split_bam)
             calc_depth(depth_dict, split_bam, strand_list[idx])
 
@@ -508,7 +533,6 @@ def store_properly_paired_read(pp_fh, read_pos, read, strand):
 
 def symlink_bam(bam, outdir):
     """Create symlink for passed in BAM file if it does not exist."""
-    bam = os.path.abspath(bam)
     ln_bam = outdir + "/" + os.path.basename(bam)
     # Cannot symlink if source file is already in destination directory
     if outdir in bam:
