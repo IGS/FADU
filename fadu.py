@@ -28,7 +28,6 @@ def adjust_depth(depth_dict, pp_flatfile):
     """Adjust depth per coordinate position based on inserts and overlaps present in fragment."""
     name = mp.current_process().name
     logging.debug("%s - Adjusting depth counts to account for fragments ...", name)
-    neg_depth = set()
     with open(pp_flatfile, 'r') as f:
         for line in f:
             entry = process_read_pair_line(line)
@@ -46,25 +45,12 @@ def adjust_depth(depth_dict, pp_flatfile):
                 depth_dict[contig][str_coord][strand] += 1
             for coord in overlaps:
                 str_coord = str(coord)
-                # Observed issue where gaps in properly paired reads ('N' CIGAR value)
-                # can have 0 depth, but one read fully overlaps the other
-                # In this case we want to adjust depth back to 0 if negative value at end.
-                depth_dict[contig].setdefault(str_coord, {strand: 0})
-                depth_dict[contig][str_coord].setdefault(strand, 0)
-                depth_dict[contig][str_coord][strand] -= 1
-                bad_depth = "{}/{}/{}".format(contig, str_coord, strand)
-                # If depth ever goes into a negative value, keep track of it
-                if depth_dict[contig][str_coord][strand] < 0:
-                    neg_depth.add(bad_depth)
-                else:
-                    neg_depth.remove(bad_depth)
-    adjust_negative_depths(depth_dict, neg_depth)
-
-def adjust_negative_depths(depth_dict, neg_depth):
-    """Adjust rare cases where fragment depth is negative to now be 0."""
-    for bad_depth in neg_depth:
-        (contig, str_coord, strand) = bad_depth.split("/")
-        depth_dict[contig][str_coord][strand] = 0
+                try:
+                    depth_dict[contig][str_coord][strand] -= 1
+                except KeyError:
+                    print( "Read depth for contig {} - coord {} - on {} strand \
+                           was already at 0. There should not be an overlap here"
+                           .format(contig, str_coord, strand))
 
 def assign_read_to_strand(read, strand_type, pos_fh, neg_fh):
     """Use the bitwise flags to assign the paired read to the correct strand."""
@@ -227,12 +213,10 @@ def determine_pair_inserts_overlaps(coords_list):
     r1_range = set(range(r1start, r1end))
     r2_range = set(range(r2start, r2end))
     combined_range = set(range(min_coord, max_coord))
-
     # Insert coords will not appear in either read
     inserts = combined_range.difference(*(r1_range, r2_range))
     # Overlapping coords will be common to both reads
     overlaps = r1_range.intersection(r2_range)
-
     return (inserts, overlaps)
 
 def generate_gene_stats(uniq_gene_bases, gene_info, output_dir, gff3_base, stranded_type):
@@ -560,8 +544,8 @@ def write_fragment_depth(depth_dict, bam, strand):
 
     bam_fh = pysam.AlignmentFile(bam, "rb")
     if bam_fh.count(read_callback='all') == 0:
-        logging.info("%s - BAM file was empty of mapped reads."
-                     " Cannot write fragment depth for this file.", name)
+        logging.info("%s - BAM file on %s strand was empty of mapped reads."
+                     " Cannot write fragment depth for this file.", name, strand)
         return
     # Get lengths of references associated with BAM file
     assert len(bam_fh.references) == len(bam_fh.lengths), "Different number of reference names and lengths"
