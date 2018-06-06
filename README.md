@@ -99,5 +99,5 @@ If this option is enabled, then only properly paired reads are kept (SAM flag 0x
 ## Note about optical or PCR duplicate reads
 Because `samtools depth` excludes any reads with the 0x400 bit flag, FADU will also throw out these reads.  If you want duplicates to be included in the analysis, ensure no reads have this bit flag enabled.  This includes refraining from running tools to detect duplicates, such as PicardTools "MarkDuplicates" utility.
 
-## Issues:
+## Issues
 If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue on this GitHub page.
