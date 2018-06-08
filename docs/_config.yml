@@ -1,1 +1,8 @@
+name: FADU
+markdown: kramdown
 theme: jekyll-theme-tactile
+timezone: America/New_York
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
