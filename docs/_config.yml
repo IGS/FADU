@@ -1,8 +1,9 @@
 title: FADU
-description: Launch page for the FADU software
-show_downloads: true
+description: Feature Aggregate Depth Utility
+show_downloads: false
 google_analytics:
 theme: jekyll-theme-tactile
+markdown: kramdown
 timezone: America/New_York
 exclude:
   - Gemfile

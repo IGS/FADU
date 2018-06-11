@@ -2,17 +2,17 @@
 layout: default
 ---
 
-# FADU
-Feature Aggregate Depth Utility
+# Description
+Generate counts of reads that map to non-overlapping portions of genes
 
-## Authors:
+# Authors
 * Shaun Adkins (sadkins@som.umaryland.edu)
 * Matthew Chung (mattchung@umaryland.edu)
 
-## Requirements
+# Requirements
 Python 3, Pysam version 0.12.0.1
 
-## Input
+# Input
 * One of the following:
   * A single BAM file of reads (sorted by position)
   * A file listing the paths of BAM files (each file sorted by position)
@@ -20,7 +20,7 @@ Python 3, Pysam version 0.12.0.1
   * A GFF3-formatted annotation file
   * A GTF-formatted annotation file
 
-## Output
+# Output
 * Tab-delimited file containing gene statistics ending in 'uniquebp.stats.tsv'
   * These are the following fields:
     * Name of the contig
@@ -91,6 +91,7 @@ optional arguments:
                         Set the debug level
 ```
 
+# Special Notes
 ## Notes about kept reads for depth and coverage calculations
 ### Default
 By default, all reads that map to the reference are kept (SAM flag 0x4).  Unmapped reads would not factor into depth calculations, and so they are removed in advance so they do not factor into calculating the average read length
@@ -100,8 +101,10 @@ If this option is enabled, then only properly paired reads are kept (SAM flag 0x
 ## Note about optical or PCR duplicate reads
 Because `samtools depth` excludes any reads with the 0x400 bit flag, FADU will also throw out these reads.  If you want duplicates to be included in the analysis, ensure no reads have this bit flag enabled.  This includes refraining from running tools to detect duplicates, such as PicardTools "MarkDuplicates" utility.
 
-## Frequently Asked Questions
+# Frequently Asked Questions
+## Is FADU designed to work with both prokaryotic and eukaryotic samples?
+FADU works better with prokaryotic samples than eukaryotic samples, as FADU was designed to specifically handle prokaryotic genomes.  Prokaryotic genomes (as compared to most eukaryotic genomes) typically have smaller gene sizes, genome sizes, overlapping transitional boundaries, and operon features.  One of the main goals of FADU was to address these characteristics, as these genes are often ignored or misrepresented by other transcriptomics data quantification algorithms.
 
-## Issues
+# Issues
 If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue on this GitHub page.
 
