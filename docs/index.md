@@ -103,7 +103,7 @@ Because `samtools depth` excludes any reads with the 0x400 bit flag, FADU will a
 
 # Frequently Asked Questions
 ## Is FADU designed to work with both prokaryotic and eukaryotic samples?
-FADU works better with prokaryotic samples than eukaryotic samples, as FADU was designed to specifically handle prokaryotic genomes.  Prokaryotic genomes (as compared to most eukaryotic genomes) typically have smaller gene sizes, genome sizes, overlapping transitional boundaries, and operon features.  One of the main goals of FADU was to address these characteristics, as these genes are often ignored or misrepresented by other transcriptomics data quantification algorithms.
+FADU currently does not support eukaryotic samples, or at least those that come from Tophat or HISAT2 aligners.  
 
 # Issues
 If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue on this GitHub page.
