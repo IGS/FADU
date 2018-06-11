@@ -1,5 +1,7 @@
-name: FADU
-markdown: kramdown
+title: FADU
+description: Launch page for the FADU software
+show_downloads: true
+google_analytics:
 theme: jekyll-theme-tactile
 timezone: America/New_York
 exclude:
