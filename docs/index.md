@@ -106,5 +106,5 @@ Because `samtools depth` excludes any reads with the 0x400 bit flag, FADU will a
 FADU currently does not support eukaryotic samples, or at least those that come from Tophat or HISAT2 aligners.  
 
 # Issues
-If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue on this GitHub page.
+If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue [here](https://github.com/IGS/FADU/issues)
 
