@@ -377,8 +377,10 @@ def process_bam(bam, contig_bases, gene_info, args):
         strand = "plus"
         if stranded_type != "no":
             strand = assign_read_to_strand(read, stranded_type)
-        if read.is_proper_pair:
+
+        if not pp_only or read.is_proper_pair:
             add_read_to_depth(depth_dict, read, strand)
+        if read.is_proper_pair:
             # Store properly paired reads for adjusting depth by fragments later
             if count_by_fragment:
                 if check_for_processed_mate(read_pos, read):
