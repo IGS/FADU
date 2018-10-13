@@ -377,7 +377,8 @@ def process_bam(bam, contig_bases, gene_info, args):
         strand = "plus"
         if stranded_type != "no":
             strand = assign_read_to_strand(read, stranded_type)
-
+            
+        # Calculate read depth for only properly paired reads if pp_only option is set.
         if not pp_only or read.is_proper_pair:
             add_read_to_depth(depth_dict, read, strand)
         if read.is_proper_pair:
@@ -478,7 +479,7 @@ def validate_read(read, rm_mm_reads, stranded_type, pp_only):
         return False
     return True
 
-def write_depth(depth_dict, bam, depth_type, strand):
+def write_depth(depth_dict, bam, depth_type, stranded_type):
     """Write depth to a file, or two files if input BAM was stranded."""
     bam_fh = pysam.AlignmentFile(bam, "rb")
     # Get lengths of references associated with BAM file
@@ -486,9 +487,9 @@ def write_depth(depth_dict, bam, depth_type, strand):
     ref_lens = dict(zip(bam_fh.references, bam_fh.lengths))
     bam_fh.close()
 
-    stranded_type = strand
-    if strand == 'unstranded':
-        stranded_type = "plus"
+    strand = stranded_type
+    if stranded_type == 'unstranded':
+        strand = "plus"
 
     depth_file_ext = ".{}.{}.depth".format(strand, depth_type)
     depth_out_file = re.sub(r'\.bam', depth_file_ext, bam)
