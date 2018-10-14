@@ -160,7 +160,7 @@ def calc_readcounts_per_gene(contig_bases, gene_info, depth_dict, out_bam, read_
             uniq_coords = [key for key, val in contig_bases[contig][strand].items() if val == gene]
             total_depth = 0
             # Coords without depth are not kept.
-            if strand in depth_dict[contig]:
+            if contig in depth_dict and strand in depth_dict[contig]:
                 total_depth += sum(depth_dict[contig][strand][coord] 
                                    for coord in uniq_coords if coord in depth_dict[contig][strand])
             readcounts = round(total_depth / read_len, 2)
