@@ -17,20 +17,20 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 using ArgParse
 using BioAlignments
 using GenomicFeatures
+using Printf
 
-is_duplicate(record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
-is_mate_reverse(record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
-is_proper_pair(record) = BAM.flag(record) & SAM.FLAG_PROPER_PAIR == 0x0002
-is_read1(record) = BAM.flag(record) & SAM.FLAG_READ1 == 0x0040
-is_read2(record) = BAM.flag(record) & SAM.FLAG_READ2 == 0x0080
-is_reverse(record) = BAM.flag(record) & SAM.FLAG_REVERSE == 0x0010
+is_duplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
+is_mate_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
+is_proper_pair(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_PROPER_PAIR == 0x0002
+is_read1(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_READ1 == 0x0040
+is_read2(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_READ2 == 0x0080
+is_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_REVERSE == 0x0010
 
 function add_nonoverlapping_feature_coords!(uniq_coords::Dict{String, Dict}, feature::Interval{GenomicFeatures.GFF3.Record}, stranded::Bool)
     """Adjust the set of coordinates stored in the Dict to be the symmetric difference with those in the feature."""
     seqid = seqname(feature)
     strand = '+'
     if stranded
-        # Could not get strand(feature) to work for UndefVarError... it's a function not a var :-(
         strand = convert(Char, feature.strand)
     end
     # First passthru of new contig or region, add first set of coords (since all uniq at this moment)
@@ -85,16 +85,37 @@ function assign_read_to_strand(record::BAM.Record, reverse_strand=false)
     any(neg_flags) && return '-'
 
     # Read must be a singleton
-    if is_reverse(record)
+    #= if is_reverse(record)
         strand_type == "reverse" && return '-'
         return '+'
     else
         strand_type == "reverse" && return '+'
         return '-'
-    end
+    end =#
     query_name = BAM.tempname(record)
     @warn("Read $query_name did not get assigned to either strand apparently.")
     return '?'
+end
+
+function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{String}, feature::GFF3.Record, stranded::Bool)
+    """Calculate the ratio of fragament coordinates that intersect with non-overlapping feature coordinates."""
+        # Pertinent fragment info
+        strand = '+'
+        if stranded
+            strand = convert(Char, GFF3.strand(feature))
+        end
+        frag_start = leftposition(fragment)
+        frag_end = rightposition(fragment)
+        frag_intersect = intersect(frag_start:frag_end, uniq_coords[GFF3.seqid(feature)][strand])
+        # Percentage of fragment that aligned with this annotation feature
+        return length(frag_intersect) / length(frag_start:frag_end)
+end
+
+function get_feature_name_from_attrs(feature::GFF3.Record, attr_type::String)
+    """Get attribute ID to use as the feature name."""
+    gene_vector = GFF3.attributes(feature, attr_type)    # col 9
+    validate_feature_attribute(gene_vector)
+    return gene_vector[1]
 end
 
 function get_fragment_start_end(record::BAM.Record)
@@ -140,9 +161,8 @@ function validate_feature_attribute(gene_vector::Vector{String})
 end
 
 function validate_record(record::BAM.Record)
-    """Ensure alignment record is not multimapped, a duplicate, and is properly paired."""
-    nh_flag = ! (haskey(record, "NH") && record["NH"] > 1)
-    return !is_duplicate(record) && nh_flag && is_proper_pair(record)
+    """Ensure alignment record is a primary alignment, is not multimapped, and is properly paired."""
+    return BAM.isprimary(record) && is_proper_pair(record)
 end
 
 ########
@@ -159,21 +179,21 @@ function parse_commandline()
     # The macro to add a table of arguments and options to the ArgParseSettings object
     @add_arg_table s begin
         "--bam_file", "-b"
-            help = "Path to BAM file (no SAM). Choose between --bam_file or --bam_list."
+            help = "Path to BAM file (SAM is not supported)."
             metavar = "/path/to/file.bam"
             required = true
             #group = "bam group"
         "--gff3_file", "-g"
-            help = "Path to GFF3-formatted annotation file."
+            help = "Path to GFF3-formatted annotation file (GTF is not supported)."
             metavar = "/path/to/annotation.gff3"
             required = true
             #group = "annot group"
         "--output_dir", "-o"
-            help = "Directory to write the output"
+            help = "Directory to write the output."
             metavar = "/path/to/output/dir/"
             required = true
         "--stranded", "-s"
-            help = "Indicate if BAM reads are from a strand-specific assay"
+            help = "Indicate if BAM reads are from a strand-specific assay. Choose between 'yes', 'no', or 'reverse'."
             default = "no"
         "--feature_type", "-f"
             help = "Which GFF3/GTF feature type (column 3) to obtain. readcount statistics for. Case-sensitive."
@@ -232,6 +252,7 @@ function main()
             error("Attempted to find index file for BAM file $bam but could not find one")
         end
     end
+    @debug("Found BAM index file at $bai_file")
     bam_reader = open(BAM.Reader, args["bam_file"], index=bai_file)
     @time fragment_intervals = parse_intervals_from_alignments(bam_reader, is_reverse_stranded(args["stranded"]))
     close(bam_reader)
@@ -247,39 +268,29 @@ function main()
     feat_overlaps = Dict{String, Dict}()
     @time for (fragment, feature) in eachoverlap(fragment_intervals, features)
         # Pertinent feature info
-        GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
-        gene_vector = GFF3.attributes(metadata(feature), args["attribute_type"])    # col 9
-        validate_feature_attribute(gene_vector)
-        gene_id = gene_vector[1]
+        feat_record = metadata(feature)
+        GFF3.featuretype(feat_record) == args["feature_type"] || continue
+        feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
+        # Initialize feature_name into overlaps Dict if key does not exist
+        get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
 
-        get!(feat_overlaps, gene_id, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
-
-        # Pertinent fragment info
-        strand = '+'
-        if is_stranded(args["stranded"])
-            strand = convert(Char, feature.strand)
-        end
-        frag_start = leftposition(fragment)
-        frag_end = rightposition(fragment)
-        frag_intersect = intersect(frag_start:frag_end, uniq_coords[seqname(feature)][strand])
-
-        # Percentage of fragment that aligned with this annotation feature
-        frag_feat_ratio = length(frag_intersect) / length(frag_start:frag_end)
+        frag_feat_ratio = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, is_stranded(args["stranded"]))
         if frag_feat_ratio > 0
-            feat_overlaps[gene_id]["counter"] += 1
-            feat_overlaps[gene_id]["gene_depth"] += frag_feat_ratio
+            feat_overlaps[feature_name]["counter"] += 1
+            feat_overlaps[feature_name]["gene_depth"] += frag_feat_ratio
         end
     end
 
     @info("Writing counts output to file...")
-    out_file = joinpath(args["output_dir"], splitext(basename(args["gff3_file"]))[1])
+    out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
     out_f = open(out_file, "w")
     write(out_f, "gene\tnum_alignments\tcounts\n")
     # Write Dictionary to file
     for gene_id in sort(collect(keys(feat_overlaps)))
         counter = feat_overlaps[gene_id]["counter"]
         gene_depth = feat_overlaps[gene_id]["gene_depth"]
-        write(out_f, "$gene_id\t$counter\t$gene_depth\n")
+        s = @sprintf("%s\t%i\t%.2f\n", gene_id, counter, gene_depth)
+        write(out_f, s)
     end
     close(out_f)
 
