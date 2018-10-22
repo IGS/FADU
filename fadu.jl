@@ -20,7 +20,7 @@ using GenomicFeatures
 using Printf
 
 const VERSION_NUMBER = "1.0"    # Version number of the FADU program
-const CHUNK_SIZE = 1000000 # Number of valid BAM fragments to read in before determining overlaps
+const CHUNK_SIZE = 5000000 # Number of valid BAM fragments to read in before determining overlaps
 
 #is_duplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
 is_mate_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
