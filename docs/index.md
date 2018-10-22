@@ -21,16 +21,17 @@ Modules
 * A GFF3-formatted annotation file
 
 # Output
-* Tab-delimited file whose name is the BAM input file's basename, ending in '.counts.txt'
-  * These are the following fields:
-    * Name of feature
-    * Number of BAM fragments that aligned to this feature's non-overlapping bases
-    * Fractionalized fragment counts 
-      * For each aligned fragment, the depth is (intersect of fragment coords to feature coords that do not overlap with other features) / length of the fragment
+The output is a tab-delimited file whose name is the BAM input file's basename, ending in '.counts.txt'.  For example if the name of the BAM file was 'sample123.bam', the output file name is 'sample123.counts.txt'
+
+The output file has the following fields:
+* Name of feature
+* Number of BAM fragments that aligned to this feature's non-overlapping bases
+* Fractionalized fragment counts 
+  * For each aligned fragment, the depth is (intersect of fragment coords to feature coords that do not overlap with other features) / length of the fragment
 
 ```
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
-               -o /path/to/output/dir/ [-s STRANDED] [-f FEATURE_TYPE]
+               -o /path/to/output/dir [-s STRANDED] [-f FEATURE_TYPE]
                [-a ATTRIBUTE_TYPE]
 
 optional arguments:
@@ -65,7 +66,7 @@ When processing the input BAM file, any reads that are not properly paired or ar
 FADU currently does not support eukaryotic samples, or at least those that come from Tophat or HISAT2 aligners.
 
 ## When running FADU.jl, I get a "too many arguments" error.  How do I fix this?
-The Julia language prefers that its string arguments (file paths, strandedness) be wrapped in quotations so that it does not confuse an option value with a command-type argument.
+A safe way to pass in values to the options is to enclose any string arguments (like file paths or strandedness) in quotations so that it ensures Julia's argument parser reads the parameter as an option value instead of a command-type argument.
 
 ## Can I use FADU to calculate counts for features using read depth instead of fragment depth?
 Currently at this time, only fragment depth is supported.  Performing calculations using read depth may be implemented in the future though.
