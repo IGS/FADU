@@ -19,7 +19,8 @@ using BioAlignments
 using GenomicFeatures
 using Printf
 
-const chunk_size = 1000000 # Number of valid BAM fragments to read in before determining overlaps
+const VERSION_NUMBER = "1.0"    # Version number of the FADU program
+const CHUNK_SIZE = 1000000 # Number of valid BAM fragments to read in before determining overlaps
 
 #is_duplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
 is_mate_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
@@ -171,7 +172,7 @@ end
 function parse_commandline()
     s = ArgParseSettings(description = "Generate counts of reads that map to non-overlapping portions of genes",
     prog = "fadu.jl",
-	version = "1.0",
+	version = VERSION_NUMBER,
 	add_version = true,
     add_help = true)
 
@@ -271,7 +272,7 @@ function main()
         read!(bam_reader, record)
         validate_record(record) && is_read1(record) || continue
         valid_record_counter += 1
-        if valid_record_counter % chunk_size == 0
+        if valid_record_counter % CHUNK_SIZE == 0
             process_overlaps!(feat_overlaps, uniq_coords, fragment_intervals, features, args)
             fragment_intervals = IntervalCollection{String}()
         end
