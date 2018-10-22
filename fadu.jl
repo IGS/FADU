@@ -80,6 +80,7 @@ function assign_read_to_strand(record::BAM.Record, reverse_strand=false)
     any(pos_flags) && return '+'
     any(neg_flags) && return '-'
 
+    # Most likely will never reach this
     query_name = BAM.tempname(record)
     @warn("Read $query_name did not get assigned to either strand apparently.")
     return '?'
@@ -149,7 +150,6 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         if frag_feat_ratio > 0
             feat_overlaps[feature_name]["counter"] += 1
             feat_overlaps[feature_name]["gene_depth"] += frag_feat_ratio
-        end
     end
 end
 
