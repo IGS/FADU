@@ -151,6 +151,7 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         if frag_feat_ratio > 0
             feat_overlaps[feature_name]["counter"] += 1
             feat_overlaps[feature_name]["gene_depth"] += frag_feat_ratio
+        end
     end
 end
 
