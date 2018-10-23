@@ -20,7 +20,7 @@ using GenomicFeatures
 using Printf
 
 const VERSION_NUMBER = "1.0"    # Version number of the FADU program
-const CHUNK_SIZE = 5000000 # Number of valid BAM fragments to read in before determining overlaps
+const CHUNK_SIZE = 10000000 # Number of valid BAM fragments to read in before determining overlaps
 
 #is_duplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
 is_mate_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
@@ -123,6 +123,11 @@ end
 function get_fragment_interval(record::BAM.Record, reverse_strand::Bool=false)
     """Return a fragment-based Interval for the current record.""" 
     return Interval(BAM.refname(record), get_fragment_start_end(record), assign_read_to_strand(record, reverse_strand), BAM.tempname(record))
+end
+
+function is_chunk_ready(counter::Int)
+    counter % CHUNK_SIZE == 0 && return true
+    return false
 end
 
 function is_stranded(strand_type::String)
@@ -273,7 +278,7 @@ function main()
         read!(bam_reader, record)
         validate_record(record) && is_read1(record) || continue
         valid_record_counter += 1
-        if valid_record_counter % CHUNK_SIZE == 0
+        if is_chunk_ready(valid_record_counter)
             process_overlaps!(feat_overlaps, uniq_coords, fragment_intervals, features, args)
             fragment_intervals = IntervalCollection{String}()
         end
