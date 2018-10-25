@@ -295,6 +295,7 @@ function main()
         feature_name = get_feature_name_from_attrs(record, args["attribute_type"])
         get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
     end
+    close(gff3_reader)
 
     @info("Writing counts output to file...")
     out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
