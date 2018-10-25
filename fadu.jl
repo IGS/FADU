@@ -290,7 +290,7 @@ function main()
 
     @info("Determining which features did not have fragment alignments overlap...")
     lonely_features = []
-    for record in gff3_reader:
+    for record in gff3_reader
         GFF3.featuretype(record) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(record, args["attribute_type"])
         get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
