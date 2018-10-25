@@ -92,7 +92,7 @@ function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Inte
         # Pertinent fragment info
         strand = '+'
         if stranded
-            strand = convert(Char, GFF3.strand(feature))
+            strand = convert(Char, strand(fragment))
         end
         frag_start = leftposition(fragment)
         frag_end = rightposition(fragment)
