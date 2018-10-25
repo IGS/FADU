@@ -32,10 +32,7 @@ is_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_REVERSE == 0x0010
 function add_nonoverlapping_feature_coords!(uniq_coords::Dict{String, Dict}, feature::Interval{GenomicFeatures.GFF3.Record}, stranded::Bool)
     """Adjust the set of coordinates stored in the Dict to be the symmetric difference with those in the feature."""
     seqid = seqname(feature)
-    strand = '+'
-    if stranded
-        strand = convert(Char, feature.strand)
-    end
+    strand = get_strand_of_interval(feature, stranded)
     # First passthru of new contig or region, add first set of coords (since all uniq at this moment)
     if !(haskey(uniq_coords, seqid))
         uniq_coords[seqid] = Dict{Char,Set{Int}}(strand => Set{Int}(leftposition(feature) : rightposition(feature)))
@@ -63,38 +60,23 @@ function assign_read_to_strand(record::BAM.Record, reverse_strand=false)
     ## Negative Strand
     ### R1 - forward (97), R2 - revcom (145)
 
-    # Forward strand flags (ignoring read2 flags)
-    flag_97 = is_read1(record) && is_mate_reverse(record)
-    flag_65 = is_read1(record) && !(is_reverse(record) || is_mate_reverse(record))
-    # Reverse strand flags
-    flag_81 = is_read1(record) && is_reverse(record)
-    flag_113 = is_read1(record) && is_reverse(record) && is_mate_reverse(record)
-
-    pos_flags = Set([flag_97, flag_65])
-    neg_flags = Set([flag_81, flag_113])
-    if reverse_strand
-        pos_flags = Set([flag_81, flag_113])
-        neg_flags = Set([flag_97, flag_65])
+    # All these are based on the 1st read
+    if is_reverse(record)
+        # If reverse-stranded, strand is flipped
+        if reverse_strand
+            return '+'
+        end
+        return '-'
     end
-
-    # Does record flag belong in the pos or neg set?
-    any(pos_flags) && return '+'
-    any(neg_flags) && return '-'
-
-    # Most likely will never reach this
-    query_name = BAM.tempname(record)
-    @warn("Read $query_name did not get assigned to either strand apparently.")
-    return '?'
+    if reverse_strand
+        return '-'
+    end
+    return '+'
 end
 
-function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{String}, feature::GFF3.Record, stranded::Bool)
+function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{String}, feature::GFF3.Record, strand::Char)
     """Calculate the ratio of fragament coordinates that intersect with non-overlapping feature coordinates."""
         # Pertinent fragment info
-        strand = '+'
-        if stranded
-            # for some reason, strand(fragment) throws an error
-            strand = convert(Char, fragment.strand)
-        end
         frag_start = leftposition(fragment)
         frag_end = rightposition(fragment)
         frag_intersect = intersect(frag_start:frag_end, uniq_coords[GFF3.seqid(feature)][strand])
@@ -126,6 +108,15 @@ function get_fragment_interval(record::BAM.Record, reverse_strand::Bool=false)
     return Interval(BAM.refname(record), get_fragment_start_end(record), assign_read_to_strand(record, reverse_strand), BAM.tempname(record))
 end
 
+function get_strand_of_interval(interval::Interval, stranded::Bool)
+    """Get strand of interval with respect to strandedness arguments."""
+    strand = '+'
+    if stranded
+        strand = convert(Char, interval.strand)
+    end
+    return strand
+end
+
 function is_chunk_ready(counter::Int)
     counter % CHUNK_SIZE == 0 && return true
     return false
@@ -153,10 +144,14 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         # Initialize feature_name into overlaps Dict if key does not exist
         get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
 
-        frag_feat_ratio = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, is_stranded(args["stranded"]))
-        if frag_feat_ratio > 0
-            feat_overlaps[feature_name]["counter"] += 1
-            feat_overlaps[feature_name]["gene_depth"] += frag_feat_ratio
+        bam_strand = get_strand_of_interval(fragment, is_stranded(args["stranded"]))
+        gff_strand = get_strand_of_interval(feature, is_stranded(args["stranded"]))
+        if bam_strand == gff_strand
+            frag_feat_ratio = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
+            if frag_feat_ratio > 0
+                feat_overlaps[feature_name]["counter"] += 1
+                feat_overlaps[feature_name]["gene_depth"] += frag_feat_ratio
+            end
         end
     end
 end
@@ -189,12 +184,10 @@ function parse_commandline()
             help = "Path to BAM file (SAM is not supported)."
             metavar = "/path/to/file.bam"
             required = true
-            #group = "bam group"
         "--gff3_file", "-g"
             help = "Path to GFF3-formatted annotation file (GTF is not supported)."
             metavar = "/path/to/annotation.gff3"
             required = true
-            #group = "annot group"
         "--output_dir", "-o"
             help = "Directory to write the output."
             metavar = "/path/to/output/dir/"
@@ -208,19 +201,8 @@ function parse_commandline()
         "--attribute_type", "-a"
             help = "Which GFF3/GTF feature type (column 9) to obtain. readcount statistics for. Case-sensitive."
             default = "ID"
-        #"--count_by", "-c"
-        #    help = "How to count the reads when performing depth calculations."
-        #    default = "read"
-        # "--keep_only_properly_paired"
-        #     help = "Enable flag to remove any reads that are not properly paired from the depth count statistics"
-        #     action = :store_true
-        # "--rm_multimapped_reads"
-        #     help = "Enable flag to remove any multimapped reads ('NH' tag > 1)"
-        #     action = :store_true
-
     # Will not add log_file or debug options for now
     end
-
     # Converts the ArgParseSettings object into key/value pairs
     return parse_args(s)
 end
@@ -248,6 +230,7 @@ function main()
     @info("Processing annotation features...")
     gff3_reader = open(GFF3.Reader, args["gff3_file"])
     @time features = IntervalCollection(gff3_reader)
+    close(gff3_reader)
 
     @info("Getting unique coordinates per contig...")
     uniq_coords = Dict{String, Dict}()
@@ -290,13 +273,12 @@ function main()
     close(bam_reader)
 
     @info("Determining which features did not have fragment alignments overlap...")
-    lonely_features = []
-    for record in gff3_reader
+    for feature in features
+        record = metadata(feature)
         GFF3.featuretype(record) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(record, args["attribute_type"])
         get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
     end
-    close(gff3_reader)
 
     @info("Writing counts output to file...")
     out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
