@@ -288,6 +288,14 @@ function main()
     process_overlaps!(feat_overlaps, uniq_coords, fragment_intervals, features, args)
     close(bam_reader)
 
+    @info("Determining which features did not have fragment alignments overlap...")
+    lonely_features = []
+    for record in gff3_reader:
+        GFF3.featuretype(record) == args["feature_type"] || continue
+        feature_name = get_feature_name_from_attrs(record, args["attribute_type"])
+        get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
+    end
+
     @info("Writing counts output to file...")
     out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
     out_f = open(out_file, "w")
