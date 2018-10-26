@@ -11,7 +11,7 @@ Generate counts of reads that map to non-overlapping portions of genes
 
 # Requirements
 Julia - v0.7 or later (v1.0 or later preferred)
-Modules
+## Modules
 * ArgParse
 * BioAlignments - v1.0.0
 * GenomicFeatures - v1.0.0
