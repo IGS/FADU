@@ -117,7 +117,7 @@ function get_strand_of_interval(interval::Interval, stranded::Bool)
     return strand
 end
 
-function increment_feature_overlap_information(feat_dict::Dict{String,Real}, frag_feat_ratio::Float16)
+function increment_feature_overlap_information(feat_dict::Dict{String,Real}, frag_feat_ratio::Float32)
     """Increment counter and depth information for feature if fragment overlapped with uniq coords."""
     if frag_feat_ratio > 0
         feat_dict["counter"] += 1
@@ -155,7 +155,7 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         bam_strand = get_strand_of_interval(fragment, is_stranded(args["stranded"]))
         gff_strand = get_strand_of_interval(feature, is_stranded(args["stranded"]))
         if bam_strand == gff_strand
-            frag_feat_ratio::Float16 = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
+            frag_feat_ratio::Float32 = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
             increment_feature_overlap_information(feat_overlaps[feature_name], frag_feat_ratio)
         end
     end
