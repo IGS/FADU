@@ -35,14 +35,14 @@ function add_nonoverlapping_feature_coords!(uniq_coords::Dict{String, Dict}, fea
     strand = get_strand_of_interval(feature, stranded)
     # First passthru of new contig or region, add first set of coords (since all uniq at this moment)
     if !(haskey(uniq_coords, seqid))
-        uniq_coords[seqid] = Dict{Char,Set{Int}}(strand => Set{Int}(leftposition(feature) : rightposition(feature)))
+        uniq_coords[seqid] = Dict{Char,Set{UInt64}}(strand => Set{UInt64}(leftposition(feature) : rightposition(feature)))
         return
     elseif !(haskey(uniq_coords[seqid], strand))
-        uniq_coords[seqid][strand] = Set{Int}(leftposition(feature) : rightposition(feature))
+        uniq_coords[seqid][strand] = Set{UInt64}(leftposition(feature) : rightposition(feature))
         return
     end
     curr_contig_coords = uniq_coords[seqid][strand]
-    new_feat_coords = Set{Int}(leftposition(feature) : rightposition(feature))
+    new_feat_coords = Set{UInt64}(leftposition(feature) : rightposition(feature))
     # Get overlapping coordinates and remove from current contig coords set (symmetric difference)
     uniq_coords[seqid][strand] = symdiff(curr_contig_coords, new_feat_coords)
 end
@@ -105,7 +105,7 @@ end
 
 function get_fragment_interval(record::BAM.Record, reverse_strand::Bool=false)
     """Return a fragment-based Interval for the current record.""" 
-    return Interval(BAM.refname(record), get_fragment_start_end(record), assign_read_to_strand(record, reverse_strand), BAM.tempname(record))
+    return Interval(BAM.refname(record), get_fragment_start_end(record), assign_read_to_strand(record, reverse_strand), "$(BAM.tempname(record))\t$(BAM.flag(record))\n")
 end
 
 function get_strand_of_interval(interval::Interval, stranded::Bool)
@@ -117,7 +117,16 @@ function get_strand_of_interval(interval::Interval, stranded::Bool)
     return strand
 end
 
-function is_chunk_ready(counter::Int)
+function increment_feature_overlap_information(feat_dict::Dict{String,Real}, frag_feat_ratio::Float16)
+    """Increment counter and depth information for feature if fragment overlapped with uniq coords."""
+    if frag_feat_ratio > 0
+        feat_dict["counter"] += 1
+        feat_dict["gene_depth"] += frag_feat_ratio
+    end
+end
+
+function is_chunk_ready(counter::UInt64)
+    """Test to see if chunk is ready for further processing."""
     counter % CHUNK_SIZE == 0 && return true
     return false
 end
@@ -137,7 +146,6 @@ end
 function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{String, Dict}, fragment_intervals::IntervalCollection{String}, features::IntervalCollection{GFF3.Record}, args::Dict)
     """Process current chunk of fragment intervals that overlap with feature intervals."""
     for (fragment, feature) in eachoverlap(fragment_intervals, features)
-        # Pertinent feature info
         feat_record = metadata(feature)
         GFF3.featuretype(feat_record) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
@@ -147,11 +155,8 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         bam_strand = get_strand_of_interval(fragment, is_stranded(args["stranded"]))
         gff_strand = get_strand_of_interval(feature, is_stranded(args["stranded"]))
         if bam_strand == gff_strand
-            frag_feat_ratio = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
-            if frag_feat_ratio > 0
-                feat_overlaps[feature_name]["counter"] += 1
-                feat_overlaps[feature_name]["gene_depth"] += frag_feat_ratio
-            end
+            frag_feat_ratio::Float16 = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
+            increment_feature_overlap_information(feat_overlaps[feature_name], frag_feat_ratio)
         end
     end
 end
@@ -229,12 +234,12 @@ function main()
 
     @info("Processing annotation features...")
     gff3_reader = open(GFF3.Reader, args["gff3_file"])
-    @time features = IntervalCollection(gff3_reader)
+    features = IntervalCollection(gff3_reader)
     close(gff3_reader)
 
     @info("Getting unique coordinates per contig...")
     uniq_coords = Dict{String, Dict}()
-    @time for feature in features
+    for feature in features
         GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
         add_nonoverlapping_feature_coords!(uniq_coords, feature, is_stranded(args["stranded"]))
     end
@@ -257,8 +262,8 @@ function main()
 
     record = BAM.Record()
     fragment_intervals = IntervalCollection{String}()
-    valid_record_counter = 0
-    @time while !eof(bam_reader)
+    valid_record_counter::UInt64 = 0
+    while !eof(bam_reader)
         read!(bam_reader, record)
         validate_record(record) && is_read1(record) || continue
         valid_record_counter += 1
@@ -274,9 +279,10 @@ function main()
 
     @info("Determining which features did not have fragment alignments overlap...")
     for feature in features
-        record = metadata(feature)
-        GFF3.featuretype(record) == args["feature_type"] || continue
-        feature_name = get_feature_name_from_attrs(record, args["attribute_type"])
+        feat_record = metadata(feature)
+        GFF3.featuretype(feat_record) == args["feature_type"] || continue
+        feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
+        # Initialize feature_name into overlaps Dict if key does not exist
         get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
     end
 
