@@ -53,6 +53,9 @@ optional arguments:
                         Which GFF3/GTF feature type (column 9) to
                         obtain. readcount statistics for.
                         Case-sensitive. (default: "ID")
+  -p, --keep_only_proper_pairs
+                        If enabled, keep only properly paired reads
+                        when performing calculations
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```
