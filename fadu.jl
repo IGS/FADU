@@ -142,16 +142,17 @@ function get_strand_of_interval(interval::Interval, stranded::Bool)
     return strand
 end
 
-function increment_feature_overlap_information(feat_dict::Dict{String,Real}, frag_feat_ratio::Float32, is_read::Bool)
+function increment_feature_overlap_information(feat_dict::Dict{String,Float32}, frag_feat_ratio::Float32, is_read::Bool)
     """Increment counter and depth information for feature if fragment overlapped with uniq coords."""
     if frag_feat_ratio > 0
-        feat_dict["counter"] += 1
+        counter = 1.0
         if is_read
             # If dealing with read, do not want to give as much weight since both reads will be added independently compared to a single fragment
-            feat_dict["gene_depth"] += frag_feat_ratio / 2
-        else
-            feat_dict["gene_depth"] += frag_feat_ratio
+            counter = 0.5
+            frag_feat_ratio /= 2
         end
+        feat_dict["counter"] += counter
+        feat_dict["gene_depth"] += frag_feat_ratio
     end
 end
 
@@ -180,7 +181,7 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         GFF3.featuretype(feat_record) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
         # Initialize feature_name into overlaps Dict if key does not exist
-        get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
+        get!(feat_overlaps, feature_name, Dict{String, Float32}("counter" => 0, "gene_depth" => 0))
 
         bam_strand = get_strand_of_interval(fragment, is_stranded(args["stranded"]))
         gff_strand = get_strand_of_interval(feature, is_stranded(args["stranded"]))
@@ -328,7 +329,7 @@ function main()
         GFF3.featuretype(feat_record) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
         # Initialize feature_name into overlaps Dict if key does not exist
-        get!(feat_overlaps, feature_name, Dict{String, Real}("counter" => 0, "gene_depth" => 0))
+        get!(feat_overlaps, feature_name, Dict{String, Float32}("counter" => 0, "gene_depth" => 0))
     end
 
     @info("Writing counts output to file...")
