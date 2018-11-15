@@ -27,9 +27,13 @@ The output is a tab-delimited file whose name is the BAM input file's basename, 
 
 The output file has the following fields:
 * Name of feature
-* Number of BAM fragments that aligned to this feature's non-overlapping bases
-* Fractionalized fragment counts 
+* Number of bases that do not overlap with other features (uniq\_len)
+* Number of BAM records that aligned to this feature's non-overlapping bases
+  * Aligned reads not part of a fragment get 0.5 count, and fragments get 1 count
+* Fractionalized feature counts 
   * For each aligned fragment, the depth is (intersect of fragment coords to feature coords that do not overlap with other features) / length of the fragment
+  * Aligned reads that are not part of a fragment get their depth contribution cut in half
+* TPM count in scientific notation
 
 ```
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.2
+* FEATURE - Added two new output columns.  1) Nonoverlapping feature length. 2) TPM (in scientific notation)
+* Specifying some type information for variables.
+* Moving flag variables in assign_read_to_strand outside the function to become their own functions
+
 ## v1.1
 * BUGFIX - Correctly verifies BAM filepath provided in arguments does exist.
 * FEATURE - Added --keep\_only\_proper\_pairs option.  Before, only properly paired reads were kept.  Now any discordant reads and singletons will be kept unless this option is specified.  Discordant reads and singletons will carry half the weight of a fragment, since both reads are processed individually.
