@@ -19,7 +19,8 @@ using BioAlignments
 using GenomicFeatures
 using Printf
 
-const VERSION_NUMBER = "1.1"    # Version number of the FADU program
+const VERSION_NUMBER = "1.2"    # Version number of the FADU program
+const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const CHUNK_SIZE = 10000000 # Number of valid BAM fragments to read in before determining overlaps
 # NOTE: Making chunk_counter a UInt32, so this constant should not exceed 4,294,967,295
 
@@ -218,14 +219,14 @@ function validate_feature_attribute(gene_vector::Vector{String})
     length(gene_vector) == 1 || error("ERROR - Attribute field 'ID' found to have multiple entries.\n")
 end
 
-function validate_fragment(record::BAM.Record)
+function validate_fragment(record::BAM.Record, max_frag_size::UInt16)
     """Ensure alignment record can be used to calculate fragment depth. (Only need 1 read of fragment)"""
-    return is_proper_pair(record) && is_read1(record)
+    return is_proper_pair(record) && is_read1(record) && BAM.templength(record) <= max_frag_size
 end
 
-function validate_read(record::BAM.Record)
+function validate_read(record::BAM.Record, max_frag_size::UInt16)
     """Ensure alignment record can be used to calculate read depth."""
-    return !is_proper_pair(record) && BAM.ismapped(record)
+    return (!is_proper_pair(record) || BAM.templength(record) >= max_frag_size) && BAM.ismapped(record)
 end
 
 ########
@@ -263,9 +264,17 @@ function parse_commandline()
             help = "Which GFF3/GTF feature type (column 9) to obtain. readcount statistics for. Case-sensitive."
             default = "ID"
         "--keep_only_proper_pairs", "-p"
-            help = "If enabled, keep only properly paired reads when performing calculations"
+            help = "If enabled, keep only properly paired reads when performing calculations."
             action = :store_true
             dest_name = "pp_only"
+        "--max_fragment_size", "-m"
+            help = "If the fragment size of properly-paired reads exceeds this value, process pair as single reads instead of as a fragment.
+                    Setting this value to 0 will make every fragment pair be processed as two individual reads.
+                    Maximum value is 65535 (to allow for use of UInt16 type, and fragments typically are not that large).
+                    If --keep_only_proper_pairs is enabled, then any fragment exceeding this value will be discarded."
+            default = MAX_FRAGMENT_SIZE
+            arg_type = Int
+            range_tester = (x->typemin(UInt16)<=x<=typemax(UInt16))
     # Will not add log_file or debug options for now
     end
     # Converts the ArgParseSettings object into key/value pairs
@@ -302,6 +311,7 @@ function main()
         GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
         add_nonoverlapping_feature_coords!(uniq_coords, feature, is_stranded(args["stranded"]))
     end
+    @info("Initializing feature overlap dictionary...")
     feat_overlaps = Dict{String, Dict}()
     for feature in features
         GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
@@ -329,18 +339,18 @@ function main()
     fragment_intervals = IntervalCollection{String}()
     valid_record_counter::UInt32 = 0
     record_type = ""
+    max_frag_size = convert(UInt16, args["max_fragment_size"])
     while !eof(bam_reader)
         read!(bam_reader, record)
         # Validation of current read
         BAM.isprimary(record) || continue
-        if validate_fragment(record)
+        if validate_fragment(record, max_frag_size)
             record_type = "fragment"
-        elseif !args["pp_only"] && validate_read(record)
+        elseif !args["pp_only"] && validate_read(record, max_frag_size)
             record_type = "read"
         else
             continue
         end
-
         # Store reads as chunks and process chunks when chunk is max size
         valid_record_counter += 1
         if is_chunk_ready(valid_record_counter)

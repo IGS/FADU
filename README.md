@@ -37,20 +37,24 @@ The output file has the following fields:
 
 ```
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
-               -o /path/to/output/dir [-s STRANDED] [-f FEATURE_TYPE]
-               [-a ATTRIBUTE_TYPE]
+               -o /path/to/output/dir/ [-s STRANDED] [-f FEATURE_TYPE]
+               [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE]
+               [--version] [-h]
+
+Generate counts of reads that map to non-overlapping portions of genes
 
 optional arguments:
   -b, --bam_file /path/to/file.bam
                         Path to BAM file (SAM is not supported).
   -g, --gff3_file /path/to/annotation.gff3
-                        Path to GFF3-formatted annotation file (GTF is not supported).
+                        Path to GFF3-formatted annotation file (GTF is
+                        not supported).
   -o, --output_dir /path/to/output/dir/
                         Directory to write the output.
   -s, --stranded STRANDED
                         Indicate if BAM reads are from a
-                        strand-specific assay. Choose between
-                        'yes', 'no', or 'reverse'. (default: "no")
+                        strand-specific assay. Choose between 'yes',
+                        'no', or 'reverse'. (default: "no")
   -f, --feature_type FEATURE_TYPE
                         Which GFF3/GTF feature type (column 3) to
                         obtain. readcount statistics for.
@@ -61,7 +65,19 @@ optional arguments:
                         Case-sensitive. (default: "ID")
   -p, --keep_only_proper_pairs
                         If enabled, keep only properly paired reads
-                        when performing calculations
+                        when performing calculations.
+  -m, --max_fragment_size MAX_FRAGMENT_SIZE
+                        If the fragment size of properly-paired reads
+                        exceeds this value, process pair as single
+                        reads instead of as a fragment.
+                        Setting this value to 0 will make every
+                        fragment pair be processed as two individual
+                        reads. Maximum value is
+                        65535 (to allow for use of UInt16 type, and
+                        fragments typically are not that large).
+                        If --keep_only_proper_pairs is enabled, then
+                        any fragment exceeding this value will be
+                        discarded. (type: Int64, default: 1000)
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```
