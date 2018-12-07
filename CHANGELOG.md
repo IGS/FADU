@@ -2,9 +2,10 @@
 
 ## v1.2
 * FEATURE - Added two new output columns.  1) Nonoverlapping feature length. 2) TPM (in scientific notation)
+* FEATURE - Adding --max\_fragment\_size argument to handle extremely long (incorrect) fragments, and process them as reads instead.
 * Specifying some type information for variables.
 * Moving flag variables in assign_read_to_strand outside the function to become their own functions
-* Adding --max\_fragment\_size argument to handle extremely long (incorrect) fragments, and process them as reads instead.
+
 
 ## v1.1
 * BUGFIX - Correctly verifies BAM filepath provided in arguments does exist.
