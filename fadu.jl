@@ -184,6 +184,17 @@ function is_chunk_ready(counter::UInt32)
     return false
 end
 
+function is_multimapped(record::BAM.Record)
+    """Test to see if alignment is multimapped across multiple regions of the genome."""
+    try
+        return haskey(record, "NH") && record["NH"] > 1
+    catch
+        # Ran into bug where some attributes are 'X' type which is not valid
+        # Bioalignments BAM.Record.auxdata(record) throws LoadError for these
+        return false
+    end
+end
+
 function is_stranded(strand_type::String)
     """Check to see if stranded type is reverse-stranded"""
     strand_type == "no" && return false
@@ -220,12 +231,12 @@ end
 
 function validate_fragment(record::BAM.Record, max_frag_size::UInt16)
     """Ensure alignment record can be used to calculate fragment depth. (Only need 1 read of fragment)"""
-    return is_proper_pair(record) && is_read1(record) && BAM.templength(record) <= max_frag_size
+    return is_proper_pair(record) && is_read1(record) && abs(BAM.templength(record)) <= max_frag_size
 end
 
 function validate_read(record::BAM.Record, max_frag_size::UInt16)
     """Ensure alignment record can be used to calculate read depth."""
-    return (!is_proper_pair(record) || BAM.templength(record) >= max_frag_size) && BAM.ismapped(record)
+    return (!is_proper_pair(record) || abs(BAM.templength(record)) >= max_frag_size) && BAM.ismapped(record)
 end
 
 ########
@@ -267,13 +278,15 @@ function parse_commandline()
             action = :store_true
             dest_name = "pp_only"
         "--max_fragment_size", "-m"
-            help = "If the fragment size of properly-paired reads exceeds this value, process pair as single reads instead of as a fragment.
-                    Setting this value to 0 will make every fragment pair be processed as two individual reads.
-                    Maximum value is 65535 (to allow for use of UInt16 type, and fragments typically are not that large).
-                    If --keep_only_proper_pairs is enabled, then any fragment exceeding this value will be discarded."
+            help = "If the fragment size of properly-paired reads exceeds this value, process pair as single reads instead of as a fragment. Setting this value to 0 will make every fragment pair be processed as two individual reads. Maximum value is 65535 (to allow for use of UInt16 type, and fragments typically are not that large). If --keep_only_proper_pairs is enabled, then any fragment exceeding this value will be discarded."
             default = MAX_FRAGMENT_SIZE
             arg_type = Int
             range_tester = (x->typemin(UInt16)<=x<=typemax(UInt16))
+        "--remove_multimapped", "-M"
+            help = "If enabled, remove any reads or fragments that are mapped to multiple regions of the genome, indiated by the 'NH' attribute being greater than 1."
+            action = :store_true
+            dest_name = "rm_multimap"
+
     # Will not add log_file or debug options for now
     end
     # Converts the ArgParseSettings object into key/value pairs
@@ -350,6 +363,8 @@ function main()
         else
             continue
         end
+        args["rm_multimap"] && is_multimapped(record) && continue
+
         # Store reads as chunks and process chunks when chunk is max size
         valid_record_counter += 1
         if is_chunk_ready(valid_record_counter)

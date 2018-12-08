@@ -1,7 +1,8 @@
 # CHANGELOG
 
-* More optimization of a couple functions
-  * Fragment interval trees metadata will just be a character for read (R) or fragment (F) rather than the string of that word
+## v1.3
+* BUGFIX - Fixed bug with --max\_fragment\_size where reverse-stranded properly paired reads where still being used as a fragment since the template length reported is negative
+* FEATURE - Adding --remove\_multimapped as an option.  Enabling it removes any reads mapping to multiple regions in the genome.
 
 ## v1.2
 * FEATURE - Added two new output columns.  1) Nonoverlapping feature length. 2) TPM (in scientific notation)

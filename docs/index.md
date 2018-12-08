@@ -36,7 +36,7 @@ The output file has the following fields:
 ```
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
                -o /path/to/output/dir/ [-s STRANDED] [-f FEATURE_TYPE]
-               [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE]
+               [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE] [-M]
                [--version] [-h]
 
 Generate counts of reads that map to non-overlapping portions of genes
@@ -76,6 +76,10 @@ optional arguments:
                         If --keep_only_proper_pairs is enabled, then
                         any fragment exceeding this value will be
                         discarded. (type: Int64, default: 1000)
+  -M, --remove_multimapped
+                        If enabled, remove any reads or fragments that
+                        are mapped to multiple regions of the genome,
+                        indiated
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```
