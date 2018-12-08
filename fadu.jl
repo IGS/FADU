@@ -269,7 +269,8 @@ function parse_commandline()
         "--max_fragment_size", "-m"
             help = "If the fragment size of properly-paired reads exceeds this value, process pair as single reads instead of as a fragment.
                     Setting this value to 0 will make every fragment pair be processed as two individual reads.
-                    Maximum value is 65535 (to allow for use of UInt16 type, and fragments typically are not that large)"
+                    Maximum value is 65535 (to allow for use of UInt16 type, and fragments typically are not that large).
+                    If --keep_only_proper_pairs is enabled, then any fragment exceeding this value will be discarded."
             default = MAX_FRAGMENT_SIZE
             arg_type = Int
             range_tester = (x->typemin(UInt16)<=x<=typemax(UInt16))
