@@ -19,7 +19,8 @@ using BioAlignments
 using GenomicFeatures
 using Printf
 
-const VERSION_NUMBER = "1.1"    # Version number of the FADU program
+const VERSION_NUMBER = "1.2"    # Version number of the FADU program
+const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const CHUNK_SIZE = 10000000 # Number of valid BAM fragments to read in before determining overlaps
 # NOTE: Making chunk_counter a UInt32, so this constant should not exceed 4,294,967,295
 
@@ -110,6 +111,7 @@ function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Inte
         frag_start = leftposition(fragment)
         frag_end = rightposition(fragment)
         frag_intersect = intersect(frag_start:frag_end, uniq_coords[GFF3.seqid(feature)][strand])
+        feature_name = get_feature_name_from_attrs(feature, "ID")
         # Percentage of fragment that aligned with this annotation feature
         return length(frag_intersect) / length(frag_start:frag_end)
 end
@@ -151,7 +153,6 @@ end
 
 function get_fragment_interval(record::BAM.Record, record_type::String, reverse_strand::Bool=false)
     """Return a fragment-based Interval for the current record.""" 
-    #return Interval(BAM.refname(record), get_fragment_start_end(record, record_type), assign_read_to_strand(record, reverse_strand), "$record_type\t$(BAM.tempname(record))\t$(BAM.flag(record))\n")
     return Interval(BAM.refname(record), get_fragment_start_end(record, record_type), assign_read_to_strand(record, reverse_strand), "$record_type")
 end
 
@@ -171,10 +172,9 @@ function increment_feature_overlap_information(feat_dict::Dict{String,Union{UInt
         if is_read
             # If dealing with read, do not want to give as much weight since both reads will be added independently compared to a single fragment
             counter = 0.5
-            frag_feat_ratio /= 2
         end
         feat_dict["counter"] += counter
-        feat_dict["feat_depth"] += frag_feat_ratio
+        feat_dict["feat_depth"] += frag_feat_ratio * counter
     end
 end
 
@@ -207,7 +207,7 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         gff_strand = get_strand_of_interval(feature, is_stranded(args["stranded"]))
         if bam_strand == gff_strand
             frag_feat_ratio::Float32 = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
-            increment_feature_overlap_information(feat_overlaps[feature_name], frag_feat_ratio, startswith(metadata(fragment),"read"))
+            increment_feature_overlap_information(feat_overlaps[feature_name], frag_feat_ratio, metadata(fragment)=="read")
         end
     end
 end
@@ -218,14 +218,14 @@ function validate_feature_attribute(gene_vector::Vector{String})
     length(gene_vector) == 1 || error("ERROR - Attribute field 'ID' found to have multiple entries.\n")
 end
 
-function validate_fragment(record::BAM.Record)
+function validate_fragment(record::BAM.Record, max_frag_size::UInt16)
     """Ensure alignment record can be used to calculate fragment depth. (Only need 1 read of fragment)"""
-    return is_proper_pair(record) && is_read1(record)
+    return is_proper_pair(record) && is_read1(record) && BAM.templength(record) <= max_frag_size
 end
 
-function validate_read(record::BAM.Record)
+function validate_read(record::BAM.Record, max_frag_size::UInt16)
     """Ensure alignment record can be used to calculate read depth."""
-    return !is_proper_pair(record) && BAM.ismapped(record)
+    return (!is_proper_pair(record) || BAM.templength(record) >= max_frag_size) && BAM.ismapped(record)
 end
 
 ########
@@ -263,9 +263,16 @@ function parse_commandline()
             help = "Which GFF3/GTF feature type (column 9) to obtain. readcount statistics for. Case-sensitive."
             default = "ID"
         "--keep_only_proper_pairs", "-p"
-            help = "If enabled, keep only properly paired reads when performing calculations"
+            help = "If enabled, keep only properly paired reads when performing calculations."
             action = :store_true
             dest_name = "pp_only"
+        "--max_fragment_size", "-m"
+            help = "If the fragment size of properly-paired reads exceeds this value, process pair as single reads instead of as a fragment.
+                    Setting this value to 0 will make every fragment pair be processed as two individual reads.
+                    Maximum value is 65535 (to allow for use of UInt16 type, and fragments typically are not that large)"
+            default = MAX_FRAGMENT_SIZE
+            arg_type = Int
+            range_tester = (x->typemin(UInt16)<=x<=typemax(UInt16))
     # Will not add log_file or debug options for now
     end
     # Converts the ArgParseSettings object into key/value pairs
@@ -302,6 +309,7 @@ function main()
         GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
         add_nonoverlapping_feature_coords!(uniq_coords, feature, is_stranded(args["stranded"]))
     end
+    @info("Initializing feature overlap dictionary...")
     feat_overlaps = Dict{String, Dict}()
     for feature in features
         GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
@@ -329,18 +337,18 @@ function main()
     fragment_intervals = IntervalCollection{String}()
     valid_record_counter::UInt32 = 0
     record_type = ""
+    max_frag_size = convert(UInt16, args["max_fragment_size"])
     while !eof(bam_reader)
         read!(bam_reader, record)
         # Validation of current read
         BAM.isprimary(record) || continue
-        if validate_fragment(record)
+        if validate_fragment(record, max_frag_size)
             record_type = "fragment"
-        elseif !args["pp_only"] && validate_read(record)
+        elseif !args["pp_only"] && validate_read(record, max_frag_size)
             record_type = "read"
         else
             continue
         end
-
         # Store reads as chunks and process chunks when chunk is max size
         valid_record_counter += 1
         if is_chunk_ready(valid_record_counter)
@@ -366,7 +374,7 @@ function main()
         counter = feat_overlaps[feat_id]["counter"]
         feat_depth = feat_overlaps[feat_id]["feat_depth"]
         tpm = calc_tpm(uniq_len, depth_sum, feat_depth)
-        s = @sprintf("%s\t%i\t%i\t%.2f\t%.3E\n", feat_id, uniq_len, counter, feat_depth, tpm)
+        s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.3E\n", feat_id, uniq_len, counter, feat_depth, tpm)
         write(out_f, s)
     end
     close(out_f)

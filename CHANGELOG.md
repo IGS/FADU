@@ -1,5 +1,8 @@
 # CHANGELOG
 
+* More optimization of a couple functions
+  * Fragment interval trees metadata will just be a character for read (R) or fragment (F) rather than the string of that word
+
 ## v1.2
 * FEATURE - Added two new output columns.  1) Nonoverlapping feature length. 2) TPM (in scientific notation)
 * Specifying some type information for variables.
