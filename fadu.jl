@@ -102,7 +102,7 @@ end
 
 function calc_tpm(len::UInt, depth_sum::Float32, feat_depth::Float32)
     """Calculate TPM score for current feature."""
-    return (feat_depth / len) / depth_sum
+    return @fastmath(feat_depth / len) / depth_sum
 end
 
 function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{Char}, feature::GFF3.Record, strand::Char)
@@ -113,7 +113,7 @@ function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Inte
         frag_intersect = intersect(frag_start:frag_end, uniq_coords[GFF3.seqid(feature)][strand])
         feature_name = get_feature_name_from_attrs(feature, "ID")
         # Percentage of fragment that aligned with this annotation feature
-        return length(frag_intersect) / length(frag_start:frag_end)
+        return @fastmath length(frag_intersect) / length(frag_start:frag_end)
 end
 
 function get_feature_coords_set(feature::Interval{GenomicFeatures.GFF3.Record})
