@@ -105,7 +105,7 @@ function calc_tpm(len::UInt, depth_sum::Float32, feat_depth::Float32)
     return (feat_depth / len) / depth_sum
 end
 
-function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{String}, feature::GFF3.Record, strand::Char)
+function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{Char}, feature::GFF3.Record, strand::Char)
     """Calculate the ratio of fragament coordinates that intersect with non-overlapping feature coordinates."""
         # Pertinent fragment info
         frag_start = leftposition(fragment)
@@ -136,9 +136,9 @@ function get_feature_nonoverlapping_length(feature::Interval{GenomicFeatures.GFF
     return length(intersect(feat_coords, uniq_coords[seqid][strand]))
 end
 
-function get_fragment_start_end(record::BAM.Record, record_type::String)
+function get_fragment_start_end(record::BAM.Record, record_type::Char)
     """Get the start and end coordinates of the fragment/read."""
-    if record_type == "read"
+    if record_type == 'R'
         return BAM.position(record):BAM.rightposition(record)
     end
     frag_start = BAM.position(record)
@@ -151,9 +151,9 @@ function get_fragment_start_end(record::BAM.Record, record_type::String)
     return frag_start:frag_end
 end
 
-function get_fragment_interval(record::BAM.Record, record_type::String, reverse_strand::Bool=false)
+function get_fragment_interval(record::BAM.Record, record_type::Char, reverse_strand::Bool=false)
     """Return a fragment-based Interval for the current record.""" 
-    return Interval(BAM.refname(record), get_fragment_start_end(record, record_type), assign_read_to_strand(record, reverse_strand), "$record_type")
+    return Interval(BAM.refname(record), get_fragment_start_end(record, record_type), assign_read_to_strand(record, reverse_strand), record_type)
 end
 
 function get_strand_of_interval(interval::Interval, stranded::Bool)
@@ -178,9 +178,9 @@ function increment_feature_overlap_information(feat_dict::Dict{String,Union{UInt
     end
 end
 
-function is_chunk_ready(counter::UInt32)
+function is_chunk_ready(counter::UInt32, chunk_size::UInt32)
     """Test to see if chunk is ready for further processing."""
-    counter % CHUNK_SIZE == 0 && return true
+    counter % chunk_size == 0 && return true
     return false
 end
 
@@ -207,7 +207,7 @@ function is_reverse_stranded(strand_type::String)
     return false
 end
 
-function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{String, Dict}, fragment_intervals::IntervalCollection{String}, features::IntervalCollection{GFF3.Record}, args::Dict)
+function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{String, Dict}, fragment_intervals::IntervalCollection{Char}, features::IntervalCollection{GFF3.Record}, args::Dict)
     """Process current chunk of fragment intervals that overlap with feature intervals."""
     for (fragment, feature) in eachoverlap(fragment_intervals, features)
         feat_record = metadata(feature)
@@ -218,7 +218,7 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
         gff_strand = get_strand_of_interval(feature, is_stranded(args["stranded"]))
         if bam_strand == gff_strand
             frag_feat_ratio::Float32 = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
-            increment_feature_overlap_information(feat_overlaps[feature_name], frag_feat_ratio, metadata(fragment)=="read")
+            increment_feature_overlap_information(feat_overlaps[feature_name], frag_feat_ratio, metadata(fragment)=='R')
         end
     end
 end
@@ -286,6 +286,11 @@ function parse_commandline()
             help = "If enabled, remove any reads or fragments that are mapped to multiple regions of the genome, indiated by the 'NH' attribute being greater than 1."
             action = :store_true
             dest_name = "rm_multimap"
+        "--chunk_size", "-C"
+            help = "Number of validated reads to store into memory before processing overlaps with features."
+            default = CHUNK_SIZE
+            arg_type = Int
+            range_tester = (x->typemin(UInt32)<=x<=typemax(UInt32))
 
     # Will not add log_file or debug options for now
     end
@@ -348,28 +353,32 @@ function main()
 
     @info("Now finding overlaps between alignment and annotation records...")
     record = BAM.Record()
-    fragment_intervals = IntervalCollection{String}()
+    fragment_intervals = IntervalCollection{Char}()
     valid_record_counter::UInt32 = 0
-    record_type = ""
     max_frag_size = convert(UInt16, args["max_fragment_size"])
+    chunk_size = convert(UInt32, args["chunk_size"])
+    record_type = '0'
     while !eof(bam_reader)
         read!(bam_reader, record)
         # Validation of current read
         BAM.isprimary(record) || continue
         if validate_fragment(record, max_frag_size)
-            record_type = "fragment"
+            record_type = 'F'
         elseif !args["pp_only"] && validate_read(record, max_frag_size)
-            record_type = "read"
+            record_type = 'R'
         else
             continue
         end
         args["rm_multimap"] && is_multimapped(record) && continue
+        if record_type == '0'
+            error("Record passed through validation without being assigned 'R' or 'F'\n $record")
+        end
 
         # Store reads as chunks and process chunks when chunk is max size
         valid_record_counter += 1
-        if is_chunk_ready(valid_record_counter)
+        if is_chunk_ready(valid_record_counter, chunk_size)
             process_overlaps!(feat_overlaps, uniq_coords, fragment_intervals, features, args)
-            fragment_intervals = IntervalCollection{String}()
+            fragment_intervals = IntervalCollection{Char}()
         end
         push!(fragment_intervals, get_fragment_interval(record, record_type, is_reverse_stranded(args["stranded"])))
     end

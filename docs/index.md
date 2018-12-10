@@ -37,7 +37,7 @@ The output file has the following fields:
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
                -o /path/to/output/dir/ [-s STRANDED] [-f FEATURE_TYPE]
                [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE] [-M]
-               [--version] [-h]
+               [-C CHUNK_SIZE] [--version] [-h]
 
 Generate counts of reads that map to non-overlapping portions of genes
 
@@ -80,6 +80,10 @@ optional arguments:
                         If enabled, remove any reads or fragments that
                         are mapped to multiple regions of the genome,
                         indiated
+  -C, --chunk_size CHUNK_SIZE
+                        Number of validated reads to store into memory
+                        before processing overlaps with features.
+                        (type: Int64, default: 10000000)
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```
