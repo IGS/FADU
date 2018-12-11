@@ -136,19 +136,13 @@ function get_feature_nonoverlapping_length(feature::Interval{GenomicFeatures.GFF
     return length(intersect(feat_coords, uniq_coords[seqid][strand]))
 end
 
+
 function get_fragment_start_end(record::BAM.Record, record_type::Char)
     """Get the start and end coordinates of the fragment/read."""
     if record_type == 'R'
         return BAM.position(record):BAM.rightposition(record)
     end
-    frag_start = BAM.position(record)
-    frag_end = frag_start + BAM.templength(record) - 1
-    # If read is reverse... 
-    if BAM.templength(record) < 0
-        frag_end = BAM.rightposition(record)
-        frag_start = frag_end + BAM.templength(record) + 1
-    end
-    return frag_start:frag_end
+    return BAM.nextposition(record):BAM.rightposition(record)
 end
 
 function get_fragment_interval(record::BAM.Record, record_type::Char, reverse_strand::Bool=false)
@@ -196,15 +190,25 @@ function is_multimapped(record::BAM.Record)
 end
 
 function is_stranded(strand_type::String)
-    """Check to see if stranded type is reverse-stranded"""
+    """Check to see if stranded type is stranded or not."""
     strand_type == "no" && return false
     return true
 end
 
 function is_reverse_stranded(strand_type::String)
-    """Check to see if stranded type is reverse-stranded"""
+    """Check to see if stranded type is reverse-stranded."""
     strand_type == "reverse" && return true
     return false
+end
+
+function is_templength_negative(templength::Int64)
+    """Check to see if the read template is going in the opposite version."""
+    return templength < 0
+end
+
+function is_templength_smaller_than_max_fragment_size(templength::Int64, max_frag_size::UInt16)
+    """Check to see if fragment template length is smaller than specified maximum fragment size."""
+    return abs(templength) <= max_frag_size
 end
 
 function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{String, Dict}, fragment_intervals::IntervalCollection{Char}, features::IntervalCollection{GFF3.Record}, args::Dict)
@@ -229,14 +233,14 @@ function validate_feature_attribute(gene_vector::Vector{String})
     length(gene_vector) == 1 || error("ERROR - Attribute field 'ID' found to have multiple entries.\n")
 end
 
-function validate_fragment(record::BAM.Record, max_frag_size::UInt16)
-    """Ensure alignment record can be used to calculate fragment depth. (Only need 1 read of fragment)"""
-    return is_proper_pair(record) && is_read1(record) && abs(BAM.templength(record)) <= max_frag_size
+function validate_fragment(record::BAM.Record)
+    """Ensure alignment record can be used to calculate fragment depth. (Only need negative template of fragment)"""
+    return is_proper_pair(record) && is_templength_negative(BAM.templength(record))
 end
 
 function validate_read(record::BAM.Record, max_frag_size::UInt16)
     """Ensure alignment record can be used to calculate read depth."""
-    return (!is_proper_pair(record) || abs(BAM.templength(record)) >= max_frag_size) && BAM.ismapped(record)
+    return !(is_proper_pair(record) && is_templength_smaller_than_max_fragment_size(BAM.templength(record), max_frag_size))
 end
 
 ########
@@ -361,8 +365,8 @@ function main()
     while !eof(bam_reader)
         read!(bam_reader, record)
         # Validation of current read
-        BAM.isprimary(record) || continue
-        if validate_fragment(record, max_frag_size)
+        BAM.ismapped(record) && BAM.isprimary(record) || continue
+        if validate_fragment(record) && is_templength_smaller_than_max_fragment_size(BAM.templength(record), max_frag_size)
             record_type = 'F'
         elseif !args["pp_only"] && validate_read(record, max_frag_size)
             record_type = 'R'
