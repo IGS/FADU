@@ -19,7 +19,7 @@ using BioAlignments
 using GenomicFeatures
 using Printf
 
-const VERSION_NUMBER = "1.2"    # Version number of the FADU program
+const VERSION_NUMBER = "1.3"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const CHUNK_SIZE = 10000000 # Number of valid BAM fragments to read in before determining overlaps
 # NOTE: Making chunk_counter a UInt32, so this constant should not exceed 4,294,967,295
