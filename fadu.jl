@@ -47,15 +47,11 @@ is_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_REVERSE == 0x0010
 # Singletons will either have flag 0 or 16
 
 # Forward strand flags
-flag_97(record::BAM.Record) = is_read1(record) && is_mate_reverse(record)
+flag_65(record::BAM.Record) = is_read1(record) && !is_reverse(record)
 flag_145(record::BAM.Record) = is_read2(record) && is_reverse(record)
-flag_65(record::BAM.Record) = is_read1(record) && !(is_reverse(record) || is_mate_reverse(record))
-flag_129(record::BAM.Record) = is_read2(record) && !(is_reverse(record) || is_mate_reverse(record))
 # Reverse strand flags
 flag_81(record::BAM.Record) = is_read1(record) && is_reverse(record)
-flag_161(record::BAM.Record) = is_read2(record) && is_mate_reverse(record)
-flag_113(record::BAM.Record) = is_read1(record) && is_reverse(record) && is_mate_reverse(record)
-flag_177(record::BAM.Record) = is_read2(record) && is_reverse(record) && is_mate_reverse(record)
+flag_129(record::BAM.Record) = is_read2(record) && !is_reverse(record)
 
 
 function add_nonoverlapping_feature_coords!(uniq_coords::Dict{String, Dict}, feature::Interval{GenomicFeatures.GFF3.Record}, stranded::Bool)
@@ -79,11 +75,11 @@ end
 function assign_read_to_strand(record::BAM.Record, reverse_strand::Bool=false)
     """Use the bitwise flags to assign the paired read to the correct strand."""
 
-    pos_flags = Set{Bool}([flag_97(record), flag_145(record), flag_65(record), flag_129(record)])
-    neg_flags = Set{Bool}([flag_81(record), flag_161(record), flag_113(record), flag_177(record)])
+    pos_flags = Set{Bool}([flag_145(record), flag_65(record)])
+    neg_flags = Set{Bool}([flag_81(record), flag_129(record)])
     if reverse_strand
-        pos_flags = Set{Bool}([flag_81(record), flag_161(record), flag_113(record), flag_177(record)])
-        neg_flags = Set{Bool}([flag_97(record), flag_145(record), flag_65(record), flag_129(record)])
+        pos_flags = Set{Bool}([flag_81(record), flag_129(record)])
+        neg_flags = Set{Bool}([flag_145(record), flag_65(record)])
     end
 
     # Does record flag belong in the pos or neg set?
