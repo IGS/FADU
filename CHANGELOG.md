@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.4
+* BUGFIX - Corrected TPM counts
+* FEATURE - Added --min\_mapping\_quality argument to only keep reads that surpass this min quality score
+* More tweaks for speed
+
 ## v1.3
 * BUGFIX - Fixed bug with --max\_fragment\_size where reverse-stranded properly paired reads where still being used as a fragment since the template length reported is negative
 * BUGFIX - Changed way fragment length is calculated.  Instead of using read1 of the proper pair, the read with the negative template length is used.  Realized that using template length to give fragment size can be incorrect in some cases, particularly when soft-clipping is involved.  So by using the rightmost read, the fragment can be calculated by taking the rightmost position of this read and the leftmost position (listed as 'nextposition' in the BAM.Record) of the leftmost read

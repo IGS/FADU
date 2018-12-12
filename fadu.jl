@@ -21,6 +21,7 @@ using Printf
 
 const VERSION_NUMBER = "1.3"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
+const MIN_MAP_QUAL = 10 # Minimum mapping quality
 const CHUNK_SIZE = 10000000 # Number of valid BAM fragments to read in before determining overlaps
 # NOTE: Making chunk_counter a UInt32, so this constant should not exceed 4,294,967,295
 
@@ -33,17 +34,12 @@ is_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_REVERSE == 0x0010
 
 # Forward-stranded assay
 ## Positive Strand:
-### R1 - forward (97), R2 - revcom (145)
+### R1 - forward (65), R2 - revcom (145)
 ## Negative Strand
-### R1 - revcom (81), R2 - forward (161)
-# Reverse-stranded assay (i.e. Illumina)
-## Positive Strand
-### R1 - revcom (81), R2 - forward (161)
-## Negative Strand
-### R1 - forward (97), R2 - revcom (145)
+### R1 - revcom (81), R2 - forward (129)
+# Reverse-stranded assay (i.e. Illumina) have these strands flipped
 
 ### For non-properly paired reads
-# More rare, but flags 65, 129, 113, and 177 follow the same strandedness
 # Singletons will either have flag 0 or 16
 
 # Forward strand flags
@@ -98,7 +94,7 @@ end
 
 function calc_tpm(len::UInt, depth_sum::Float32, feat_depth::Float32)
     """Calculate TPM score for current feature."""
-    return @fastmath(feat_depth / len) / depth_sum
+    return @fastmath(feat_depth *1000 / len) * 1000000 / depth_sum
 end
 
 function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{Char}, feature::GFF3.Record, strand::Char)
@@ -282,6 +278,11 @@ function parse_commandline()
             default = MAX_FRAGMENT_SIZE
             arg_type = Int
             range_tester = (x->typemin(UInt16)<=x<=typemax(UInt16))
+        "--min_mapping_quality", "-q"
+            help = "Set the minimum mapping quality score for a read to be considered. Max value accepted is 255."
+            default = MIN_MAP_QUAL
+            arg_type = Int
+            range_tester = (x->typemin(UInt8)<=x<=typemax(UInt8))
         "--remove_multimapped", "-M"
             help = "If enabled, remove any reads or fragments that are mapped to multiple regions of the genome, indiated by the 'NH' attribute being greater than 1."
             action = :store_true
@@ -361,7 +362,10 @@ function main()
     while !eof(bam_reader)
         read!(bam_reader, record)
         # Validation of current read
-        BAM.ismapped(record) && BAM.isprimary(record) || continue
+        BAM.ismapped(record) || continue
+        BAM.isprimary(record) || continue
+        BAM.mappingquality(record) >= args["min_mapping_quality"] || continue 
+        args["rm_multimap"] && is_multimapped(record) && continue
         if validate_fragment(record) && is_templength_smaller_than_max_fragment_size(BAM.templength(record), max_frag_size)
             record_type = 'F'
         elseif !args["pp_only"] && validate_read(record, max_frag_size)
@@ -369,7 +373,6 @@ function main()
         else
             continue
         end
-        args["rm_multimap"] && is_multimapped(record) && continue
         if record_type == '0'
             error("Record passed through validation without being assigned 'R' or 'F'\n $record")
         end
@@ -399,7 +402,7 @@ function main()
         counter = feat_overlaps[feat_id]["counter"]
         feat_depth = feat_overlaps[feat_id]["feat_depth"]
         tpm = calc_tpm(uniq_len, depth_sum, feat_depth)
-        s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.3E\n", feat_id, uniq_len, counter, feat_depth, tpm)
+        s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.2f\n", feat_id, uniq_len, counter, feat_depth, tpm)
         write(out_f, s)
     end
     close(out_f)

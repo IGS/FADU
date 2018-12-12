@@ -38,8 +38,9 @@ The output file has the following fields:
 ```
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
                -o /path/to/output/dir/ [-s STRANDED] [-f FEATURE_TYPE]
-               [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE] [-M]
-               [-C CHUNK_SIZE] [--version] [-h]
+               [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE]
+               [-q MIN_MAPPING_QUALITY] [-M] [-C CHUNK_SIZE]
+               [--version] [-h]
 
 Generate counts of reads that map to non-overlapping portions of genes
 
@@ -69,25 +70,31 @@ optional arguments:
   -m, --max_fragment_size MAX_FRAGMENT_SIZE
                         If the fragment size of properly-paired reads
                         exceeds this value, process pair as single
-                        reads instead of as a fragment.
-                        Setting this value to 0 will make every
-                        fragment pair be processed as two individual
-                        reads. Maximum value is
-                        65535 (to allow for use of UInt16 type, and
-                        fragments typically are not that large).
-                        If --keep_only_proper_pairs is enabled, then
-                        any fragment exceeding this value will be
-                        discarded. (type: Int64, default: 1000)
+                        reads instead of as a fragment. Setting this
+                        value to 0 will make every fragment pair be
+                        processed as two individual reads. Maximum
+                        value is 65535 (to allow for use of UInt16
+                        type, and fragments typically are not that
+                        large). If --keep_only_proper_pairs is
+                        enabled, then any fragment exceeding this
+                        value will be discarded. (type: Int64,
+                        default: 1000)
+  -q, --min_mapping_quality MIN_MAPPING_QUALITY
+                        Set the minimum mapping quality score for a
+                        read to be considered. Max value accepted is
+                        255. (type: Int64, default: 10)
   -M, --remove_multimapped
                         If enabled, remove any reads or fragments that
                         are mapped to multiple regions of the genome,
-                        indiate
+                        indiated by the 'NH' attribute being greater
+                        than 1.
   -C, --chunk_size CHUNK_SIZE
                         Number of validated reads to store into memory
                         before processing overlaps with features.
-                        (type: Int64, default: 10000000)d
+                        (type: Int64, default: 10000000)
   --version             show version information and exit
   -h, --help            show this help message and exit
+
 ```
 
 # Special Notes
