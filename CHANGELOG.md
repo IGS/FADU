@@ -2,8 +2,10 @@
 
 ## v1.4
 * BUGFIX - Corrected TPM counts
+* BUGFIX - Corrected overcounting of the individual alignment-feature overlap counts
 * FEATURE - Added --min\_mapping\_quality argument to only keep reads that surpass this min quality score
 * More tweaks for speed
+* Renamed a bunch of "fragment" variables to "alignment" since many of these variables also represented reads
 
 ## v1.3
 * BUGFIX - Fixed bug with --max\_fragment\_size where reverse-stranded properly paired reads where still being used as a fragment since the template length reported is negative

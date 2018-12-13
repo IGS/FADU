@@ -3,7 +3,7 @@
 """
 FADU.jl - Feature Aggregate Depth Utility.
 
-Description - Generate fractional counts of fragments that map to non-overlapping portions of genes
+Description - Generate fractional counts of alignments that map to non-overlapping portions of genes
 Requires (version number listed is earliest supported version): 
     Julia - v0.7
     GenomicFeatures.jl - v1.0.0
@@ -22,7 +22,7 @@ using Printf
 const VERSION_NUMBER = "1.3"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const MIN_MAP_QUAL = 10 # Minimum mapping quality
-const CHUNK_SIZE = 10000000 # Number of valid BAM fragments to read in before determining overlaps
+const CHUNK_SIZE = 10000000 # Number of valid BAM fragments/reads to read in before determining overlaps
 # NOTE: Making chunk_counter a UInt32, so this constant should not exceed 4,294,967,295
 
 #is_duplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
@@ -97,15 +97,31 @@ function calc_tpm(len::UInt, depth_sum::Float32, feat_depth::Float32)
     return @fastmath(feat_depth *1000 / len) * 1000000 / depth_sum
 end
 
-function compute_frag_feat_ratio(uniq_coords::Dict{String, Dict}, fragment::Interval{Char}, feature::GFF3.Record, strand::Char)
+function compute_align_feat_ratio(uniq_feat_coords::Set{UInt}, alignment::Interval{Char}, feature::Interval{GenomicFeatures.GFF3.Record})
     """Calculate the ratio of fragament coordinates that intersect with non-overlapping feature coordinates."""
-        # Pertinent fragment info
-        frag_start = leftposition(fragment)
-        frag_end = rightposition(fragment)
-        frag_intersect = intersect(frag_start:frag_end, uniq_coords[GFF3.seqid(feature)][strand])
-        feature_name = get_feature_name_from_attrs(feature, "ID")
-        # Percentage of fragment that aligned with this annotation feature
-        return @fastmath length(frag_intersect) / length(frag_start:frag_end)
+        # Pertinent alignment info
+        alignment_coords =  get_alignment_coords_set(alignment)
+        alignment_intersect = intersect(uniq_feat_coords, alignment_coords)
+        # Percentage of alignment that aligned with this annotation feature
+        return @fastmath length(alignment_intersect) / length(alignment_coords)
+end
+
+function get_alignment_coords_set(alignment::Interval{Char})
+    """Get the range of coordinates for this alignment, returned as a Set."""
+    return Set{UInt}(leftposition(alignment) : rightposition(alignment))
+end
+
+function get_alignment_start_end(record::BAM.Record, record_type::Char)
+    """Get the start and end coordinates of the fragment/read."""
+    if record_type == 'R'
+        return BAM.position(record):BAM.rightposition(record)
+    end
+    return BAM.nextposition(record):BAM.rightposition(record)
+end
+
+function get_alignment_interval(record::BAM.Record, record_type::Char, reverse_strand::Bool=false)
+    """Return an alignment-based Interval for the current record.""" 
+    return Interval(BAM.refname(record), get_alignment_start_end(record, record_type), assign_read_to_strand(record, reverse_strand), record_type)
 end
 
 function get_feature_coords_set(feature::Interval{GenomicFeatures.GFF3.Record})
@@ -120,26 +136,12 @@ function get_feature_name_from_attrs(feature::GFF3.Record, attr_type::String)
     return gene_vector[1]
 end
 
-function get_feature_nonoverlapping_length(feature::Interval{GenomicFeatures.GFF3.Record}, uniq_coords::Dict{String, Dict}, stranded::Bool)
-    """Get number of nonoverlapping coordinates for given feature."""
+function get_feature_nonoverlapping_coords(feature::Interval{GenomicFeatures.GFF3.Record}, uniq_coords::Dict{String, Dict}, stranded::Bool)
+    """Get set of nonoverlapping coordinates for given feature."""
     seqid = seqname(feature)
     strand = get_strand_of_interval(feature, stranded)
     feat_coords = get_feature_coords_set(feature)
-    return length(intersect(feat_coords, uniq_coords[seqid][strand]))
-end
-
-
-function get_fragment_start_end(record::BAM.Record, record_type::Char)
-    """Get the start and end coordinates of the fragment/read."""
-    if record_type == 'R'
-        return BAM.position(record):BAM.rightposition(record)
-    end
-    return BAM.nextposition(record):BAM.rightposition(record)
-end
-
-function get_fragment_interval(record::BAM.Record, record_type::Char, reverse_strand::Bool=false)
-    """Return a fragment-based Interval for the current record.""" 
-    return Interval(BAM.refname(record), get_fragment_start_end(record, record_type), assign_read_to_strand(record, reverse_strand), record_type)
+    return intersect(feat_coords, uniq_coords[seqid][strand])
 end
 
 function get_strand_of_interval(interval::Interval, stranded::Bool)
@@ -151,16 +153,16 @@ function get_strand_of_interval(interval::Interval, stranded::Bool)
     return strand
 end
 
-function increment_feature_overlap_information(feat_dict::Dict{String,Union{UInt,Float32}}, frag_feat_ratio::Float32, is_read::Bool)
-    """Increment counter and depth information for feature if fragment overlapped with uniq coords."""
-    if frag_feat_ratio > 0.0
+function increment_feature_overlap_information(feat_dict::Dict{String,Union{Set{UInt},Float32}}, align_feat_ratio::Float32, is_read::Bool)
+    """Increment counter and depth information for feature if alignment overlapped with uniq coords."""
+    if align_feat_ratio > 0.0
         counter::Float32 = 1.0
         if is_read
             # If dealing with read, do not want to give as much weight since both reads will be added independently compared to a single fragment
             counter = 0.5
         end
         feat_dict["counter"] += counter
-        feat_dict["feat_depth"] += frag_feat_ratio * counter
+        feat_dict["feat_depth"] += align_feat_ratio * counter
     end
 end
 
@@ -203,20 +205,31 @@ function is_templength_smaller_than_max_fragment_size(templength::Int64, max_fra
     return abs(templength) <= max_frag_size
 end
 
-function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{String, Dict}, fragment_intervals::IntervalCollection{Char}, features::IntervalCollection{GFF3.Record}, args::Dict)
-    """Process current chunk of fragment intervals that overlap with feature intervals."""
-    for (fragment, feature) in eachoverlap(fragment_intervals, features)
+function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{String, Dict}, alignment_intervals::IntervalCollection{Char}, features::IntervalCollection{GFF3.Record}, args::Dict)
+    """Process current chunk of alignment intervals that overlap with feature intervals."""
+    for (alignment, feature) in eachoverlap(alignment_intervals, features)
         feat_record = metadata(feature)
         GFF3.featuretype(feat_record) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
 
-        bam_strand = get_strand_of_interval(fragment, is_stranded(args["stranded"]))
+        bam_strand = get_strand_of_interval(alignment, is_stranded(args["stranded"]))
         gff_strand = get_strand_of_interval(feature, is_stranded(args["stranded"]))
         if bam_strand == gff_strand
-            frag_feat_ratio::Float32 = compute_frag_feat_ratio(uniq_coords, fragment, feat_record, bam_strand)
-            increment_feature_overlap_information(feat_overlaps[feature_name], frag_feat_ratio, metadata(fragment)=='R')
+            align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlaps[feature_name]["coords_set"], alignment, feature)
+            increment_feature_overlap_information(feat_overlaps[feature_name], align_feat_ratio, metadata(alignment)=='R')
         end
     end
+end
+
+function validate_alignment(record::BAM.Record, args::Dict)
+    """Validate alignment for essential qualities."""
+        if !(BAM.ismapped(record) && BAM.isprimary(record) && BAM.mappingquality(record) >= args["min_mapping_quality"])
+            return false
+        end
+        if args["rm_multimap"] && is_multimapped(record)
+            return false
+        end
+        return true
 end
 
 function validate_feature_attribute(gene_vector::Vector{String})
@@ -334,9 +347,9 @@ function main()
     for feature in features
         GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(metadata(feature), args["attribute_type"])
-        feature_len::UInt = get_feature_nonoverlapping_length(feature, uniq_coords, is_stranded(args["stranded"]))
+        uniq_feat_coords = get_feature_nonoverlapping_coords(feature, uniq_coords, is_stranded(args["stranded"]))
         counter::Float32 = 0.0; feat_depth::Float32 = 0.0
-        feat_overlaps[feature_name] = Dict{String, Union{UInt,Float32}}("counter" => counter, "feat_depth" => counter, "uniq_len" => feature_len)
+        feat_overlaps[feature_name] = Dict{String, Union{Set{UInt},Float32}}("counter" => counter, "feat_depth" => counter, "coords_set" => uniq_feat_coords)
     end
 
     @info("Processing BAM alignment records...")
@@ -354,7 +367,7 @@ function main()
 
     @info("Now finding overlaps between alignment and annotation records...")
     record = BAM.Record()
-    fragment_intervals = IntervalCollection{Char}()
+    alignment_intervals = IntervalCollection{Char}()
     valid_record_counter::UInt32 = 0
     max_frag_size = convert(UInt16, args["max_fragment_size"])
     chunk_size = convert(UInt32, args["chunk_size"])
@@ -362,10 +375,7 @@ function main()
     while !eof(bam_reader)
         read!(bam_reader, record)
         # Validation of current read
-        BAM.ismapped(record) || continue
-        BAM.isprimary(record) || continue
-        BAM.mappingquality(record) >= args["min_mapping_quality"] || continue 
-        args["rm_multimap"] && is_multimapped(record) && continue
+        validate_alignment(record, args) || continue
         if validate_fragment(record) && is_templength_smaller_than_max_fragment_size(BAM.templength(record), max_frag_size)
             record_type = 'F'
         elseif !args["pp_only"] && validate_read(record, max_frag_size)
@@ -380,13 +390,13 @@ function main()
         # Store reads as chunks and process chunks when chunk is max size
         valid_record_counter += 1
         if is_chunk_ready(valid_record_counter, chunk_size)
-            process_overlaps!(feat_overlaps, uniq_coords, fragment_intervals, features, args)
-            fragment_intervals = IntervalCollection{Char}()
+            process_overlaps!(feat_overlaps, uniq_coords, alignment_intervals, features, args)
+            alignment_intervals = IntervalCollection{Char}()
         end
-        push!(fragment_intervals, get_fragment_interval(record, record_type, is_reverse_stranded(args["stranded"])))
+        push!(alignment_intervals, get_alignment_interval(record, record_type, is_reverse_stranded(args["stranded"])))
     end
     # Final chunk
-    process_overlaps!(feat_overlaps, uniq_coords, fragment_intervals, features, args)
+    process_overlaps!(feat_overlaps, uniq_coords, alignment_intervals, features, args)
     close(bam_reader)
 
     # Calculate sum of all counts for each feature
@@ -398,7 +408,7 @@ function main()
     write(out_f, "featureID\tuniq_len\tnum_alignments\tcounts\ttpm\n")
     # Write output
     for feat_id in sort(collect(keys(feat_overlaps)))
-        uniq_len = feat_overlaps[feat_id]["uniq_len"]
+        uniq_len::UInt = length(feat_overlaps[feat_id]["coords_set"])
         counter = feat_overlaps[feat_id]["counter"]
         feat_depth = feat_overlaps[feat_id]["feat_depth"]
         tpm = calc_tpm(uniq_len, depth_sum, feat_depth)
