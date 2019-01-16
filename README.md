@@ -51,7 +51,7 @@ cd FADU
 
 # Example command
 
-For this example we will create a directory called "fadu\_output" to write output into.  This example uses a BAM alignment file of subsampled Wolbachia reads.  This example should take about 30 seconds to run.
+For this example we will create a directory called "fadu\_output" to write output into.  This example uses a BAM alignment file of subsampled Wolbachia reads.  This example should take about 60 seconds to run.
 ```
 mkdir ./fadu_output
 julia ./fadu.jl --remove_multimapped -g "./test_data/GCF_000008385.1_ASM838v1_genomic.gff" -b "./test_data/SRR5192555.100000x.sortedbyposition.bam" -o "./fadu_output" -s "reverse" -f "CDS" -a "ID"
