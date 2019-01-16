@@ -12,6 +12,7 @@ Generate counts of reads that map to non-overlapping portions of genes
 # Requirements
 Julia - v0.7 or later (v1.0 or later preferred)
 ## Modules
+NOTE: Module installation instructions can be found at https://docs.julialang.org/en/v1/stdlib/Pkg/index.html#Getting-Started-1
 * ArgParse
 * BioAlignments - v1.0.0
 * GenomicFeatures - v1.0.0
@@ -33,6 +34,23 @@ The output file has the following fields:
   * Aligned reads that are not part of a fragment get their depth contribution cut in half
 * TPM count in scientific notation
 
+# Installation instructions
+First `cd` to the directory of choice to install FADU
+```
+git clone https://github.com/IGS/FADU.git
+cd FADU
+```
+
+# Example command
+
+For this example we will create a directory called "fadu\_output" to write output into.  This example uses a BAM alignment file of subsampled Wolbachia reads. This example should take about 30 seconds to run.
+```
+mkdir ./fadu_output
+/usr/local/bin/julia ./fadu.jl --remove_multimapped -g "./test_data/GCF_000008385.1_ASM838v1_genomic.gff" -b "./test_data/SRR5192555.100000x.sortedbyposition.bam" -o "./fadu_output" -s "reverse" -f "CDS" -a "ID"
+```
+The resulting output file should be called "SRR5192555.100000x.sortedbyposition.counts.txt" and located in the "fadu\_output" directory.
+
+# Usage
 ```
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
                -o /path/to/output/dir/ [-s STRANDED] [-f FEATURE_TYPE]
@@ -101,10 +119,10 @@ When processing the input BAM file, any reads that are not properly paired or ar
 
 # Frequently Asked Questions
 ## Is FADU designed to work with both prokaryotic and eukaryotic samples?
-FADU currently does not support eukaryotic samples, or at least those that come from Tophat or HISAT2 aligners.
+FADU currently does not support eukaryotic samples.
 
 ## When running FADU.jl, I get a "too many arguments" error.  How do I fix this?
-A safe way to pass in values to the options is to enclose any string arguments (like file paths or strandedness) in quotations so that it ensures Julia's argument parser reads the parameter as an option value instead of a command-type argument.
+A safe way to pass in values to the options is to enclose any string arguments (like file paths or strandedness) in quotations so that it ensures the argument parser from Julia reads the parameter as an option value instead of a command-type argument.
 
 ## Can I use FADU to calculate counts for features using read depth instead of fragment depth?
 Currently at this time, only fragment depth is supported.  Performing calculations using read depth may be implemented in the future though.
