@@ -20,6 +20,11 @@ NOTE: Module installation instructions can be found at https://docs.julialang.or
 * BioAlignments - v1.0.0
 * GenomicFeatures - v1.0.0
 
+## OS Requirements
+FADU is supported for both the Linux and Mac OSX operating systems, and has been tested on the following operating system versions:
+* Linux - CentOS 7
+* Mac OSX - High Sierra (v10.13.6
+
 # Input
 * A single BAM file of reads (sorted by position)
 * A GFF3-formatted annotation file
@@ -49,7 +54,7 @@ cd FADU
 For this example we will create a directory called "fadu\_output" to write output into.  This example uses a BAM alignment file of subsampled Wolbachia reads.  This example should take about 30 seconds to run.
 ```
 mkdir ./fadu_output
-/usr/local/bin/julia ./fadu.jl --remove_multimapped -g "./test_data/GCF_000008385.1_ASM838v1_genomic.gff" -b "./test_data/SRR5192555.100000x.sortedbyposition.bam" -o "./fadu_output" -s "reverse" -f "CDS" -a "ID"
+julia ./fadu.jl --remove_multimapped -g "./test_data/GCF_000008385.1_ASM838v1_genomic.gff" -b "./test_data/SRR5192555.100000x.sortedbyposition.bam" -o "./fadu_output" -s "reverse" -f "CDS" -a "ID"
 ```
 The resulting output file should be called "SRR5192555.100000x.sortedbyposition.counts.txt" and located in the "fadu\_output" directory.
 
@@ -115,10 +120,6 @@ optional arguments:
   -h, --help            show this help message and exit
 
 ```
-
-# Special Notes
-## Notes about kept reads for calculations
-When processing the input BAM file, any reads that are not properly paired or are not primary mappings will be thrown out.  This is determined by the SAM-format bit-flag.
 
 # Frequently Asked Questions
 ## Is FADU designed to work with both prokaryotic and eukaryotic samples?
