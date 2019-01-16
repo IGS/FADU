@@ -3,7 +3,7 @@ layout: default
 ---
 
 # Description
-Generate counts of reads that map to non-overlapping portions of genes
+Most current available quantification tools for transcriptomics analyses have been designed using human data sets, in which full-length transcript sequences are available. In most prokaryotic systems, full-length transcript sequences are unavailable, causing prokaryotic transcriptomics analyses being performed using coding sequences instead. In contrast to eukaryotes, prokaryotes contain polycistronic transcripts and when genes are quantified based on coding sequences instead of transcript sequences, this leads to an increased abundance of ambiguous multi-gene fragments, especially between genes in operons. Here we describe FADU, a quantification tool designed specifically for prokaryotic RNA-Seq analyses with the purpose of quantifying operonic genes while minimizing the pitfalls associated with improperly assigning fragment counts from ambiguous transcripts.
 
 # Authors
 * Shaun Adkins (sadkins@som.umaryland.edu)
@@ -54,6 +54,21 @@ mkdir ./fadu_output
 julia ./fadu.jl --remove_multimapped -g "./test_data/GCF_000008385.1_ASM838v1_genomic.gff" -b "./test_data/SRR5192555.100000x.sortedbyposition.bam" -o "./fadu_output" -s "reverse" -f "CDS" -a "ID"
 ```
 The resulting output file should be called "SRR5192555.100000x.sortedbyposition.counts.txt" and located in the "fadu\_output" directory.
+
+Here are the counts for the first 10 features:
+```
+featureID   uniq_len    num_alignments  counts  tpm
+cds0    1017    4.5 2.81    1744.38
+cds1    1194    3.5 2.48    1310.50
+cds10   1161    0.0 0.00    0.00
+cds100  591 0.0 0.00    0.00
+cds1000 741 8.0 7.46    6358.81
+cds1001 850 5.0 4.45    3310.38
+cds1002 829 1.0 0.48    363.86
+cds1003 1167    0.0 0.00    0.00
+cds1004 1164    0.0 0.00    0.00
+cds1005 816 0.0 0.00    0.00
+```
 
 # Usage
 ```
