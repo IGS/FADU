@@ -1,5 +1,7 @@
 # CHANGELOG
 
+* Small optimization in creating the GenomicFeatures IntervalCollection, by parsing out just the feature types wanted from the get go instead of later on.
+
 ## v1.4
 * BUGFIX - Corrected TPM counts
 * BUGFIX - Corrected overcounting of the individual alignment-feature overlap counts

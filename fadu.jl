@@ -209,7 +209,6 @@ function process_overlaps!(feat_overlaps::Dict{String, Dict}, uniq_coords::Dict{
     """Process current chunk of alignment intervals that overlap with feature intervals."""
     for (alignment, feature) in eachoverlap(alignment_intervals, features)
         feat_record = metadata(feature)
-        GFF3.featuretype(feat_record) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
 
         bam_strand = get_strand_of_interval(alignment, is_stranded(args["stranded"]))
@@ -317,7 +316,7 @@ function validate_args(args)
     isfile(args["gff3_file"]) || throw(FileNotFoundException("GFF3 file does not seem to exist. Please check supplied path."))
     isfile(args["bam_file"]) || throw(FileNotFoundException("BAM file does not seem to exist. Please check supplied path."))
     if !isdir(args["output_dir"])
-        @debug "Creating output directory" 
+        @debug("Creating output directory")
         mkdir(args["output_dir"])
     end
     args["stranded"] in ["yes", "no", "reverse"] || error("--stranded argument must be either 'yes', 'no', or 'reverse'.")
@@ -332,20 +331,25 @@ function main()
     end
 
     @info("Processing annotation features...")
+
+    features = IntervalCollection{GFF3.Record}()
     gff3_reader = open(GFF3.Reader, args["gff3_file"])
-    features = IntervalCollection(gff3_reader)
+    for record in gff3_reader
+        if GFF3.featuretype(record) == args["feature_type"]
+            interval = convert(Interval, record)
+            push!(features, interval)
+        end
+    end
     close(gff3_reader)
 
     @info("Getting unique coordinates per contig and feature...")
     uniq_coords = Dict{String, Dict}()
     for feature in features
-        GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
         add_nonoverlapping_feature_coords!(uniq_coords, feature, is_stranded(args["stranded"]))
     end
     @info("Initializing feature overlap dictionary...")
     feat_overlaps = Dict{String, Dict}()
     for feature in features
-        GFF3.featuretype(metadata(feature)) == args["feature_type"] || continue
         feature_name = get_feature_name_from_attrs(metadata(feature), args["attribute_type"])
         uniq_feat_coords = get_feature_nonoverlapping_coords(feature, uniq_coords, is_stranded(args["stranded"]))
         counter::Float32 = 0.0; feat_depth::Float32 = 0.0
