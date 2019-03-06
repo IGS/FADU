@@ -1,5 +1,7 @@
 # CHANGELOG
 
+* Rewrote how GFF3.Feature IntervalCollection was built. Now filter by feature type before building the collection, which eliminates checks downstream while reducing the collection size.
+
 ## v1.4
 * BUGFIX - Corrected TPM counts
 * BUGFIX - Corrected overcounting of the individual alignment-feature overlap counts
