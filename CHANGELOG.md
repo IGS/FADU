@@ -1,6 +1,6 @@
 # CHANGELOG
 
-* Rewrote how GFF3.Feature IntervalCollection was built. Now filter by feature type before building the collection, which eliminates checks downstream while reducing the collection size.
+* Small optimization in creating the GenomicFeatures IntervalCollection, by parsing out just the feature types wanted from the get go instead of later on.
 
 ## v1.4
 * BUGFIX - Corrected TPM counts
