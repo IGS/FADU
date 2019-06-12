@@ -1,6 +1,12 @@
 # CHANGELOG
 
+## v1.5
+* FEATURE - If the --remove\_multimapped option is not enabled, multimapped reads/fragments will be added to feature quantification using the Expectation-Maximization algorithm
+* DELETION - Removing --min\_mapping\_quality argument.  All multimapped reads will be 0 or 1, so this argument seemed unnecessary.
 * Small optimization in creating the GenomicFeatures IntervalCollection, by parsing out just the feature types wanted from the get go instead of later on.
+* Removed "uniq_coords" argument from the "process_overlaps" function since it was unused.
+* Removed "feature" argument from the "compute_align_feat_set" function since it was unused.
+* Renamed 'feat_depth' keys to 'feat_counts' and 'counter' keys to 'num_alignments' to better align to proper terminology
 
 ## v1.4
 * BUGFIX - Corrected TPM counts
