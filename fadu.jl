@@ -14,20 +14,20 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 
 """
 
+# The macro on modules and functions makes the code available to all worker processes
 using ArgParse
 using BioAlignments
-using Distributed
 using GenomicFeatures
 using Printf
 
 const VERSION_NUMBER = "1.5"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
-const CHUNK_SIZE = 10000000 # Number of valid BAM fragments/reads to read in before determining overlaps
+#const CHUNK_SIZE = 10000000 # Number of valid BAM fragments/reads to read in before determining overlaps
 # NOTE: Making chunk_counter a UInt32, so this constant should not exceed 4,294,967,295
 
 #is_duplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
-is_mate_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
+#is_mate_reverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
 is_proper_pair(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_PROPER_PAIR == 0x0002
 is_read1(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_READ1 == 0x0040
 is_read2(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_READ2 == 0x0080
@@ -77,11 +77,7 @@ function adjust_mm_depth_by_em(mm_overlaps::Dict{String, Dict}, feat_overlaps::D
     end
     for aln in alignment_intervals
         # TODO: One potential (but time-consuming) improvement would be to get depth counts by strand.
-        bam_strand = get_strand(aln, is_stranded(args["stranded"]))
-
-        # Filter features to those just that align with the current alignment on the same strand
-        aln_feat_overlaps = filter(x -> isoverlapping(convert(Interval, x), aln), features)
-        filter!(x -> bam_strand == get_strand(x, is_stranded(args["stranded"])), aln_feat_overlaps)
+        aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln, is_stranded(args["stranded"]))
 
         total_counts = sum(feat_overlaps[feat]["feat_counts"] for feat in keys(feat_overlaps))
         total_counts += sum(mm_overlaps[feat]["feat_counts"] for feat in keys(mm_overlaps))
@@ -144,6 +140,14 @@ function determine_record_type(record::BAM.Record, max_frag_size::UInt16, pp_onl
     # For fragments, only one read is looked at.  The other one is essentially skipped to avoid overcounting.
     # Reads that also fail validation go here.
     return "X"
+end
+
+function filter_alignment_feature_overlaps(features::Array{GenomicFeatures.GFF3.Record,1}, alignment::Interval{Char}, stranded::Bool)
+    """Filter features to those just that align with the current alignment on the same strand."""
+    aln_strand = get_strand(alignment, stranded)
+    aln_feat_overlaps = filter(x -> isoverlapping(convert(Interval, x), alignment), features)
+    filter!(x -> aln_strand == get_strand(x, stranded), aln_feat_overlaps)
+    return aln_feat_overlaps
 end
 
 function get_alignment_coords_set(alignment::Interval{Char})
@@ -268,17 +272,22 @@ function merge_mm_counts!(feat_overlaps::Dict{String, Dict}, mm_feat_overlaps::D
     end
 end
 
-function process_overlaps!(feat_overlaps::Dict{String, Dict}, alignment_intervals::IntervalCollection{Char}, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
-    """Process current chunk of alignment intervals that overlap with feature intervals."""
-    for (alignment, feature) in eachoverlap(alignment_intervals, features)
-        feat_record = metadata(feature)
-        feature_name = get_feature_name_from_attrs(feat_record, args["attribute_type"])
+function process_aln_record_for_overlaps!(feat_overlaps::Dict{String, Dict}, features::Array{GenomicFeatures.GFF3.Record,1}, aln_record::BAM.Record, args::Dict, max_frag_size::UInt16)
+    """Process an alignment record for all valid overlaps with features."""
+    # Validate all other reads
+    record_type = determine_record_type(aln_record, max_frag_size, args["pp_only"])
+    record_type == "X" && return  # Skip reads not being considered
+    aln_interval = get_alignment_interval(aln_record, record_type, is_reverse_stranded(args["stranded"]))
+    process_aln_interval_for_overlaps!(feat_overlaps, features, aln_interval, args)
+end
 
-        bam_strand = get_strand(alignment, is_stranded(args["stranded"]))
-        gff_strand = get_strand(feat_record, is_stranded(args["stranded"]))
-        bam_strand == gff_strand || continue
-        align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlaps[feature_name]["coords_set"], alignment)
-        increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, metadata(alignment)=='R')
+function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, Dict}, features::Array{GenomicFeatures.GFF3.Record,1}, aln_interval::Interval{Char}, args::Dict)
+    """Process an alignment interval for all valid overlaps with features."""
+    aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, is_stranded(args["stranded"]))
+    for feature in aln_feat_overlaps
+        feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
+        align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlaps[feature_name]["coords_set"], aln_interval)
+        increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, metadata(aln_interval)=='R')
     end
 end
 
@@ -351,11 +360,11 @@ function parse_commandline()
             arg_type = Int
             range_tester = (x->x>0)
             dest_name = "em_iter"
-        "--chunk_size", "-C"
+#=         "--chunk_size", "-C"
             help = "Number of validated reads to store into memory before processing overlaps with features."
             default = CHUNK_SIZE
             arg_type = Int
-            range_tester = (x->typemin(UInt32)<=x<=typemax(UInt32))
+            range_tester = (x->typemin(UInt32)<=x<=typemax(UInt32)) =#
 
     # Will not add log_file or debug options for now
     end
@@ -381,6 +390,7 @@ function main()
     for (arg,val) in args
         @info("  $arg  =>  $val")
     end
+    @info("Using $(Threads.nthreads()) threads")
 
     @info("Processing annotation features...")
     features = open(collect, GFF3.Reader, args["gff3_file"])    # Array of GFF3.Record objects
@@ -392,6 +402,7 @@ function main()
     for feature in features
         add_nonoverlapping_feature_coords!(uniq_coords, feature, is_stranded(args["stranded"]))
     end
+
     @info("Initializing feature overlap dictionary...")
     feat_overlaps = Dict{String, Dict}()
     for feature in features
@@ -410,60 +421,47 @@ function main()
             error("Attempted to find index file for BAM file $bam but could not find one")
         end
     end
-    @debug("Found BAM index file at $bai_file")
-    #bam_reader = open(BAM.Reader, args["bam_file"], index=bai_file)
-    bam_records = open(collect, BAM.Reader, args["bam_file"], index=bai_file)    # Array  of BAM.Record objects
 
-    # Only keep features for the chosen feature type
-    filter!(x -> BAM.ismapped(x), bam_records)
+    @debug("Found BAM index file at $bai_file")
+    bam_reader = open(BAM.Reader, args["bam_file"], index=bai_file)
 
     @info("Now finding overlaps between alignment and annotation records...")
-    valid_record_counter::UInt32 = 0
     max_frag_size = convert(UInt16, args["max_fragment_size"])
-    chunk_size = convert(UInt32, args["chunk_size"])
+    record = BAM.Record()
+    multimapped_intervals = IntervalCollection{Char}()
 
-    valid_records = filter(x -> BAM.isprimary(x) && !is_multimapped(x), bam_records)
-    
-    alignment_intervals = IntervalCollection{Char}();
-    # TODO: Parallelize
-    for record in valid_records
-        # Validate all other reads
-        record_type = determine_record_type(record, max_frag_size, args["pp_only"])
-        record_type == "X" && continue  # Skip reads not being considered
-
-        # Store reads as chunks and process chunks when chunk is max size
-        valid_record_counter += 1
-        if is_chunk_ready(valid_record_counter, chunk_size)
-            process_overlaps!(feat_overlaps, alignment_intervals, features, args)
-            alignment_intervals = IntervalCollection{Char}()
+    while !eof(bam_reader)
+        read!(bam_reader, record)
+        BAM.ismapped(record) || continue
+        if is_multimapped(record)
+            if args["rm_multimap"]
+                record_type = determine_record_type(record, max_frag_size, args["pp_only"])
+                record_type == "X" && continue  # Skip reads not being considered
+                push!(multimapped_intervals, get_alignment_interval(record, record_type, is_reverse_stranded(args["stranded"])))
+            end
+            continue
         end
-        push!(alignment_intervals, get_alignment_interval(record, record_type, is_reverse_stranded(args["stranded"])))
+        BAM.isprimary(record) || continue
+        process_aln_record_for_overlaps!(feat_overlaps, features, record, args, max_frag_size)
     end
-    # Final chunk
-    process_overlaps!(feat_overlaps, alignment_intervals, features, args)
+    close(bam_reader)
 
     if !args["rm_multimap"]
         @info("Now finding overlaps between multimapped alignments and annotation records...")
-        multimapped_records = filter(x -> is_multimapped(x), bam_records)
-        multimapped_intervals = IntervalCollection{Char}()
-        for record in multimapped_records
-            record_type = determine_record_type(record, max_frag_size, args["pp_only"])
-            record_type == "X" && continue  # Skip reads not being considered
-            push!(multimapped_intervals, get_alignment_interval(record, record_type, is_reverse_stranded(args["stranded"])))
-        end
-
-        @debug("Multimapped alignments: ", length(multimapped_intervals))
+        @debug("Multimapped alignment intervals: ", length(multimapped_intervals))
         mm_feat_overlaps = Dict{String, Dict}()
         for feature in features
             feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
             mm_feat_overlaps[feature_name] = initialize_overlap_info(feat_overlaps[feature_name]["coords_set"])
         end
+        @inbounds for mm_interval in multimapped_intervals
+            process_aln_interval_for_overlaps!(mm_feat_overlaps, features, mm_interval, args)
+        end
         # Figure out depth for just this subset
-        process_overlaps!(mm_feat_overlaps, multimapped_intervals, features, args)
         @info("Now re-adding multimapped reads via Expectation-Maximization algorithm...")
         while args["em_iter"] > 0
             args["em_iter"] -= 1
-            mm_feat_overlaps = adjust_mm_depth_by_em(mm_feat_overlaps, feat_overlaps, multimapped_intervals, features, args)
+            mm_feat_overlaps = adjust_mm_depth_by_em(mm_feat_overlaps, feat_overlaps, multimapped_intervals, features, args)        
         end
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps)
     end
