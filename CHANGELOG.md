@@ -7,7 +7,8 @@
 * Due to the rewriting, the "--chunk_size" option has been removed.
 * I recently learned that the BioAlignments package takes advantage of multithreading with respect to reading the BAM file.  So therefore, FADU supports multithreading.  This can be achieved by running "export JULIA_NUM_THREADS=#" before running FADU where # is the number of threads you want to use.
 * Created new "include" file alignment\_overlap.jl, which implements a custom version of the "eachoverlaps" function to handle both fragments and reads accordingly.
-* CreaedM new "include file bam\_record.jl, which houses some functions that work on Record types.
+* Created new "include file bam\_record.jl, which houses some functions that work on Record types.
+* Renamed some variables and functions to adhere to Julia styling conventions
 
 ## v1.5
 

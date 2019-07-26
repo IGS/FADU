@@ -15,21 +15,20 @@ struct OverlapIterator{T}
     reader::BAM.Reader{T}
     refname::String
     interval::UnitRange{Int}
-    pp_only::Bool
     strand_type::String
     max_frag_size::UInt
 end
 
-function GenomicFeatures.eachoverlap(reader::BAM.Reader, interval::Interval, pp_only::Bool=false, strand_type::String="no", max_frag_size::UInt=1000)
-    return GenomicFeatures.eachoverlap(reader, interval.seqname, interval.first:interval.last, pp_only, strand_type, max_frag_size)
+function GenomicFeatures.eachoverlap(reader::BAM.Reader, interval::Interval, strand_type::String="no", max_frag_size::UInt=1000)
+    return GenomicFeatures.eachoverlap(reader, interval.seqname, interval.first:interval.last, strand_type, max_frag_size)
 end
 
-function GenomicFeatures.eachoverlap(reader::BAM.Reader, interval, pp_only::Bool=false, strand_type::String="no", max_frag_size::UInt=1000)
-    return GenomicFeatures.eachoverlap(reader, convert(Interval, interval), pp_only, strand_type, max_frag_size)
+function GenomicFeatures.eachoverlap(reader::BAM.Reader, interval, strand_type::String="no", max_frag_size::UInt=1000)
+    return GenomicFeatures.eachoverlap(reader, convert(Interval, interval), strand_type, max_frag_size)
 end
 
-function GenomicFeatures.eachoverlap(reader::BAM.Reader, refname::AbstractString, interval::UnitRange, pp_only::Bool=false, strand_type::String="no", max_frag_size::UInt=1000)
-    return OverlapIterator(reader, String(refname), interval, pp_only, strand_type, max_frag_size)
+function GenomicFeatures.eachoverlap(reader::BAM.Reader, refname::AbstractString, interval::UnitRange, strand_type::String="no", max_frag_size::UInt=1000)
+    return OverlapIterator(reader, String(refname), interval, strand_type, max_frag_size)
 end
 
 # Iterator
@@ -55,14 +54,16 @@ function Base.iterate(iter::OverlapIterator, state)
         chunk = state.chunks[state.chunkid]
         while BGZFStreams.virtualoffset(iter.reader.stream) < chunk.stop
             read!(iter.reader, state.record)
-            record_type = determine_record_type(state.record, iter.max_frag_size, iter.pp_only)
-            record_type === nothing && continue  # Skip alignments not being considered
-            aln_interval = get_alignment_interval(state.record, record_type, is_reverse_stranded(iter.strand_type))
+            aln_interval = get_alignment_interval(state.record, iter.max_frag_size, iter.strand_type)
+            aln_interval === nothing && continue
             c = GenomicFeatures.compare_overlap(aln_interval, Interval(iter.refname, iter.interval), isless)
             if c == 0
-                #return aln_interval, state
                 return copy(state.record), state
             end
+            # Default Base.iterate function from BioAlignments.BAM.overlaps.jl breaks
+            # once the record is completely to the right of the GenomicFeatures interval,
+            # but this causes some fragments to be missed, where the record is on the
+            # negative strand and extends to the left into the GenomicFeatures interval
         end
         state.chunkid += 1
         if state.chunkid ≤ lastindex(state.chunks)
