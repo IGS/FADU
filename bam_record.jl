@@ -66,16 +66,25 @@ function assign_read_to_strand(record::BAM.Record, reverse_strand::Bool=false)
     return '+'
 end
 
-function determine_record_type(record::BAM.Record, max_frag_size::UInt)
+#function determine_record_type(record::BAM.Record, max_frag_size::UInt)
+function canbefragment(record::BAM.Record, max_frag_size::UInt)
     """Determine if BAM Record is a read (R) or fragment (F)."""
+    # True = Can validate as a fragment
+    # False = Can validate as a read
     if validate_fragment(record) && is_templength_smaller_than_max_fragment_size(BAM.templength(record), max_frag_size)
-        return FragmentAlignment()
+        return true
+        #return FragmentAlignment()
     elseif validate_read(record, max_frag_size)
+        return false
         return ReadAlignment()
     end
     # For fragments, only one read is looked at.  The other one is essentially skipped to avoid overcounting.
     # Reads that also fail validation go here.
     return nothing
+end
+
+function get_alignment_start_end(record::BAM.Record, isfragment::Bool)
+    return get_alignment_start_end(record, gettype_alignment(isfragment))
 end
 
 function get_alignment_start_end(record::BAM.Record, record_type::FragmentAlignment)
@@ -90,17 +99,23 @@ end
 
 function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, reverse_strand::Bool=false)
     """Return an alignment-based Interval for the current record.""" 
-    record_type = determine_record_type(record, max_frag_size)
-    record_type === nothing && return nothing  # Skip alignments not being considered
+    #record_type = determine_record_type(record, max_frag_size)
+    #record_type === nothing && return nothing  # Skip alignments not being considered
+    isfragment = canbefragment(record, max_frag_size)
+    isfragment === nothing && return nothing  # Skip alignments not being considered
     return Interval(BAM.refname(record),
-                    get_alignment_start_end(record, record_type),
+                    get_alignment_start_end(record, isfragment),
                     assign_read_to_strand(record, reverse_strand), 
-                    record_type
+                    isfragment
     )
 end
 
 function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, strand_type::String)
     return get_alignment_interval(record, max_frag_size, is_reverse_stranded(strand_type))
+end
+
+function gettype_alignment(isfragment::Bool)
+    return (isfragment ? FragmentAlignment() : ReadAlignment())
 end
 
 function is_multimapped(record::BAM.Record)

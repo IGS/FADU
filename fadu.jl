@@ -27,10 +27,10 @@ const VERSION_NUMBER = "1.5"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
-mutable struct FeatureOverlap{T<:UInt}
+mutable struct FeatureOverlap
     num_alignments::Float32
     feat_counts::Float32
-    coords_set::Set{T}
+    coords_set::Set{UInt}
 end
 
 # Strand-type functions
@@ -55,7 +55,7 @@ function add_nonoverlapping_feature_coords!(uniq_coords::Dict{String, Dict}, fea
     uniq_coords[seqid][strand] = symdiff(curr_contig_coords, new_feat_coords)
 end
 
-function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, alignment_intervals::IntervalCollection{<:AbstractAlignment}, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
+function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, alignment_intervals::IntervalCollection{Bool}, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
     new_mm_overlaps = Dict{String, FeatureOverlap}()
     for feature_name in keys(feat_overlaps)
@@ -79,8 +79,6 @@ function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_
     end
     return new_mm_overlaps
 end
-
-
 
 function calc_tpm(len::UInt, depth_sum::Float32, feat_counts::Float32)
     """Calculate TPM score for current feature."""
@@ -143,17 +141,10 @@ function getstrand(interval::Interval, stranded::Bool)
     return strand
 end
 
-function increment_feature_overlap_information!(feat_dict::FeatureOverlap, align_feat_ratio::Float32, is_read::Bool)
+function increment_feature_overlap_information!(feat_overlap::FeatureOverlap, align_feat_ratio::Float32, aln_type::T) where {T<:AbstractAlignment}
     """Increment number of alignments and feature count information for feature if alignment overlapped with uniq coords."""
-    num_alignments::Float32 = (is_read ? 0.5 : 1.0)
-    feat_dict.num_alignments += num_alignments
-    feat_dict.feat_counts += align_feat_ratio * num_alignments
-end
-
-function increment_feature_overlap_information!(feat_dict::FeatureOverlap, align_feat_ratio::Float32, aln_type::T) where {T<:AbstractAlignment}
-    """Increment number of alignments and feature count information for feature if alignment overlapped with uniq coords."""
-    feat_dict.num_alignments += aln_type.count_multiplier
-    feat_dict.feat_counts += align_feat_ratio * aln_type.count_multiplier
+    feat_overlap.num_alignments += aln_type.count_multiplier
+    feat_overlap.feat_counts += align_feat_ratio * aln_type.count_multiplier
 end
 
 function initialize_overlap_info(uniq_feat_coords::Set{UInt})
@@ -180,49 +171,46 @@ function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_o
     end
 end
 
-function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, features::Array{GenomicFeatures.GFF3.Record,1}, aln_interval::Interval, args::Dict)
+function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, features::Array{GenomicFeatures.GFF3.Record,1}, aln_interval::Interval{Bool}, args::Dict)
     """Process a single alignment interval for all valid overlaps with features."""
     aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"]))
     for feature in aln_feat_overlaps
         feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
         align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlaps[feature_name].coords_set, aln_interval)
         if align_feat_ratio > 0.0
-            #increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, metadata(aln_interval)=='R')
-            increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, metadata(aln_interval))
+            aln_type = gettype_alignment(metadata(aln_interval))
+            increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, aln_type)
         end
     end
 end
 
-function process_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, multimapped_intervals::IntervalCollection{<:AbstractAlignment}, reader::BAM.Reader, feature::GenomicFeatures.GFF3.Record, args::Dict)
+function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_intervals::IntervalCollection{Bool}, reader::BAM.Reader, feature::GenomicFeatures.GFF3.Record, args::Dict)
     """Process all alignment intervals that overlap with feature intervals."""
     max_frag_size = convert(UInt, args["max_fragment_size"])
-    feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
     gff_strand = getstrand(feature, isstranded(args["stranded"]))  
     for record in eachoverlap(reader, feature, args["stranded"], max_frag_size)
         # Getting the interval here feels redundant since it is calculated in the Base.iterate function
         # But returning the record instead of the interval proved to be much faster
         aln_interval = get_alignment_interval(record, max_frag_size, is_reverse_stranded(args["stranded"]))
         aln_interval === nothing && continue
-        args["pp_only"] && isa(metadata(aln_interval), ReadAlignment) && continue
+        args["pp_only"] && isa(metadata(aln_interval).aln_type, ReadAlignment) && continue
         # Save multimapped records as Interval objects for later, if needed
         if is_multimapped(record)
-            if !args["rm_multimap"]
-                push!(multimapped_intervals, aln_interval)
-            end
+            args["rm_multimap"] || push!(multimapped_intervals, aln_interval)
             continue
         end
-        process_overlap!(feat_overlaps, aln_interval, gff_strand, feature_name, args["stranded"])
+        process_overlap!(feat_overlap, aln_interval, gff_strand, args["stranded"])
     end
 end
 
-function process_overlap!(feat_overlaps::Dict{String, FeatureOverlap}, alignment::Interval{<:AbstractAlignment}, gff_strand::Char, feature_name::String, strand_type::String)
+function process_overlap!(feat_overlap::FeatureOverlap, aln_interval::Interval{Bool}, gff_strand::Char, strand_type::String)
     """Process current single feature-alignment overlap."""
-    bam_strand = getstrand(alignment, isstranded(strand_type))
+    bam_strand = getstrand(aln_interval, isstranded(strand_type))
     bam_strand == gff_strand || return
-    align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlaps[feature_name].coords_set, alignment)
+    align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlap.coords_set, aln_interval)
     if align_feat_ratio > 0.0
-        #increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, metadata(alignment)=='R')
-        increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, metadata(alignment))
+        aln_type = gettype_alignment(metadata(aln_interval))
+        increment_feature_overlap_information!(feat_overlap, align_feat_ratio, aln_type)
     end
 end
 
@@ -322,6 +310,14 @@ function main()
         add_nonoverlapping_feature_coords!(uniq_coords, feature, isstranded(args["stranded"]))
     end
 
+    @info("Initializing dictionary of feature count information")
+    feat_overlaps = Dict{String, FeatureOverlap}()
+    for feature in features
+        feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
+        uniq_feat_coords = get_feature_nonoverlapping_coords(feature, uniq_coords, isstranded(args["stranded"]))
+        feat_overlaps[feature_name] = initialize_overlap_info(uniq_feat_coords)
+    end
+
     bai_file = replace(args["bam_file"], ".bam" => ".bai")
     # Attempt to find index file for BAM file in same directory
     if !isfile(bai_file)
@@ -333,8 +329,7 @@ function main()
     end
     @debug("Found BAM index file at $bai_file")
 
-    multimapped_intervals = IntervalCollection{AbstractAlignment}()
-    feat_overlaps = Dict{String, FeatureOverlap}()
+    multimapped_intervals = IntervalCollection{Bool}()
 
     # Open a BAM file and iterate over records overlapping mRNA transcripts.
     @info("Opening BAM alignment file...")
@@ -342,9 +337,7 @@ function main()
     @info("Now finding overlaps between alignment and annotation records...")
     for feature in features
         feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-        uniq_feat_coords = get_feature_nonoverlapping_coords(feature, uniq_coords, isstranded(args["stranded"]))
-        feat_overlaps[feature_name] = initialize_overlap_info(uniq_feat_coords)
-        process_overlaps!(feat_overlaps, multimapped_intervals, reader, feature, args)
+        process_overlaps!(feat_overlaps[feature_name], multimapped_intervals, reader, feature, args)
     end
     close(reader)
 

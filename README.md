@@ -17,13 +17,14 @@ Most current available quantification tools for transcriptomics analyses have be
 
 # Requirements
 
-Julia - v0.7 or later (v1.0 or later preferred)
+Julia - v1.0.0 or later
 
 ## Modules
 
 NOTE: Module installation instructions can be found at https://docs.julialang.org/en/v1/stdlib/Pkg/index.html#Getting-Started-1
 * ArgParse
 * BioAlignments - v1.0.0
+* BGZFStreams - v0.3.0
 * GenomicFeatures - v1.0.0
 
 ## OS Requirements
@@ -145,10 +146,6 @@ optional arguments:
                         on multimapped read depth. Only applies if
                         --remove_multimapped flag is not passed (is
                         disabled) (type: Int64, default: 1)
-  -C, --chunk_size CHUNK_SIZE
-                        Number of validated reads to store into memory
-                        before processing overlaps with features.
-                        (type: Int64, default: 10000000)
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```
