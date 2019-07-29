@@ -306,8 +306,27 @@ function main()
 
     @info("Getting unique coordinates per contig and feature...")
     uniq_coords = Dict{String, Dict}()
-    for feature in features
-        add_nonoverlapping_feature_coords!(uniq_coords, feature, isstranded(args["stranded"]))
+    #for feature in features
+    #    add_nonoverlapping_feature_coords!(uniq_coords, feature, isstranded(args["stranded"]))
+    #end
+    seqids = union(map(x -> GFF3.seqid(x), features))
+    @time for seqid in seqids
+        uniq_coords[seqid] = Dict{Char,Set{UInt}}()
+        # Get only features with this reference id
+        seqid_feats = filter(x -> GFF3.seqid(x) == seqid, features)
+        strand = union(map(x -> GFF3.strand(x), seqid_feats))
+        for s in strand
+            # Get features one strand at a time
+            seqid_feats_by_strand = filter(x-> GFF3.strand(x) == s, seqid_feats)
+            strandchar = convert(Char, s)
+            feat_coords = mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand)
+            uniq_coords[seqid][strandchar] = feat_coords
+        end
+
+        # If alignment data is unstranded, then symdiff both strands to + strand 
+        if !isstranded(args["stranded"]) && haskey(uniq_coords[seq_id], '-')
+            symdiff!(uniq_coords[seqid]['+'], pop!(uniq_coords[seqid]['-']))
+        end
     end
 
     @info("Initializing dictionary of feature count information")
