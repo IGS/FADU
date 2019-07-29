@@ -127,6 +127,24 @@ function get_feature_nonoverlapping_coords(feature::GenomicFeatures.GFF3.Record,
     return intersect(feat_coords, uniq_coords[seqid][strand])
 end
 
+function get_nonoverlapping_coords_by_seqid(features::Array{GenomicFeatures.GFF3.Record,1}, seqid::String)
+    uniq_seqid_coords = Dict{Char,Set{UInt}}()
+    # Get only features with this reference id
+    seqid_feats = filter(x -> GFF3.seqid(x) == seqid, features)
+    strand = mapreduce(x -> GFF3.strand(x), union, seqid_feats)
+    for s in strand
+        strandchar = convert(Char, s)
+        uniq_seqid_coords[strandchar] = get_nonoverlapping_coords_by_seqid_and_strand(seqid_feats, s)
+    end
+    return uniq_seqid_coords
+end
+
+function get_nonoverlapping_coords_by_seqid_and_strand(features::Array{GenomicFeatures.GFF3.Record,1}, strand::Strand)
+    # Get features one strand at a time
+    seqid_feats_by_strand = filter(x-> GFF3.strand(x) == strand, features)
+    return mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand)
+end
+
 function getstrand(feature::GenomicFeatures.GFF3.Record, stranded::Bool)
     """Get strand of GFF3 feature with respect to strandedness arguments."""
     return getstrand(convert(Interval, feature), stranded)
@@ -309,22 +327,11 @@ function main()
     #for feature in features
     #    add_nonoverlapping_feature_coords!(uniq_coords, feature, isstranded(args["stranded"]))
     #end
-    seqids = union(map(x -> GFF3.seqid(x), features))
-    @time for seqid in seqids
-        uniq_coords[seqid] = Dict{Char,Set{UInt}}()
-        # Get only features with this reference id
-        seqid_feats = filter(x -> GFF3.seqid(x) == seqid, features)
-        strand = union(map(x -> GFF3.strand(x), seqid_feats))
-        for s in strand
-            # Get features one strand at a time
-            seqid_feats_by_strand = filter(x-> GFF3.strand(x) == s, seqid_feats)
-            strandchar = convert(Char, s)
-            feat_coords = mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand)
-            uniq_coords[seqid][strandchar] = feat_coords
-        end
-
+    seqids = mapreduce(x -> GFF3.seqid(x), union, features)
+    for seqid in seqids
+        uniq_coords[seqid] = get_nonoverlapping_coords_by_seqid(features, seqid)
         # If alignment data is unstranded, then symdiff both strands to + strand 
-        if !isstranded(args["stranded"]) && haskey(uniq_coords[seq_id], '-')
+        if !isstranded(args["stranded"]) && haskey(uniq_coords[seqid], '-')
             symdiff!(uniq_coords[seqid]['+'], pop!(uniq_coords[seqid]['-']))
         end
     end
