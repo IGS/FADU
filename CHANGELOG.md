@@ -9,6 +9,7 @@
 * Created new "include" file alignment\_overlap.jl, which implements a custom version of the "eachoverlaps" function to handle both fragments and reads accordingly.
 * Created new "include file bam\_record.jl, which houses some functions that work on Record types.
 * Renamed some variables and functions to adhere to Julia styling conventions
+* Rewrote step to get nonoverlapping coordinates for each reference sequence in the GFF, which should speed up that step, particularly with larger annotation files
 
 ## v1.5
 

@@ -37,24 +37,6 @@ end
 isstranded(strand_type::String) = return (strand_type == "no" ? false : true)
 is_reverse_stranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
 
-function add_nonoverlapping_feature_coords!(uniq_coords::Dict{String, Dict}, feature::GenomicFeatures.GFF3.Record, stranded::Bool)
-    """Adjust the set of coordinates stored in the Dict to be the symmetric difference with those in the feature."""
-    seqid = GFF3.seqid(feature)
-    strand = getstrand(feature, stranded)
-    # First passthru of new contig or region, add first set of coords (since all uniq at this moment)
-    if !(haskey(uniq_coords, seqid))
-        uniq_coords[seqid] = Dict{Char,Set{UInt}}(strand => get_feature_coords_set(feature))
-        return
-    elseif !(haskey(uniq_coords[seqid], strand))
-        uniq_coords[seqid][strand] = get_feature_coords_set(feature)
-        return
-    end
-    curr_contig_coords = uniq_coords[seqid][strand]
-    new_feat_coords = get_feature_coords_set(feature)
-    # Get overlapping coordinates and remove from current contig coords set (symmetric difference)
-    uniq_coords[seqid][strand] = symdiff(curr_contig_coords, new_feat_coords)
-end
-
 function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, alignment_intervals::IntervalCollection{Bool}, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
     new_mm_overlaps = Dict{String, FeatureOverlap}()
@@ -131,7 +113,7 @@ function get_nonoverlapping_coords_by_seqid(features::Array{GenomicFeatures.GFF3
     uniq_seqid_coords = Dict{Char,Set{UInt}}()
     # Get only features with this reference id
     seqid_feats = filter(x -> GFF3.seqid(x) == seqid, features)
-    strand = mapreduce(x -> GFF3.strand(x), union, seqid_feats)
+    strand = Set(map(x -> GFF3.strand(x), seqid_feats))
     for s in strand
         strandchar = convert(Char, s)
         uniq_seqid_coords[strandchar] = get_nonoverlapping_coords_by_seqid_and_strand(seqid_feats, s)
@@ -142,7 +124,7 @@ end
 function get_nonoverlapping_coords_by_seqid_and_strand(features::Array{GenomicFeatures.GFF3.Record,1}, strand::Strand)
     # Get features one strand at a time
     seqid_feats_by_strand = filter(x-> GFF3.strand(x) == strand, features)
-    return mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand)
+    return Set{UInt}(mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand))
 end
 
 function getstrand(feature::GenomicFeatures.GFF3.Record, stranded::Bool)
@@ -324,10 +306,7 @@ function main()
 
     @info("Getting unique coordinates per contig and feature...")
     uniq_coords = Dict{String, Dict}()
-    #for feature in features
-    #    add_nonoverlapping_feature_coords!(uniq_coords, feature, isstranded(args["stranded"]))
-    #end
-    seqids = mapreduce(x -> GFF3.seqid(x), union, features)
+    seqids = Set(map(x -> GFF3.seqid(x), features))
     for seqid in seqids
         uniq_coords[seqid] = get_nonoverlapping_coords_by_seqid(features, seqid)
         # If alignment data is unstranded, then symdiff both strands to + strand 
