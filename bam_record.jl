@@ -1,10 +1,12 @@
 #!/usr/bin/env julia
 
 """
-bam_record.jl - Houses functions that process BAM Record objects.
+bam_record.jl - Houses functions that deal with BAM Record objects and properties
 
 By: Shaun Adkins (sadkins@som.umaryland.edu)
 """
+
+is_reverse_stranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
 
 abstract type AbstractAlignment end
 
@@ -110,8 +112,22 @@ function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, reverse
     )
 end
 
+function get_alignment_coords_set(alignment::Interval)
+    """Get the range of coordinates for this alignment, returned as a Set."""
+    return Set{UInt}(leftposition(alignment) : rightposition(alignment))
+end
+
 function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, strand_type::String)
     return get_alignment_interval(record, max_frag_size, is_reverse_stranded(strand_type))
+end
+
+function getstrand(interval::Interval, stranded::Bool)
+    """Get strand of interval with respect to strandedness arguments."""
+    strand = '+'
+    if stranded
+        strand = convert(Char, interval.strand)
+    end
+    return strand
 end
 
 function gettype_alignment(isfragment::Bool)
@@ -127,6 +143,16 @@ function is_multimapped(record::BAM.Record)
         # Bioalignments BAM.Record.auxdata(record) throws LoadError for these
         return false
     end
+end
+
+function is_templength_negative(templength::Int64)
+    """Check to see if the read template is going in the opposite version."""
+    return templength < 0
+end
+
+function is_templength_smaller_than_max_fragment_size(templength::Int64, max_frag_size::UInt)
+    """Check to see if fragment template length is smaller than specified maximum fragment size."""
+    return abs(templength) <= max_frag_size
 end
 
 function validate_fragment(record::BAM.Record)

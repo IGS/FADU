@@ -22,20 +22,14 @@ using Printf
 
 include("alignment_overlaps.jl")
 include("bam_record.jl")
+include("feature_counts.jl")
+include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.5"    # Version number of the FADU program
+const VERSION_NUMBER = "1.6"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
-mutable struct FeatureOverlap
-    num_alignments::Float32
-    feat_counts::Float32
-    coords_set::Set{UInt}
-end
-
-# Strand-type functions
-isstranded(strand_type::String) = return (strand_type == "no" ? false : true)
-is_reverse_stranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
+### Functions to clean up, then move to their proper "include" script
 
 function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, alignment_intervals::IntervalCollection{Bool}, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
@@ -60,115 +54,6 @@ function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_
         end
     end
     return new_mm_overlaps
-end
-
-function calc_tpm(len::UInt, depth_sum::Float32, feat_counts::Float32)
-    """Calculate TPM score for current feature."""
-    return @fastmath(feat_counts *1000 / len) * 1000000 / depth_sum
-end
-
-function compute_align_feat_ratio(uniq_feat_coords::Set{UInt}, alignment::Interval)
-    """Calculate the ratio of fragament coordinates that intersect with non-overlapping feature coordinates."""
-        # Pertinent alignment info
-        alignment_coords =  get_alignment_coords_set(alignment)
-        alignment_intersect = intersect(uniq_feat_coords, alignment_coords)
-        # Percentage of alignment that aligned with this annotation feature
-        return @fastmath length(alignment_intersect) / length(alignment_coords)
-end
-
-function filter_alignment_feature_overlaps(features::Array{GenomicFeatures.GFF3.Record,1}, alignment::Interval, stranded::Bool)
-    """Filter features to those just that align with the current alignment on the same strand."""
-    aln_strand = getstrand(alignment, stranded)
-    aln_feat_overlaps = filter(x -> isoverlapping(convert(Interval, x), alignment), features)
-    filter!(x -> aln_strand == getstrand(x, stranded), aln_feat_overlaps)
-    return aln_feat_overlaps
-end
-
-function get_alignment_coords_set(alignment::Interval)
-    """Get the range of coordinates for this alignment, returned as a Set."""
-    return Set{UInt}(leftposition(alignment) : rightposition(alignment))
-end
-
-function get_feature_coords_set(feature::GenomicFeatures.GFF3.Record)
-    """Get the range of coordinates for this feature, returned as a Set."""
-    return Set{UInt}(leftposition(feature) : rightposition(feature))
-end
-
-function get_feature_name_from_attrs(feature::GFF3.Record, attr_type::String)
-    """Get attribute ID to use as the feature name."""
-    gene_vector = GFF3.attributes(feature, attr_type)    # col 9
-    validate_feature_attribute(gene_vector)
-    return gene_vector[1]
-end
-
-function get_feature_nonoverlapping_coords(feature::GenomicFeatures.GFF3.Record, uniq_coords::Dict{String, Dict}, stranded::Bool)
-    """Get set of nonoverlapping coordinates for given feature."""
-    seqid = GFF3.seqid(feature)
-    strand = getstrand(feature, stranded)
-    feat_coords = get_feature_coords_set(feature)
-    return intersect(feat_coords, uniq_coords[seqid][strand])
-end
-
-function get_nonoverlapping_coords_by_seqid(features::Array{GenomicFeatures.GFF3.Record,1}, seqid::String)
-    uniq_seqid_coords = Dict{Char,Set{UInt}}()
-    # Get only features with this reference id
-    seqid_feats = filter(x -> GFF3.seqid(x) == seqid, features)
-    strand = Set(map(x -> GFF3.strand(x), seqid_feats))
-    for s in strand
-        strandchar = convert(Char, s)
-        uniq_seqid_coords[strandchar] = get_nonoverlapping_coords_by_seqid_and_strand(seqid_feats, s)
-    end
-    return uniq_seqid_coords
-end
-
-function get_nonoverlapping_coords_by_seqid_and_strand(features::Array{GenomicFeatures.GFF3.Record,1}, strand::Strand)
-    # Get features one strand at a time
-    seqid_feats_by_strand = filter(x-> GFF3.strand(x) == strand, features)
-    return Set{UInt}(mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand))
-end
-
-function getstrand(feature::GenomicFeatures.GFF3.Record, stranded::Bool)
-    """Get strand of GFF3 feature with respect to strandedness arguments."""
-    return getstrand(convert(Interval, feature), stranded)
-end
-
-function getstrand(interval::Interval, stranded::Bool)
-    """Get strand of interval with respect to strandedness arguments."""
-    strand = '+'
-    if stranded
-        strand = convert(Char, interval.strand)
-    end
-    return strand
-end
-
-function increment_feature_overlap_information!(feat_overlap::FeatureOverlap, align_feat_ratio::Float32, aln_type::T) where {T<:AbstractAlignment}
-    """Increment number of alignments and feature count information for feature if alignment overlapped with uniq coords."""
-    feat_overlap.num_alignments += aln_type.count_multiplier
-    feat_overlap.feat_counts += align_feat_ratio * aln_type.count_multiplier
-end
-
-function initialize_overlap_info(uniq_feat_coords::Set{UInt})
-    """Initialize overlap diction information."""
-    num_alignments::Float32 = 0.0; feat_counts::Float32 = 0.0
-    return FeatureOverlap(num_alignments, feat_counts, uniq_feat_coords)
-end
-
-function is_templength_negative(templength::Int64)
-    """Check to see if the read template is going in the opposite version."""
-    return templength < 0
-end
-
-function is_templength_smaller_than_max_fragment_size(templength::Int64, max_frag_size::UInt)
-    """Check to see if fragment template length is smaller than specified maximum fragment size."""
-    return abs(templength) <= max_frag_size
-end
-
-function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_overlaps::Dict{String, FeatureOverlap})
-    """Merge EM-computed counts for multimapped reads back into the general feature overlap counts."""
-    for feature in keys(feat_overlaps)
-        feat_overlaps[feature].num_alignments += mm_feat_overlaps[feature].num_alignments
-        feat_overlaps[feature].feat_counts += mm_feat_overlaps[feature].feat_counts
-    end
 end
 
 function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, features::Array{GenomicFeatures.GFF3.Record,1}, aln_interval::Interval{Bool}, args::Dict)
@@ -201,23 +86,6 @@ function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_intervals::
         end
         process_overlap!(feat_overlap, aln_interval, gff_strand, args["stranded"])
     end
-end
-
-function process_overlap!(feat_overlap::FeatureOverlap, aln_interval::Interval{Bool}, gff_strand::Char, strand_type::String)
-    """Process current single feature-alignment overlap."""
-    bam_strand = getstrand(aln_interval, isstranded(strand_type))
-    bam_strand == gff_strand || return
-    align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlap.coords_set, aln_interval)
-    if align_feat_ratio > 0.0
-        aln_type = gettype_alignment(metadata(aln_interval))
-        increment_feature_overlap_information!(feat_overlap, align_feat_ratio, aln_type)
-    end
-end
-
-function validate_feature_attribute(gene_vector::Vector{String})
-    """Ensure only one attribute of this type exists for this feature record."""
-    length(gene_vector) > 0 || error("ERROR - Attribute field 'ID' found to have no entries.\n")
-    length(gene_vector) == 1 || error("ERROR - Attribute field 'ID' found to have multiple entries.\n")
 end
 
 ########
@@ -305,23 +173,10 @@ function main()
     filter!(x -> GFF3.featuretype(x) == args["feature_type"], features)
 
     @info("Getting unique coordinates per contig and feature...")
-    uniq_coords = Dict{String, Dict}()
-    seqids = Set(map(x -> GFF3.seqid(x), features))
-    for seqid in seqids
-        uniq_coords[seqid] = get_nonoverlapping_coords_by_seqid(features, seqid)
-        # If alignment data is unstranded, then symdiff both strands to + strand 
-        if !isstranded(args["stranded"]) && haskey(uniq_coords[seqid], '-')
-            symdiff!(uniq_coords[seqid]['+'], pop!(uniq_coords[seqid]['-']))
-        end
-    end
+    uniq_coords = create_uniq_coords_dict(features, args["stranded"])
 
     @info("Initializing dictionary of feature count information")
-    feat_overlaps = Dict{String, FeatureOverlap}()
-    for feature in features
-        feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-        uniq_feat_coords = get_feature_nonoverlapping_coords(feature, uniq_coords, isstranded(args["stranded"]))
-        feat_overlaps[feature_name] = initialize_overlap_info(uniq_feat_coords)
-    end
+    feat_overlaps = create_feat_overlaps_dict(features, uniq_coords, args["attribute_type"], args["stranded"])
 
     bai_file = replace(args["bam_file"], ".bam" => ".bai")
     # Attempt to find index file for BAM file in same directory
@@ -370,7 +225,7 @@ function main()
     end
 
     # Calculate sum of all counts for each feature
-    total_counts = sum(feat_overlaps[feat].feat_counts for feat in keys(feat_overlaps))
+    total_counts = calc_total_counts(feat_overlaps)
 
     @info("Writing counts output to file...")
     out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
