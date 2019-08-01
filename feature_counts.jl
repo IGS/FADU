@@ -68,7 +68,6 @@ function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_o
     end
 end
 
-
 function process_overlap!(feat_overlap::FeatureOverlap, aln_interval::Interval{Bool}, gff_strand::Char, strand_type::String)
     """Process current single feature-alignment overlap."""
     bam_strand = getstrand(aln_interval, isstranded(strand_type))

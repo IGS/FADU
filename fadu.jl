@@ -72,15 +72,17 @@ end
 function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_intervals::IntervalCollection{Bool}, reader::BAM.Reader, feature::GenomicFeatures.GFF3.Record, args::Dict)
     """Process all alignment intervals that overlap with feature intervals."""
     max_frag_size = convert(UInt, args["max_fragment_size"])
-    gff_strand = getstrand(feature, isstranded(args["stranded"]))  
+    gff_strand = getstrand(feature, isstranded(args["stranded"]))
+    
     for record in eachoverlap(reader, feature, args["stranded"], max_frag_size)
         # Getting the interval here feels redundant since it is calculated in the Base.iterate function
         # But returning the record instead of the interval proved to be much faster
         aln_interval = get_alignment_interval(record, max_frag_size, is_reverse_stranded(args["stranded"]))
         aln_interval === nothing && continue
-        args["pp_only"] && isa(metadata(aln_interval).aln_type, ReadAlignment) && continue
+        aln_type = gettype_alignment(metadata(aln_interval))
+        args["pp_only"] && isa(aln_type, ReadAlignment) && continue
         # Save multimapped records as Interval objects for later, if needed
-        if is_multimapped(record)
+        if ismultimapped(record)
             args["rm_multimap"] || push!(multimapped_intervals, aln_interval)
             continue
         end
@@ -195,7 +197,7 @@ function main()
     @info("Opening BAM alignment file...")
     reader = open(BAM.Reader, args["bam_file"], index = bai_file)
     @info("Now finding overlaps between alignment and annotation records...")
-    for feature in features
+    @time for feature in features
         feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
         process_overlaps!(feat_overlaps[feature_name], multimapped_intervals, reader, feature, args)
     end

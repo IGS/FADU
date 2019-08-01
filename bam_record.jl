@@ -6,8 +6,6 @@ bam_record.jl - Houses functions that deal with BAM Record objects and propertie
 By: Shaun Adkins (sadkins@som.umaryland.edu)
 """
 
-is_reverse_stranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
-
 abstract type AbstractAlignment end
 
 struct FragmentAlignment<:AbstractAlignment 
@@ -19,6 +17,8 @@ end
 
 FragmentAlignment() = FragmentAlignment(1.0)
 ReadAlignment() = ReadAlignment(0.5)
+
+is_reverse_stranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
 
 #isduplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
 #ismatereverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
@@ -134,7 +134,7 @@ function gettype_alignment(isfragment::Bool)
     return (isfragment ? FragmentAlignment() : ReadAlignment())
 end
 
-function is_multimapped(record::BAM.Record)
+function ismultimapped(record::BAM.Record)
     """Test to see if alignment is multimapped across multiple regions of the genome."""
     try
         return haskey(record, "NH") && record["NH"] > 1
