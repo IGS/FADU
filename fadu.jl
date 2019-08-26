@@ -16,7 +16,7 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 
 # The macro on modules and functions makes the code available to all worker processes
 using ArgParse
-using BioAlignments
+using BioAlignments: BAM, SAM
 using GenomicFeatures
 using Printf
 
@@ -31,7 +31,7 @@ const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
 ### Functions to clean up, then move to their proper "include" script
 
-function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, alignment_intervals::IntervalCollection{Bool}, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
+function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, alignment_intervals::IntervalCollection{Bool}, features::Array{GFF3.Record,1}, args::Dict)
     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
     new_mm_overlaps = Dict{String, FeatureOverlap}()
     for feature_name in keys(feat_overlaps)
@@ -56,7 +56,7 @@ function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_
     return new_mm_overlaps
 end
 
-function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, features::Array{GenomicFeatures.GFF3.Record,1}, aln_interval::Interval{Bool}, args::Dict)
+function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, features::Array{GFF3.Record,1}, aln_interval::Interval{Bool}, args::Dict)
     """Process a single alignment interval for all valid overlaps with features."""
     aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"]))
     for feature in aln_feat_overlaps
@@ -69,7 +69,7 @@ function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, FeatureO
     end
 end
 
-function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_intervals::IntervalCollection{Bool}, reader::BAM.Reader, feature::GenomicFeatures.GFF3.Record, args::Dict)
+function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_intervals::IntervalCollection{Bool}, reader::BAM.Reader, feature::GFF3.Record, args::Dict)
     """Process all alignment intervals that overlap with feature intervals."""
     max_frag_size = convert(UInt, args["max_fragment_size"])
     gff_strand = getstrand(feature, isstranded(args["stranded"]))
@@ -197,7 +197,7 @@ function main()
     @info("Opening BAM alignment file...")
     reader = open(BAM.Reader, args["bam_file"], index = bai_file)
     @info("Now finding overlaps between alignment and annotation records...")
-    @time for feature in features
+    for feature in features
         feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
         process_overlaps!(feat_overlaps[feature_name], multimapped_intervals, reader, feature, args)
     end

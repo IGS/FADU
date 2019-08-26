@@ -78,7 +78,7 @@ function canbefragment(record::BAM.Record, max_frag_size::UInt)
         #return FragmentAlignment()
     elseif validate_read(record, max_frag_size)
         return false
-        return ReadAlignment()
+        #return ReadAlignment()
     end
     # For fragments, only one read is looked at.  The other one is essentially skipped to avoid overcounting.
     # Reads that also fail validation go here.
