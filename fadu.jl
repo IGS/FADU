@@ -238,7 +238,13 @@ function main()
         uniq_len::UInt = length(feat_overlaps[feat_id].coords_set)
         num_alignments = feat_overlaps[feat_id].num_alignments
         feat_counts = feat_overlaps[feat_id].feat_counts
+        if isnan(feat_counts)
+            feat_counts::Float32 = 0
+        end
         tpm = calc_tpm(uniq_len, total_counts, feat_counts)
+        if isnan(tpm)
+            tpm::Float32 = 0
+        end
         s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.2f\n", feat_id, uniq_len, num_alignments, feat_counts, tpm)
         write(out_f, s)
     end
