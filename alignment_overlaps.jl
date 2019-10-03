@@ -34,7 +34,6 @@ end
 # Iterator
 # --------
 
-
 function Base.iterate(iter::OverlapIterator)
     refindex = findfirst(isequal(iter.refname), iter.reader.refseqnames)
     if refindex == 0

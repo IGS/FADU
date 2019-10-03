@@ -32,7 +32,7 @@ NOTE: Module installation instructions can be found at https://docs.julialang.or
 FADU is supported for both the Linux and Mac OSX operating systems, and has been tested on the following operating system versions:
 
 * Linux - CentOS 7
-* Mac OSX - High Sierra (v10.13.6
+* Mac OSX - High Sierra (v10.13.6)
 
 # Input
 
@@ -143,9 +143,11 @@ optional arguments:
                         counted.
   -e, --em_iterations EM_ITER
                         Number of iterations to perform EM algorithm
-                        on multimapped read depth. Only applies if
+                        on multimapped read counts. Only applies if
                         --remove_multimapped flag is not passed (is
                         disabled) (type: Int64, default: 1)
+                        NOTE: Can be slow as the number of iterations
+                        is increased
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```

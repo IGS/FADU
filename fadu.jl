@@ -31,64 +31,6 @@ const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
 ### Functions to clean up, then move to their proper "include" script
 
-function adjust_mm_counts_by_em(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, alignment_intervals::IntervalCollection{Bool}, features::Array{GFF3.Record,1}, args::Dict)
-    """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
-    new_mm_overlaps = Dict{String, FeatureOverlap}()
-    for feature_name in keys(feat_overlaps)
-        new_mm_overlaps[feature_name] = initialize_overlap_info(feat_overlaps[feature_name].coords_set)
-        new_mm_overlaps[feature_name].num_alignments = mm_overlaps[feature_name].num_alignments
-    end
-    for aln in alignment_intervals
-        # TODO: One potential (but time-consuming) improvement would be to get depth counts by strand.
-        aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln, isstranded(args["stranded"]))
-
-        total_counts = sum(feat_overlaps[feat].feat_counts for feat in keys(feat_overlaps))
-        total_counts += sum(mm_overlaps[feat].feat_counts for feat in keys(mm_overlaps))
-        
-        # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
-        for feature in aln_feat_overlaps
-            feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-            aln_feat_counts = feat_overlaps[feature_name].feat_counts + mm_overlaps[feature_name].feat_counts
-            rel_abundance = @fastmath aln_feat_counts / total_counts
-            new_mm_overlaps[feature_name].feat_counts += rel_abundance * mm_overlaps[feature_name].feat_counts
-        end
-    end
-    return new_mm_overlaps
-end
-
-function process_aln_interval_for_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, features::Array{GFF3.Record,1}, aln_interval::Interval{Bool}, args::Dict)
-    """Process a single alignment interval for all valid overlaps with features."""
-    aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"]))
-    for feature in aln_feat_overlaps
-        feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-        align_feat_ratio::Float32 = compute_align_feat_ratio(feat_overlaps[feature_name].coords_set, aln_interval)
-        if align_feat_ratio > 0.0
-            aln_type = gettype_alignment(metadata(aln_interval))
-            increment_feature_overlap_information!(feat_overlaps[feature_name], align_feat_ratio, aln_type)
-        end
-    end
-end
-
-function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_intervals::IntervalCollection{Bool}, reader::BAM.Reader, feature::GFF3.Record, args::Dict)
-    """Process all alignment intervals that overlap with feature intervals."""
-    max_frag_size = convert(UInt, args["max_fragment_size"])
-    gff_strand = getstrand(feature, isstranded(args["stranded"]))
-    
-    for record in eachoverlap(reader, feature, args["stranded"], max_frag_size)
-        # Getting the interval here feels redundant since it is calculated in the Base.iterate function
-        # But returning the record instead of the interval proved to be much faster
-        aln_interval = get_alignment_interval(record, max_frag_size, is_reverse_stranded(args["stranded"]))
-        aln_interval === nothing && continue
-        aln_type = gettype_alignment(metadata(aln_interval))
-        args["pp_only"] && isa(aln_type, ReadAlignment) && continue
-        # Save multimapped records as Interval objects for later, if needed
-        if ismultimapped(record)
-            args["rm_multimap"] || push!(multimapped_intervals, aln_interval)
-            continue
-        end
-        process_overlap!(feat_overlap, aln_interval, gff_strand, args["stranded"])
-    end
-end
 
 ########
 # Main #
@@ -191,7 +133,7 @@ function main()
     end
     @debug("Found BAM index file at $bai_file")
 
-    multimapped_intervals = IntervalCollection{Bool}()
+    multimapped_dict = Dict{String, IntervalCollection}()
 
     # Open a BAM file and iterate over records overlapping mRNA transcripts.
     @info("Opening BAM alignment file...")
@@ -199,35 +141,38 @@ function main()
     @info("Now finding overlaps between alignment and annotation records...")
     for feature in features
         feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-        process_overlaps!(feat_overlaps[feature_name], multimapped_intervals, reader, feature, args)
+        process_overlaps!(feat_overlaps[feature_name], multimapped_dict, reader, feature, args)
     end
     close(reader)
 
     # If multimapped reads are kept, use EM algorithm to re-add back into the feature counts
     if !args["rm_multimap"]
-        @info("Now finding overlaps between multimapped alignments and annotation records...")
-        @debug("Multimapped alignment intervals: ", length(multimapped_intervals))
+        @info("Finding overlaps between multimapped alignments and annotation records...")
+        @debug("Multimapped alignment intervals: ", length(multimapped_dict))
         mm_feat_overlaps = Dict{String, FeatureOverlap}()
         for feature in features
             feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
             mm_feat_overlaps[feature_name] = initialize_overlap_info(feat_overlaps[feature_name].coords_set)
         end
-        for mm_interval in multimapped_intervals
-            process_aln_interval_for_overlaps!(mm_feat_overlaps, features, mm_interval, args)
+        for record_tempname in keys(multimapped_dict)
+            for mm_interval in multimapped_dict[record_tempname]
+                process_aln_interval_for_overlaps!(mm_feat_overlaps, features, mm_interval, args)
+            end
         end
-
         # After feature counts for multimapped reads have been computed, 
         # use the feature counts from the uniquely mapped reads to adjust multimapped counts
-        @info("Now re-adding multimapped reads via Expectation-Maximization algorithm...")
+        @info("Adjusting counts of multimapped alignments via Expectation-Maximization algorithm...")
         while args["em_iter"] > 0
+            @debug("\tEM iterations left: ", args["em_iter"])
             args["em_iter"] -= 1
-            mm_feat_overlaps = adjust_mm_counts_by_em(mm_feat_overlaps, feat_overlaps, multimapped_intervals, features, args)        
+            mm_feat_overlaps = adjust_mm_counts_by_em(mm_feat_overlaps, feat_overlaps, multimapped_dict, features, args)        
         end
+        @info("Merging counts of multimapped alignment in with the singly-mapped alignments...")
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps)
     end
 
     # Calculate sum of all counts for each feature
-    total_counts = calc_total_counts(feat_overlaps)
+    totalcounts = calc_totalcounts(feat_overlaps)
 
     @info("Writing counts output to file...")
     out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
@@ -241,7 +186,7 @@ function main()
         if isnan(feat_counts)
             feat_counts::Float32 = 0
         end
-        tpm = calc_tpm(uniq_len, total_counts, feat_counts)
+        tpm = calc_tpm(uniq_len, totalcounts, feat_counts)
         if isnan(tpm)
             tpm::Float32 = 0
         end

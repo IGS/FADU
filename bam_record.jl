@@ -18,7 +18,7 @@ end
 FragmentAlignment() = FragmentAlignment(1.0)
 ReadAlignment() = ReadAlignment(0.5)
 
-is_reverse_stranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
+is_reversestranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
 
 #isduplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
 #ismatereverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_MREVERSE == 0x0020
@@ -44,27 +44,27 @@ flag145(record::BAM.Record) = isread2(record) && isreverse(record)
 flag81(record::BAM.Record) = isread1(record) && isreverse(record)
 flag129(record::BAM.Record) = isread2(record) && !isreverse(record)
 
-function assign_read_to_strand(record::BAM.Record, reverse_strand::Bool=false)
+function assign_read_to_strand(record::BAM.Record, reversestrand::Bool=false)
     """Use the bitwise flags to assign the paired read to the correct strand."""
 
-    pos_flags = Set{Bool}([flag145(record), flag65(record)])
-    neg_flags = Set{Bool}([flag81(record), flag129(record)])
-    if reverse_strand
-        pos_flags = Set{Bool}([flag81(record), flag129(record)])
-        neg_flags = Set{Bool}([flag145(record), flag65(record)])
+    positiveflags = Set{Bool}([flag145(record), flag65(record)])
+    negativeflags = Set{Bool}([flag81(record), flag129(record)])
+    if reversestrand
+        positiveflags = Set{Bool}([flag81(record), flag129(record)])
+        negativeflags = Set{Bool}([flag145(record), flag65(record)])
     end
 
     # Does record flag belong in the pos or neg set?
-    any(pos_flags) && return '+'
-    any(neg_flags) && return '-'
+    any(positiveflags) && return '+'
+    any(negativeflags) && return '-'
 
     # Read must be a singleton
     if isreverse(record)
         # If reverse-stranded, strand is flipped
-        reverse_strand && return '+'
+        reversestrand && return '+'
         return '-'
     end
-    reverse_strand && return '-'
+    reversestrand && return '-'
     return '+'
 end
 
@@ -75,17 +75,37 @@ function canbefragment(record::BAM.Record, max_frag_size::UInt)
     # False = Can validate as a read
     if validate_fragment(record) && is_templength_smaller_than_max_fragment_size(BAM.templength(record), max_frag_size)
         return true
-        #return FragmentAlignment()
     elseif validate_read(record, max_frag_size)
         return false
-        #return ReadAlignment()
     end
     # For fragments, only one read is looked at.  The other one is essentially skipped to avoid overcounting.
     # Reads that also fail validation go here.
     return nothing
 end
 
+function get_alignment_coords_set(alignment::Interval)
+    """Get the range of coordinates for this alignment, returned as a Set."""
+    return Set{UInt}(leftposition(alignment) : rightposition(alignment))
+end
+
+function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, reversestrand::Bool=false)
+    """Return an alignment-based Interval for the current record.""" 
+    isfragment = canbefragment(record, max_frag_size)
+    isfragment === nothing && return nothing  # Skip alignments not being considered
+    return Interval(BAM.refname(record),
+                    get_alignment_start_end(record, isfragment),
+                    assign_read_to_strand(record, reversestrand), 
+                    isfragment
+    )
+end
+
+function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, strand_type::String)
+    """Return an alignment-based Interval for the current record."""
+    return get_alignment_interval(record, max_frag_size, is_reversestranded(strand_type))
+end
+
 function get_alignment_start_end(record::BAM.Record, isfragment::Bool)
+    """ Get the start and end coordinates of the alignment record."""
     return get_alignment_start_end(record, gettype_alignment(isfragment))
 end
 
@@ -97,28 +117,6 @@ end
 function get_alignment_start_end(record::BAM.Record, record_type::ReadAlignment)
     """Get the start and end coordinates of the read."""
     return BAM.position(record):BAM.rightposition(record)
-end
-
-function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, reverse_strand::Bool=false)
-    """Return an alignment-based Interval for the current record.""" 
-    #record_type = determine_record_type(record, max_frag_size)
-    #record_type === nothing && return nothing  # Skip alignments not being considered
-    isfragment = canbefragment(record, max_frag_size)
-    isfragment === nothing && return nothing  # Skip alignments not being considered
-    return Interval(BAM.refname(record),
-                    get_alignment_start_end(record, isfragment),
-                    assign_read_to_strand(record, reverse_strand), 
-                    isfragment
-    )
-end
-
-function get_alignment_coords_set(alignment::Interval)
-    """Get the range of coordinates for this alignment, returned as a Set."""
-    return Set{UInt}(leftposition(alignment) : rightposition(alignment))
-end
-
-function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, strand_type::String)
-    return get_alignment_interval(record, max_frag_size, is_reverse_stranded(strand_type))
 end
 
 function getstrand(interval::Interval, stranded::Bool)
