@@ -157,7 +157,7 @@ function main()
         while args["em_iter"] > 0
             @debug("\tEM iterations left: ", args["em_iter"])
             args["em_iter"] -= 1
-            @time mm_feat_overlaps = compute_mm_counts_by_em(feat_overlaps, mm_feat_overlaps, multimapped_dict, features, args)
+            mm_feat_overlaps = compute_mm_counts_by_em(feat_overlaps, mm_feat_overlaps, multimapped_dict, features, args)
         end
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps)
     end
