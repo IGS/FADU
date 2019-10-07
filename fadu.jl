@@ -4,7 +4,7 @@
 FADU.jl - Feature Aggregate Depth Utility.
 
 Description - Generate fractional counts of alignments that map to non-overlapping portions of genes
-Requires (version number listed is earliest supported version): 
+Requires (version number listed is earliest supported version):
     Julia - v0.7
     GenomicFeatures.jl - v1.0.0
     BioAlignments.jl - v1.0.0
@@ -145,29 +145,20 @@ function main()
     end
     close(reader)
 
-    # If multimapped reads are kept, use EM algorithm to re-add back into the feature counts
+    # If multimapped reads are kept, use EM algorithm to count and re-add back into the feature counts
     if !args["rm_multimap"]
-        @info("Finding overlaps between multimapped alignments and annotation records...")
-        @debug("Multimapped alignment intervals: ", length(multimapped_dict))
         mm_feat_overlaps = Dict{String, FeatureOverlap}()
         for feature in features
             feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
             mm_feat_overlaps[feature_name] = initialize_overlap_info(feat_overlaps[feature_name].coords_set)
         end
-        for record_tempname in keys(multimapped_dict)
-            for mm_interval in multimapped_dict[record_tempname]
-                process_aln_interval_for_overlaps!(mm_feat_overlaps, features, mm_interval, args)
-            end
-        end
-        # After feature counts for multimapped reads have been computed, 
-        # use the feature counts from the uniquely mapped reads to adjust multimapped counts
-        @info("Adjusting counts of multimapped alignments via Expectation-Maximization algorithm...")
+        @debug("Multimapped alignment templates: ", length(multimapped_dict))
+        @info("Counting and adjusting multimapped alignment feature counts via Expectation-Maximization algorithm...")
         while args["em_iter"] > 0
             @debug("\tEM iterations left: ", args["em_iter"])
             args["em_iter"] -= 1
-            mm_feat_overlaps = adjust_mm_counts_by_em(mm_feat_overlaps, feat_overlaps, multimapped_dict, features, args)        
+            @time mm_feat_overlaps = compute_mm_counts_by_em(feat_overlaps, mm_feat_overlaps, multimapped_dict, features, args)
         end
-        @info("Merging counts of multimapped alignment in with the singly-mapped alignments...")
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps)
     end
 
@@ -179,18 +170,18 @@ function main()
     out_f = open(out_file, "w")
     write(out_f, "featureID\tuniq_len\tnum_alignments\tcounts\ttpm\n")
     # Write output
-    for feat_id in sort(collect(keys(feat_overlaps)))
-        uniq_len::UInt = length(feat_overlaps[feat_id].coords_set)
-        num_alignments = feat_overlaps[feat_id].num_alignments
-        feat_counts = feat_overlaps[feat_id].feat_counts
+    for feature_name in sort(collect(keys(feat_overlaps)))
+        uniq_len::UInt = length(feat_overlaps[feature_name].coords_set)
+        num_alignments = feat_overlaps[feature_name].num_alignments
+        feat_counts = feat_overlaps[feature_name].feat_counts
         if isnan(feat_counts)
-            feat_counts::Float32 = 0
+            feat_counts = zero(Float32)
         end
         tpm = calc_tpm(uniq_len, totalcounts, feat_counts)
         if isnan(tpm)
-            tpm::Float32 = 0
+            tpm = zero(Float32)
         end
-        s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.2f\n", feat_id, uniq_len, num_alignments, feat_counts, tpm)
+        s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.2f\n", feature_name, uniq_len, num_alignments, feat_counts, tpm)
         write(out_f, s)
     end
     close(out_f)
