@@ -12,21 +12,21 @@ mutable struct FeatureOverlap
     coords_set::Set{UInt}
 end
 
-function calc_relative_abundance(feature_totalcounts::Float32, template_totalcounts::Float32)
+function calc_relative_abundance(feature_counts::Float32, template_totalcounts::Float32)
     # In cases where every feature for this template had no overlaps with any singly-mapped alignments, do not consider them.
     if iszero(template_totalcounts)
         return 0
     end
     # Total relative abundances for all features overlapping this template should = 1.0
-    return @fastmath feature_totalcounts / template_totalcounts
+    return @fastmath feature_counts / template_totalcounts
 end
 
-function calc_template_totalcounts(aln_feat_overlaps::Array{GFF3.Record,1}, uniq_and_mm_overlaps::Dict{String, FeatureOverlap}, attribute_type::String)
+function calc_subset_totalcounts(feat_overlaps::Dict{String, FeatureOverlap}, subset_feat_overlaps::Array{GFF3.Record,1}, attribute_type::String)
     """For all features overlapping the alignment template, return the sum of all those feature counts."""
     totalcounts = zero(Float32)
-    for feature in aln_feat_overlaps
+    for feature in subset_feat_overlaps
         feature_name = get_feature_name_from_attrs(feature, attribute_type)
-        totalcounts += uniq_and_mm_overlaps[feature_name].feat_counts
+        totalcounts += feat_overlaps[feature_name].feat_counts
     end
     return totalcounts
 end
@@ -55,7 +55,7 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
     #TODO: Clean up function
     adjusted_mm_overlaps = Dict{String, FeatureOverlap}()
-    uniq_and_mm_overlaps = copy(uniq_feat_overlaps)
+    uniq_and_mm_overlaps = deepcopy(uniq_feat_overlaps)
     for feature_name in keys(uniq_feat_overlaps)
         adjusted_mm_overlaps[feature_name] = initialize_overlap_info(uniq_feat_overlaps[feature_name].coords_set)
         # Combine singly-mapped and multimapped feature counts
@@ -65,19 +65,19 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
 
     for record_tempname in keys(alignment_dict)
         # Get all features that align with the given multimapped template name on the same strand
-        template_feat_overlaps = Array{GenomicFeatures.GFF3.Record,1}()
+        template_feature_overlaps = Array{GenomicFeatures.GFF3.Record,1}()
         for aln_interval in alignment_dict[record_tempname]
-            append!(template_feat_overlaps, filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"])))
+            append!(template_feature_overlaps, filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"])))
         end
 
-        template_totalcounts = calc_template_totalcounts(template_feat_overlaps, uniq_and_mm_overlaps, args["attribute_type"])
+        template_totalcounts = calc_subset_totalcounts(uniq_and_mm_overlaps, template_feature_overlaps, args["attribute_type"])
 
         # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
         for aln_interval in alignment_dict[record_tempname]
             aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"]))
-            for feature in aln_feat_overlaps
-                feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-                gff_strand = getstrand(feature, isstranded(args["stranded"]))
+            for feature_overlap in aln_feat_overlaps
+                feature_name = get_feature_name_from_attrs(feature_overlap, args["attribute_type"])
+                gff_strand = getstrand(feature_overlap, isstranded(args["stranded"]))
                 align_feat_ratio = compute_alignment_feature_ratio(uniq_feat_overlaps[feature_name].coords_set, aln_interval)
                 # Safeguard against cases where overlap does not fall in features's unique coordinates
                 if align_feat_ratio > 0.0
@@ -124,9 +124,9 @@ end
 
 function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_overlaps::Dict{String, FeatureOverlap})
     """Merge EM-computed counts for multimapped reads back into the general feature overlap counts."""
-    for feature in keys(feat_overlaps)
-        feat_overlaps[feature].num_alignments += mm_feat_overlaps[feature].num_alignments
-        feat_overlaps[feature].feat_counts += mm_feat_overlaps[feature].feat_counts
+    for feature_name in keys(feat_overlaps)
+        feat_overlaps[feature_name].num_alignments += mm_feat_overlaps[feature_name].num_alignments
+        feat_overlaps[feature_name].feat_counts += mm_feat_overlaps[feature_name].feat_counts
     end
 end
 

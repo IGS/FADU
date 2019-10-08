@@ -27,6 +27,9 @@ isread1(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_READ1 == 0x0040
 isread2(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_READ2 == 0x0080
 isreverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_REVERSE == 0x0010
 
+# TODO: Checking specific case where dovetailed reads where the two mates completely overlap each other
+#iscompletedovetail(record::BAM.Record) = BAM.position(record) == BAM.nextposition(record)
+
 # Forward-stranded assay
 ## Positive Strand:
 ### R1 - forward (65), R2 - revcom (145)
@@ -154,8 +157,8 @@ function is_templength_smaller_than_max_fragment_size(templength::Int64, max_fra
 end
 
 function validate_fragment(record::BAM.Record)
-    """Ensure alignment record can be used to calculate fragment depth. (Only need negative template of fragment)"""
-    return isproperpair(record) && is_templength_negative(BAM.templength(record))
+    """Ensure alignment record can be used to calculate fragment depth. (Only need negative template of fragment).  In the case of completely dovetailling reads, just take the first read."""
+    return isproperpair(record) && is_templength_negative(BAM.templength(record))# && (!iscompletedovetail(record) || isread1(record))
 end
 
 function validate_read(record::BAM.Record, max_frag_size::UInt)
