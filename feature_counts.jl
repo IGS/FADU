@@ -12,11 +12,9 @@ mutable struct FeatureOverlap
     coords_set::Set{UInt}
 end
 
-function calc_relative_abundance(feature_counts::Float32, template_totalcounts::Float32)
-    # In cases where every feature for this template had no overlaps with any singly-mapped alignments, do not consider them.
-    if iszero(template_totalcounts)
-        return 0
-    end
+function calc_relative_abundance(feature_counts::Float32, template_totalcounts::Float32)::Float32
+    """Calculate relative abundance fraction for the given feature with respect to all features overlapping the template."""
+    @assert template_totalcounts > 0 "The template_totalcounts value should be greater than 0"
     # Total relative abundances for all features overlapping this template should = 1.0
     return @fastmath feature_counts / template_totalcounts
 end
@@ -24,6 +22,8 @@ end
 function calc_subset_totalcounts(feat_overlaps::Dict{String, FeatureOverlap}, subset_feat_overlaps::Array{GFF3.Record,1}, attribute_type::String)
     """For all features overlapping the alignment template, return the sum of all those feature counts."""
     totalcounts = zero(Float32)
+    # Worth noting if a feature overlaps multiple times, it will be reflected in totalcounts
+    # This will be appropriately handled when all alignments are iterated through to increment the FeatureOverlap feat_counts for the feature.
     for feature in subset_feat_overlaps
         feature_name = get_feature_name_from_attrs(feature, attribute_type)
         totalcounts += feat_overlaps[feature_name].feat_counts
@@ -71,21 +71,18 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
         end
 
         template_totalcounts = calc_subset_totalcounts(uniq_and_mm_overlaps, template_feature_overlaps, args["attribute_type"])
+        # In cases where every feature for this template had no overlaps with any singly-mapped alignments, do not consider them.
+        template_totalcounts > 0 || continue
 
         # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
         for aln_interval in alignment_dict[record_tempname]
             aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"]))
             for feature_overlap in aln_feat_overlaps
                 feature_name = get_feature_name_from_attrs(feature_overlap, args["attribute_type"])
-                gff_strand = getstrand(feature_overlap, isstranded(args["stranded"]))
-                align_feat_ratio = compute_alignment_feature_ratio(uniq_feat_overlaps[feature_name].coords_set, aln_interval)
-                # Safeguard against cases where overlap does not fall in features's unique coordinates
-                if align_feat_ratio > 0.0
-                    aln_type = gettype_alignment(metadata(aln_interval))
-                    relative_abundance = calc_relative_abundance(uniq_and_mm_overlaps[feature_name].feat_counts, template_totalcounts)
-                    adjusted_align_feat_ratio = relative_abundance * align_feat_ratio
-                    increment_feature_overlap_information!(adjusted_mm_overlaps[feature_name], adjusted_align_feat_ratio, aln_type)
-                end
+                featurestrand = getstrand(feature_overlap, isstranded(args["stranded"]))
+                relative_abundance = calc_relative_abundance(uniq_and_mm_overlaps[feature_name].feat_counts, template_totalcounts)
+                adjusted_overlap = adjusted_mm_overlaps[feature_name]
+                process_overlap!(adjusted_overlap, aln_interval, relative_abundance)
             end
         end
     end
@@ -133,11 +130,13 @@ end
 function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_dict::Dict{String, IntervalCollection}, reader::BAM.Reader, feature::GFF3.Record, args::Dict)
     """Process all alignment intervals that overlap with feature intervals."""
     max_frag_size = convert(UInt, args["max_fragment_size"])
-    gff_strand = getstrand(feature, isstranded(args["stranded"]))
+    featurestrand = getstrand(feature, isstranded(args["stranded"]))
     for record in eachoverlap(reader, feature, args["stranded"], max_frag_size)
         # Getting the interval here feels redundant since it is calculated in the Base.iterate function
         # But returning the record instead of the interval seemed to be much faster through initial testing
         aln_interval = get_alignment_interval(record, max_frag_size, is_reversestranded(args["stranded"]))
+        alignmentstrand = getstrand(aln_interval, isstranded(args["stranded"]))
+        alignmentstrand == featurestrand || continue
         @assert aln_interval !== nothing "All iterated records should be a validated read or fragment"
         aln_type = gettype_alignment(metadata(aln_interval))
         args["pp_only"] && isa(aln_type, ReadAlignment) && continue
@@ -150,13 +149,16 @@ function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_dict::Dict{
             end
             continue
         end
-        aln_strand = getstrand(aln_interval, isstranded(args["stranded"]))
-        aln_strand == gff_strand || continue
-        align_feat_ratio = compute_alignment_feature_ratio(feat_overlap.coords_set, aln_interval)
-        # Safeguard against cases where overlap does not fall in features's unique coordinates
-        if align_feat_ratio > 0.0
-            aln_type = gettype_alignment(metadata(aln_interval))
-            increment_feature_overlap_information!(feat_overlap, align_feat_ratio, aln_type)
-        end
+        process_overlap!(feat_overlap, aln_interval)
+    end
+end
+
+function process_overlap!(feat_overlap::FeatureOverlap, aln_interval::Interval{Bool}, relative_abundance::Float32=1.0f0)
+    """Process current single feature-alignment overlap."""
+    align_feat_ratio::Float32 = compute_alignment_feature_ratio(feat_overlap.coords_set, aln_interval)
+    if align_feat_ratio > 0.0
+        aln_type = gettype_alignment(metadata(aln_interval))
+        adjusted_align_feat_ratio = align_feat_ratio * relative_abundance
+        increment_feature_overlap_information!(feat_overlap, adjusted_align_feat_ratio, aln_type)
     end
 end
