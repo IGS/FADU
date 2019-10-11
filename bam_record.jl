@@ -109,7 +109,7 @@ end
 
 function get_alignment_start_end(record::BAM.Record, isfragment::Bool)
     """ Get the start and end coordinates of the alignment record."""
-    return get_alignment_start_end(record, gettype_alignment(isfragment))
+    return get_alignment_start_end(record, getalignmenttype(isfragment))
 end
 
 function get_alignment_start_end(record::BAM.Record, record_type::FragmentAlignment)
@@ -131,7 +131,7 @@ function getstrand(interval::Interval, stranded::Bool)
     return strand
 end
 
-function gettype_alignment(isfragment::Bool)
+function getalignmenttype(isfragment::Bool)
     return (isfragment ? FragmentAlignment() : ReadAlignment())
 end
 

@@ -21,6 +21,7 @@ using BioAlignments: BAM, SAM
 using GenomicFeatures
 using GaussianMixtures
 using Printf
+using Logging
 
 include("alignment_overlaps.jl")
 include("bam_record.jl")
