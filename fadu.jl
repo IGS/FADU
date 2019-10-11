@@ -156,10 +156,8 @@ function main()
         end
         @debug("Multimapped alignment templates: ", length(multimapped_dict))
         @info("Counting and adjusting multimapped alignment feature counts via Expectation-Maximization algorithm...")
-        while args["em_iter"] > 0
-            @debug("\tEM iterations left: ", args["em_iter"])
-            args["em_iter"] -= 1
-            mm_feat_overlaps = compute_mm_counts_by_em(feat_overlaps, mm_feat_overlaps, multimapped_dict, features, args)
+        for record_tempname in keys(multimapped_dict)
+            process_template_for_em!(mm_feat_overlaps, feat_overlaps, multimapped_dict[record_tempname], features, args)
         end
 
         #for feature in features

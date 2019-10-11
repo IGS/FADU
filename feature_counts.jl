@@ -165,7 +165,8 @@ end
 
 ############ GMM work
 
-function process_template_for_em(feat_overlaps::Dict{String, FeatureOverlap}, mm_overlaps::Dict{String, FeatureOverlap}, templateintervals::IntervalCollection{Bool}, features::Array{GFF3.Record,1}, args::Dict)
+function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, templateintervals::IntervalCollection{Bool}, features::Array{GFF3.Record,1}, args::Dict)
+
     # Collect all alignments overlapping features into a single array
     template_feature_overlaps = map(x -> filter_alignment_feature_overlaps(features, x, isstranded(args["stranded"])), templateintervals)
     @show template_feature_overlaps
@@ -183,11 +184,12 @@ function process_template_for_em(feat_overlaps::Dict{String, FeatureOverlap}, mm
     # Each feature's mean alignment_feature overlap ratio before taking alignment type into consideration
     means = map(x -> feat_overlaps[x].feat_counts / feat_overlaps[x].num_alignments, featurenames_keys)
 
+
     # Construct GMM
     gmm = GMM(weights, means, kind=:full)    # Apparently there are type errors when using diag covariance
 
     # Train using EM iteration
-    em!(gmm, align_feat_ratios, args['em_iter']) # Start EM algorithm with 10 iterations
+    em!(gmm, align_feat_ratios, args["em_iter"]) # Start EM algorithm with 10 iterations
 
     # Get posterior probabilties for each alignment feature ratio
     posterior_probabilities = gmmposterior(gmm, align_feat_ratios)[1]
