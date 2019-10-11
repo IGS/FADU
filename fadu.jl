@@ -8,6 +8,7 @@ Requires (version number listed is earliest supported version):
     Julia - v0.7
     GenomicFeatures.jl - v1.0.0
     BioAlignments.jl - v1.0.0
+    GaussianMixtures.jl - v0.3.0
 
 By: Shaun Adkins (sadkins@som.umaryland.edu)
     Matthew Chung (mattchung@umaryland.edu)
@@ -18,6 +19,7 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 using ArgParse
 using BioAlignments: BAM, SAM
 using GenomicFeatures
+using GaussianMixtures
 using Printf
 
 include("alignment_overlaps.jl")
@@ -140,25 +142,31 @@ function main()
     reader = open(BAM.Reader, args["bam_file"], index = bai_file)
     @info("Now finding overlaps between alignment and annotation records...")
     for feature in features
-        feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-        process_overlaps!(feat_overlaps[feature_name], multimapped_dict, reader, feature, args)
+        featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+        process_overlaps!(feat_overlaps[featurename], multimapped_dict, reader, feature, args)
     end
     close(reader)
 
     # If multimapped reads are kept, use EM algorithm to count and re-add back into the feature counts
     if !args["rm_multimap"]
-        mm_feat_overlaps = Dict{String, FeatureOverlap}()
-        for feature in features
-            feature_name = get_feature_name_from_attrs(feature, args["attribute_type"])
-            mm_feat_overlaps[feature_name] = initialize_overlap_info(feat_overlaps[feature_name].coords_set)
-        end
         @debug("Multimapped alignment templates: ", length(multimapped_dict))
         @info("Counting and adjusting multimapped alignment feature counts via Expectation-Maximization algorithm...")
-        while args["em_iter"] > 0
-            @debug("\tEM iterations left: ", args["em_iter"])
-            args["em_iter"] -= 1
-            @time mm_feat_overlaps = compute_mm_counts_by_em(feat_overlaps, mm_feat_overlaps, multimapped_dict, features, args)
+
+        mm_feat_overlaps = Dict{String, FeatureOverlap}()
+        for record_tempname in keys(multimapped_dict)
+            process_template_for_em(feat_overlaps, mm_feat_overlaps, multimapped_dict[record_tempname], features, args)
         end
+
+        #for feature in features
+        #    featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+        #    mm_feat_overlaps[featurename] = initialize_overlap_info(feat_overlaps[featurename].coords_set)
+        #end
+
+        #while args["em_iter"] > 0
+        #    @debug("\tEM iterations left: ", args["em_iter"])
+        #    args["em_iter"] -= 1
+        #    mm_feat_overlaps = compute_mm_counts_by_em(feat_overlaps, mm_feat_overlaps, multimapped_dict, features, args)
+        #end
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps)
     end
 
@@ -170,10 +178,10 @@ function main()
     out_f = open(out_file, "w")
     write(out_f, "featureID\tuniq_len\tnum_alignments\tcounts\ttpm\n")
     # Write output
-    for feature_name in sort(collect(keys(feat_overlaps)))
-        uniq_len::UInt = length(feat_overlaps[feature_name].coords_set)
-        num_alignments = feat_overlaps[feature_name].num_alignments
-        feat_counts = feat_overlaps[feature_name].feat_counts
+    for featurename in sort(collect(keys(feat_overlaps)))
+        uniq_len::UInt = length(feat_overlaps[featurename].coords_set)
+        num_alignments = feat_overlaps[featurename].num_alignments
+        feat_counts = feat_overlaps[featurename].feat_counts
         if isnan(feat_counts)
             feat_counts = zero(Float32)
         end
@@ -181,7 +189,7 @@ function main()
         if isnan(tpm)
             tpm = zero(Float32)
         end
-        s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.2f\n", feature_name, uniq_len, num_alignments, feat_counts, tpm)
+        s = @sprintf("%s\t%i\t%.1f\t%.2f\t%.2f\n", featurename, uniq_len, num_alignments, feat_counts, tpm)
         write(out_f, s)
     end
     close(out_f)

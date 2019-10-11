@@ -25,15 +25,15 @@ function calc_subset_totalcounts(feat_overlaps::Dict{String, FeatureOverlap}, su
     # Worth noting if a feature overlaps multiple times, it will be reflected in totalcounts
     # This will be appropriately handled when all alignments are iterated through to increment the FeatureOverlap feat_counts for the feature.
     for feature in subset_feat_overlaps
-        feature_name = get_feature_name_from_attrs(feature, attribute_type)
-        totalcounts += feat_overlaps[feature_name].feat_counts
+        featurename = get_featurename_from_attrs(feature, attribute_type)
+        totalcounts += feat_overlaps[featurename].feat_counts
     end
     return totalcounts
 end
 
 function calc_totalcounts(feat_overlaps::Dict{String, FeatureOverlap})
     """Calculate the sum of all the feature counts."""
-    return sum(feat_overlaps[feature_name].feat_counts for feature_name in keys(feat_overlaps))
+    return sum(feat_overlaps[featurename].feat_counts for featurename in keys(feat_overlaps))
 end
 
 function calc_tpm(len::UInt, totalcounts::Float32, feat_counts::Float32)
@@ -56,11 +56,11 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
     #TODO: Clean up function
     adjusted_mm_overlaps = Dict{String, FeatureOverlap}()
     uniq_and_mm_overlaps = deepcopy(uniq_feat_overlaps)
-    for feature_name in keys(uniq_feat_overlaps)
-        adjusted_mm_overlaps[feature_name] = initialize_overlap_info(uniq_feat_overlaps[feature_name].coords_set)
+    for featurename in keys(uniq_feat_overlaps)
+        adjusted_mm_overlaps[featurename] = initialize_overlap_info(uniq_feat_overlaps[featurename].coords_set)
         # Combine singly-mapped and multimapped feature counts
         # Reason is to eventually update relative abundances per feature per alignment overlap
-        uniq_and_mm_overlaps[feature_name].feat_counts += mm_feat_overlaps[feature_name].feat_counts
+        uniq_and_mm_overlaps[featurename].feat_counts += mm_feat_overlaps[featurename].feat_counts
     end
 
     for record_tempname in keys(alignment_dict)
@@ -78,10 +78,10 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
         for aln_interval in alignment_dict[record_tempname]
             aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"]))
             for feature_overlap in aln_feat_overlaps
-                feature_name = get_feature_name_from_attrs(feature_overlap, args["attribute_type"])
+                featurename = get_featurename_from_attrs(feature_overlap, args["attribute_type"])
                 featurestrand = getstrand(feature_overlap, isstranded(args["stranded"]))
-                relative_abundance = calc_relative_abundance(uniq_and_mm_overlaps[feature_name].feat_counts, template_totalcounts)
-                adjusted_overlap = adjusted_mm_overlaps[feature_name]
+                relative_abundance = calc_relative_abundance(uniq_and_mm_overlaps[featurename].feat_counts, template_totalcounts)
+                adjusted_overlap = adjusted_mm_overlaps[featurename]
                 process_overlap!(adjusted_overlap, aln_interval, relative_abundance)
             end
         end
@@ -92,9 +92,9 @@ end
 function create_feat_overlaps_dict(features::Array{GenomicFeatures.GFF3.Record,1}, uniq_coords::Dict{String,Dict}, attr_type::String, stranded_type::String)
     feat_overlaps = Dict{String, FeatureOverlap}()
     for feature in features
-        feature_name = get_feature_name_from_attrs(feature, attr_type)
+        featurename = get_featurename_from_attrs(feature, attr_type)
         uniq_feat_coords = get_feature_nonoverlapping_coords(feature, uniq_coords, isstranded(stranded_type))
-        feat_overlaps[feature_name] = initialize_overlap_info(uniq_feat_coords)
+        feat_overlaps[featurename] = initialize_overlap_info(uniq_feat_coords)
     end
     return feat_overlaps
 end
@@ -121,9 +121,9 @@ end
 
 function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_overlaps::Dict{String, FeatureOverlap})
     """Merge EM-computed counts for multimapped reads back into the general feature overlap counts."""
-    for feature_name in keys(feat_overlaps)
-        feat_overlaps[feature_name].num_alignments += mm_feat_overlaps[feature_name].num_alignments
-        feat_overlaps[feature_name].feat_counts += mm_feat_overlaps[feature_name].feat_counts
+    for featurename in keys(feat_overlaps)
+        feat_overlaps[featurename].num_alignments += mm_feat_overlaps[featurename].num_alignments
+        feat_overlaps[featurename].feat_counts += mm_feat_overlaps[featurename].feat_counts
     end
 end
 
@@ -160,5 +160,48 @@ function process_overlap!(feat_overlap::FeatureOverlap, aln_interval::Interval{B
         aln_type = gettype_alignment(metadata(aln_interval))
         adjusted_align_feat_ratio = align_feat_ratio * relative_abundance
         increment_feature_overlap_information!(feat_overlap, adjusted_align_feat_ratio, aln_type)
+    end
+end
+
+############ GMM work
+
+function process_template_for_em(feat_overlaps::Dict{String, FeatureOverlap}, mm_overlaps::Dict{String, FeatureOverlap}, templateintervals::IntervalCollection{Bool}, features::Array{GFF3.Record,1}, args::Dict)
+    # Collect all alignments overlapping features into a single array
+    template_feature_overlaps = map(x -> filter_alignment_feature_overlaps(features, x, isstranded(args["stranded"])), templateintervals)
+    @show template_feature_overlaps
+    @show typeof(template_feature_overlaps)
+
+    # Get various info from each template_feature overlap
+    featurenames = map(x -> get_featurename_from_attrs(x, args["attribute_type"]), template_feature_overlaps)
+    align_feat_ratios = map(x -> compute_alignment_feature_ratio(feat_overlaps[x].coords_set), featurenames)
+    alignment_types = map(x -> gettype_alignment(metadata(x)), template_feature_overlaps)
+
+    # Create weights (occurrences) and means (feat_counts) for each feature
+    featurenames_keys = Set(featurenames)
+    # Featurecounts are in a weighted proportion
+    weights = map(x -> feat_overlaps[x].feat_counts, featurenames_keys)
+    # Each feature's mean alignment_feature overlap ratio before taking alignment type into consideration
+    means = map(x -> feat_overlaps[x].feat_counts / feat_overlaps[x].num_alignments, featurenames_keys)
+
+    # Construct GMM
+    gmm = GMM(weights, means, kind=:full)    # Apparently there are type errors when using diag covariance
+
+    # Train using EM iteration
+    em!(gmm, align_feat_ratios, args['em_iter']) # Start EM algorithm with 10 iterations
+
+    # Get posterior probabilties for each alignment feature ratio
+    posterior_probabilities = gmmposterior(gmm, align_feat_ratios)[1]
+
+    # 1st dimension is per template_feature_overlap
+    for i in eachindex(posterior_probabilities)
+        overlap = template_feature_overlaps[i]
+        featurename = featurename[i]
+        align_feat_ratio = align_feat_ratio[i]
+        aln_type = alignment_types[i]
+        # 2nd dimension is per feature. Sum of each feature's probabilty will equal 1.0
+        for j in eachindex(posterior_probabilities[i])
+            adjusted_align_feat_ratio = align_feat_ratio * posterior_probabilities[i][j]
+            increment_feature_overlap_information!(mm_overlaps[featurename], adjusted_align_feat_ratio, aln_type)
+        end
     end
 end

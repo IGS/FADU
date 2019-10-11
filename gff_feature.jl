@@ -8,13 +8,12 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 
 isstranded(strand_type::String) = return (strand_type == "no" ? false : true)
 
-
 function create_uniq_coords_dict(features::Array{GenomicFeatures.GFF3.Record,1}, stranded_type::String)
     uniq_coords = Dict{String, Dict}()
     seqids = Set(map(x -> GFF3.seqid(x), features))
     for seqid in seqids
         uniq_coords[seqid] = get_nonoverlapping_coords_by_seqid(features, seqid)
-        # If alignment data is unstranded, then symdiff both strands to + strand 
+        # If alignment data is unstranded, then symdiff both strands to + strand
         if !isstranded(stranded_type)
             symdiff!(uniq_coords[seqid]['+'], pop!(uniq_coords[seqid], '-', Set()))
         end
@@ -27,7 +26,7 @@ function get_feature_coords_set(feature::GenomicFeatures.GFF3.Record)
     return Set{UInt}(leftposition(feature) : rightposition(feature))
 end
 
-function get_feature_name_from_attrs(feature::GFF3.Record, attr_type::String)
+function get_featurename_from_attrs(feature::GFF3.Record, attr_type::String)
     """Get attribute ID to use as the feature name."""
     gene_vector = GFF3.attributes(feature, attr_type)    # col 9
     validate_feature_attribute(gene_vector)
