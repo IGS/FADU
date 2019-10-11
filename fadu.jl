@@ -149,12 +149,17 @@ function main()
 
     # If multimapped reads are kept, use EM algorithm to count and re-add back into the feature counts
     if !args["rm_multimap"]
+        mm_feat_overlaps = Dict{String, FeatureOverlap}()
+        for feature in features
+            featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+            mm_feat_overlaps[featurename] = initialize_overlap_info(feat_overlaps[featurename].coords_set)
+        end
         @debug("Multimapped alignment templates: ", length(multimapped_dict))
         @info("Counting and adjusting multimapped alignment feature counts via Expectation-Maximization algorithm...")
-
-        mm_feat_overlaps = Dict{String, FeatureOverlap}()
-        for record_tempname in keys(multimapped_dict)
-            process_template_for_em(feat_overlaps, mm_feat_overlaps, multimapped_dict[record_tempname], features, args)
+        while args["em_iter"] > 0
+            @debug("\tEM iterations left: ", args["em_iter"])
+            args["em_iter"] -= 1
+            mm_feat_overlaps = compute_mm_counts_by_em(feat_overlaps, mm_feat_overlaps, multimapped_dict, features, args)
         end
 
         #for feature in features
