@@ -27,7 +27,7 @@ function get_feature_coords_set(feature::GenomicFeatures.GFF3.Record)
     return Set{UInt}(leftposition(feature) : rightposition(feature))
 end
 
-function get_feature_name_from_attrs(feature::GFF3.Record, attr_type::String)
+function get_featurename_from_attrs(feature::GFF3.Record, attr_type::String)
     """Get attribute ID to use as the feature name."""
     gene_vector = GFF3.attributes(feature, attr_type)    # col 9
     validate_feature_attribute(gene_vector)
