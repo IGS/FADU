@@ -76,10 +76,10 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
 
         # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
         for aln_interval in alignment_dict[record_tempname]
-            aln_feat_overlaps = filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"]))
-            for feature_overlap in aln_feat_overlaps
-                featurename = get_featurename_from_attrs(feature_overlap, args["attribute_type"])
-                featurestrand = getstrand(feature_overlap, isstranded(args["stranded"]))
+            alignment_features = filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"]))
+            for feature in alignment_features
+                featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+                featurestrand = getstrand(feature, isstranded(args["stranded"]))
                 relative_abundance = calc_relative_abundance(uniq_and_mm_overlaps[featurename].feat_counts, template_totalcounts)
                 adjusted_overlap = adjusted_mm_overlaps[featurename]
                 process_overlap!(adjusted_overlap, aln_interval, relative_abundance)
@@ -170,49 +170,63 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
     # Collect all alignments overlapping features into a single array
     template_features = Array{GenomicFeatures.GFF3.Record,1}()
     featurenames = Array{String,1}()
-    align_feat_ratios = Array{Float32,1}()
-    alignment_types = Array{AbstractAlignment}()
+    align_feat_ratios = Array{Float64,1}()
+    alignment_types = Array{AbstractAlignment,1}()
     for aln_interval in templateintervals
-        template_feature = filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"]))
-        if length(template_feature)
-            featurename = get_featurename_from_attrs(template_feature, args["attribute_type"])
-            append!(template_features, template_feature)
-            append!(featurenames, featurename)
-            append!(align_feat_ratios, compute_alignment_feature_ratio(feat_overlaps[featurename].coords_set, aln_interval))
-            append!(alignment_types, getalignmenttype(metadata(aln_interval)))
+        template_features = filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"]))
+        # Only deal with alignments that overlap with a feature
+        isempty(template_features) && continue
+        for feature in template_features   
+            featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+            push!(featurenames, featurename)
+            push!(align_feat_ratios, Float64(compute_alignment_feature_ratio(feat_overlaps[featurename].coords_set, aln_interval)))
+            push!(alignment_types, getalignmenttype(metadata(aln_interval)))
         end
     end
 
     # Create weights (occurrences) and means (feat_counts) for each feature
-    featurenames_keys = Set(featurenames)
+    # Could use all featurenames but taking only the unique ones reduces the amount of mixtures for the EM algorithm
+    featurenames_keys = unique(featurenames)
+    # Only consider features that had alignments with uniqly-mapped reads (otherwise we'll get division-by-zero when calculating means)
+    filter!(x -> feat_overlaps[x].num_alignments > 0, featurenames_keys)
+    # If none of the features have uniqely-mapped reads, do not continue with processing this multimapped template.
+    isempty(featurenames_keys) && return
+
     # Featurecounts are in a weighted proportion
     weights = map(x -> feat_overlaps[x].feat_counts, featurenames_keys)
     # Each feature's mean alignment_feature overlap ratio before taking alignment type into consideration
     means = map(x -> feat_overlaps[x].feat_counts / feat_overlaps[x].num_alignments, featurenames_keys)
+    # Suggestion - eventually have list of variances by feature derived from the individaul alignment feature overlap ratios
 
-    gmm = nothing
-    # These two functions will print a lot of stuff, so we should suppress them
+    # Construct GMM
+    gmm = GMM(length(weights), 1, kind=:diag)
+    gmm.w[:,1] .= weights
+    gmm.μ[:,1] .= means
+
+
+    # Train using EM algorithm
+    # EM function is verbose so just send @info to /dev/null
     with_logger(NullLogger()) do
-        # Construct GMM
-        gmm = GMM(weights, means, kind=:full)    # Apparently there are type errors when using diag covariance
-
-        # Train using EM iteration
-        em!(gmm, align_feat_ratios, args["em_iter"]) # Start EM algorithm with 10 iterations
+        em!(gmm, align_feat_ratios[:,:], nIter=args["em_iter"])
+        #em!(gmm, align_feat_ratios[:,:], varfloor=1e-5, nIter=args["em_iter"])
     end
 
     # Get posterior probabilties for each alignment feature ratio
-    posterior_probabilities = gmmposterior(gmm, align_feat_ratios)[1]
+    posterior_probabilities = gmmposterior(gmm, align_feat_ratios[:,:])[1]
 
-    # 1st dimension is per template_feature_overlap
-    for i in eachindex(posterior_probabilities)
-        overlap = template_features[i]
-        featurename = featurename[i]
-        align_feat_ratio = align_feat_ratio[i]
+    # 1st dimension is per template interval overlapping a feature 
+    # 2nd dimension is per feature. Sum of each feature's probabilty will equal 1.0
+    # Multidimensional arrays are iterated through in a 1D linear fashion.
+    for c in CartesianIndices(posterior_probabilities)
+        i, j = Tuple(c) # CartesianIndex needs to be unpacked as a tuple to get each dimension
+        featurename = featurenames[i]
+        featurename_index = findfirst(isequal(featurename), featurenames_keys)
+        # Only want to process a particular alignment interval once... when the iteration hits the mixture associated with its overlapping feature
+        featurename_index == j || continue
+
+        align_feat_ratio = align_feat_ratios[i]
         aln_type = alignment_types[i]
-        # 2nd dimension is per feature. Sum of each feature's probabilty will equal 1.0
-        for j in eachindex(posterior_probabilities[i])
-            adjusted_align_feat_ratio = align_feat_ratio * posterior_probabilities[i][j]
-            increment_feature_overlap_information!(mm_overlaps[featurename], adjusted_align_feat_ratio, aln_type)
-        end
+        adjusted_align_feat_ratio::Float32 = align_feat_ratio * posterior_probabilities[c]
+        increment_feature_overlap_information!(mm_overlaps[featurename], adjusted_align_feat_ratio, aln_type)
     end
 end
