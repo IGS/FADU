@@ -22,10 +22,13 @@ Julia - v1.0.0 or later
 ## Modules
 
 NOTE: Module installation instructions can be found at https://docs.julialang.org/en/v1/stdlib/Pkg/index.html#Getting-Started-1
-* ArgParse
+
+* ArgParse (included with base install)
 * BioAlignments - v1.0.0
 * BGZFStreams - v0.3.0
+* GaussianMixtures - v0.3.0
 * GenomicFeatures - v1.0.0
+* Logging (included with base install)
 
 ## OS Requirements
 
@@ -49,7 +52,7 @@ The output file has the following fields:
 * Number of bases that do not overlap with other features (uniq\_len)
 * Number of BAM records that aligned to this feature's non-overlapping bases
   * Aligned reads not part of a fragment get 0.5 count, and fragments get 1 count
-* Fractionalized feature counts 
+* Fractionalized feature counts
   * For each aligned fragment, the depth is (intersect of fragment coords to feature coords that do not overlap with other features) / length of the fragment
   * Aligned reads that are not part of a fragment get their depth contribution cut in half
 * TPM count in scientific notation
