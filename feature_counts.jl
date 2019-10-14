@@ -156,11 +156,10 @@ end
 function process_overlap!(feat_overlap::FeatureOverlap, aln_interval::Interval{Bool}, relative_abundance::Float32=1.0f0)
     """Process current single feature-alignment overlap."""
     align_feat_ratio::Float32 = compute_alignment_feature_ratio(feat_overlap.coords_set, aln_interval)
-    if align_feat_ratio > 0.0
-        aln_type = getalignmenttype(metadata(aln_interval))
-        adjusted_align_feat_ratio = align_feat_ratio * relative_abundance
-        increment_feature_overlap_information!(feat_overlap, adjusted_align_feat_ratio, aln_type)
-    end
+    align_feat_ratio > 0.0 || return
+    aln_type = getalignmenttype(metadata(aln_interval))
+    adjusted_align_feat_ratio = align_feat_ratio * relative_abundance
+    increment_feature_overlap_information!(feat_overlap, adjusted_align_feat_ratio, aln_type)
 end
 
 ############ GMM work
@@ -178,8 +177,10 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
         isempty(template_features) && continue
         for feature in template_features   
             featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+            align_feat_ratio = compute_alignment_feature_ratio(feat_overlaps[featurename].coords_set, aln_interval)
+            align_feat_ratio > 0.0 || continue
             push!(featurenames, featurename)
-            push!(align_feat_ratios, Float64(compute_alignment_feature_ratio(feat_overlaps[featurename].coords_set, aln_interval)))
+            push!(align_feat_ratios, Float64(align_feat_ratio))
             push!(alignment_types, getalignmenttype(metadata(aln_interval)))
         end
     end
