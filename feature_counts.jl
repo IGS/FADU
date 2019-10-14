@@ -67,7 +67,7 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
         # Get all features that align with the given multimapped template name on the same strand
         template_features = Array{GenomicFeatures.GFF3.Record,1}()
         for aln_interval in alignment_dict[record_tempname]
-            append!(template_features, filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"])))
+            append!(template_features, filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"])))
         end
 
         template_totalcounts = calc_subset_totalcounts(uniq_and_mm_overlaps, template_features, args["attribute_type"])
@@ -76,7 +76,7 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
 
         # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
         for aln_interval in alignment_dict[record_tempname]
-            aln_feat_overlaps = filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"]))
+            aln_feat_overlaps = filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"]))
             for feature_overlap in aln_feat_overlaps
                 featurename = get_featurename_from_attrs(feature_overlap, args["attribute_type"])
                 featurestrand = getstrand(feature_overlap, isstranded(args["stranded"]))
@@ -99,7 +99,7 @@ function create_feat_overlaps_dict(features::Array{GenomicFeatures.GFF3.Record,1
     return feat_overlaps
 end
 
-function filter_alignment_feature_overlaps(features::Array{GenomicFeatures.GFF3.Record,1}, alignment::Interval, isstranded::Bool)
+function filter_features_overlapping_alignments(features::Array{GenomicFeatures.GFF3.Record,1}, alignment::Interval, isstranded::Bool)
     """Filter features to those just that align with the current alignment on the same strand."""
     aln_strand = getstrand(alignment, isstranded)
     aln_feat_overlaps = filter(x -> isoverlapping(convert(Interval, x), alignment), features)
