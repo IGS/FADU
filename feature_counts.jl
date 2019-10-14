@@ -67,7 +67,7 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
         # Get all features that align with the given multimapped template name on the same strand
         template_features = Array{GenomicFeatures.GFF3.Record,1}()
         for aln_interval in alignment_dict[record_tempname]
-            append!(template_features, filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"])))
+            append!(template_features, filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"])))
         end
 
         template_totalcounts = calc_subset_totalcounts(uniq_and_mm_overlaps, template_features, args["attribute_type"])
@@ -175,7 +175,7 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
         template_features = filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"]))
         # Only deal with alignments that overlap with a feature
         isempty(template_features) && continue
-        for feature in template_features   
+        for feature in template_features
             featurename = get_featurename_from_attrs(feature, args["attribute_type"])
             align_feat_ratio = compute_alignment_feature_ratio(feat_overlaps[featurename].coords_set, aln_interval)
             align_feat_ratio > 0.0 || continue
@@ -215,7 +215,7 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
     # Get posterior probabilties for each alignment feature ratio
     posterior_probabilities = gmmposterior(gmm, align_feat_ratios[:,:])[1]
 
-    # 1st dimension is per template interval overlapping a feature 
+    # 1st dimension is per template interval overlapping a feature
     # 2nd dimension is per feature. Sum of each feature's probabilty will equal 1.0
     # Multidimensional arrays are iterated through in a 1D linear fashion.
     for c in CartesianIndices(posterior_probabilities)
