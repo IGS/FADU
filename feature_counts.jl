@@ -67,7 +67,7 @@ function compute_mm_counts_by_em(uniq_feat_overlaps::Dict{String, FeatureOverlap
         # Get all features that align with the given multimapped template name on the same strand
         template_features = Array{GenomicFeatures.GFF3.Record,1}()
         for aln_interval in alignment_dict[record_tempname]
-            append!(template_features, filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"])))
+            append!(template_features, filter_alignment_feature_overlaps(features, aln_interval, isstranded(args["stranded"])))
         end
 
         template_totalcounts = calc_subset_totalcounts(uniq_and_mm_overlaps, template_features, args["attribute_type"])
