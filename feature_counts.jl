@@ -229,7 +229,9 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
 
         align_feat_ratio = align_feat_ratios[i]
         aln_type = alignment_types[i]
-        adjusted_align_feat_ratio::Float32 = (align_feat_ratio * posterior_probabilities[c]) / totalalignments
+        adjusted_align_feat_ratio::Float32 = (align_feat_ratio * posterior_probabilities[c])
+        #adjusted_align_feat_ratio::Float32 = (align_feat_ratio * posterior_probabilities[c]) / totalalignments
+
         increment_feature_overlap_information!(mm_overlaps[featurename], adjusted_align_feat_ratio, aln_type)
     end
 end
