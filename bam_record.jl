@@ -8,10 +8,10 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 
 abstract type AbstractAlignment end
 
-struct FragmentAlignment<:AbstractAlignment 
+struct FragmentAlignment<:AbstractAlignment
     count_multiplier::Float32
 end
-struct ReadAlignment<:AbstractAlignment 
+struct ReadAlignment<:AbstractAlignment
     count_multiplier::Float32
 end
 
@@ -93,12 +93,12 @@ function get_alignment_coords_set(alignment::Interval)
 end
 
 function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, reversestrand::Bool=false)
-    """Return an alignment-based Interval for the current record.""" 
+    """Return an alignment-based Interval for the current record."""
     isfragment = canbefragment(record, max_frag_size)
     isfragment === nothing && return nothing  # Skip alignments not being considered
     return Interval(BAM.refname(record),
                     get_alignment_start_end(record, isfragment),
-                    assign_read_to_strand(record, reversestrand), 
+                    assign_read_to_strand(record, reversestrand),
                     isfragment
     )
 end
@@ -110,7 +110,7 @@ end
 
 function get_alignment_start_end(record::BAM.Record, isfragment::Bool)
     """ Get the start and end coordinates of the alignment record."""
-    return get_alignment_start_end(record, gettype_alignment(isfragment))
+    return get_alignment_start_end(record, getalignmenttype(isfragment))
 end
 
 function get_alignment_start_end(record::BAM.Record, record_type::FragmentAlignment)
@@ -132,7 +132,7 @@ function getstrand(interval::Interval, stranded::Bool)
     return strand
 end
 
-function gettype_alignment(isfragment::Bool)
+function getalignmenttype(isfragment::Bool)
     return (isfragment ? FragmentAlignment() : ReadAlignment())
 end
 
