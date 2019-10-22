@@ -167,6 +167,7 @@ end
 function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, feat_overlaps::Dict{String, FeatureOverlap}, templateintervals::IntervalCollection{Bool}, features::Array{GFF3.Record,1}, args::Dict)
 
     totalalignments = length(templateintervals)
+    totalalignments = 0
     
     # Collect all alignments overlapping features into a single array
     template_features = Array{GenomicFeatures.GFF3.Record,1}()
@@ -177,16 +178,20 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
         template_features = filter_features_overlapping_alignments(features, aln_interval, isstranded(args["stranded"]))
         # Only deal with alignments that overlap with a feature
         isempty(template_features) && continue
+        totalalignments += 1
         for feature in template_features
             featurename = get_featurename_from_attrs(feature, args["attribute_type"])
             align_feat_ratio = compute_alignment_feature_ratio(feat_overlaps[featurename].coords_set, aln_interval)
             align_feat_ratio > 0.0 || continue
+            aln_type = getalignmenttype(metadata(aln_interval))
+
+            # For this feature of this current alignment interval, push relevant information
             push!(featurenames, featurename)
             push!(align_feat_ratios, Float64(align_feat_ratio))
-            push!(alignment_types, getalignmenttype(metadata(aln_interval)))
+            push!(alignment_types, aln_type)
         end
     end
-
+    
     # Create weights (occurrences) and means (feat_counts) for each feature
     # Could use all featurenames but taking only the unique ones reduces the amount of mixtures for the EM algorithm
     featurenames_keys = unique(featurenames)
@@ -194,6 +199,7 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
     filter!(x -> feat_overlaps[x].num_alignments > 0, featurenames_keys)
     # If none of the features have uniqely-mapped reads, do not continue with processing this multimapped template.
     isempty(featurenames_keys) && return
+
 
     # Featurecounts are in a weighted proportion
     weights = map(x -> feat_overlaps[x].feat_counts, featurenames_keys)
@@ -231,7 +237,6 @@ function process_template_for_em!(mm_overlaps::Dict{String, FeatureOverlap}, fea
         aln_type = alignment_types[i]
         #adjusted_align_feat_ratio::Float32 = (align_feat_ratio * posterior_probabilities[c])
         adjusted_align_feat_ratio::Float32 = (align_feat_ratio * posterior_probabilities[c]) / totalalignments
-
         increment_feature_overlap_information!(mm_overlaps[featurename], adjusted_align_feat_ratio, aln_type)
     end
 end

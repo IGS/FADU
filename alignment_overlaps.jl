@@ -53,16 +53,16 @@ function Base.iterate(iter::OverlapIterator, state)
         chunk = state.chunks[state.chunkid]
         while BGZFStreams.virtualoffset(iter.reader.stream) < chunk.stop
             read!(iter.reader, state.record)
+            # Determine if fragment or read alignment.  Fragment alignments may overlap the interval whereas the single read may be to the right
             aln_interval = get_alignment_interval(state.record, iter.max_frag_size, iter.strand_type)
             aln_interval === nothing && continue
             c = GenomicFeatures.compare_overlap(aln_interval, Interval(iter.refname, iter.interval), isless)
             if c == 0
                 return copy(state.record), state
+            elseif c > 0
+                # no more overlapping records in this chunk since records are sorted
+                break
             end
-            # Default Base.iterate function from BioAlignments.BAM.overlaps.jl breaks
-            # once the record is completely to the right of the GenomicFeatures interval,
-            # but this causes some fragments to be missed, where the record is on the
-            # negative strand and extends to the left into the GenomicFeatures interval
         end
         state.chunkid += 1
         if state.chunkid ≤ lastindex(state.chunks)
