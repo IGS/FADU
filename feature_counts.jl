@@ -88,6 +88,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, al
         for i in eachindex(template_featurenames)
             featurename = template_featurenames[i]
             relative_abundance = calc_relative_abundance(feat_overlaps[featurename].feat_counts, template_totalcounts)
+            relative_abundance > 0.0 || continue
             adjusted_align_feat_ratio::Float32 = align_feat_ratios[i] * relative_abundance
             increment_feature_overlap_information!(adjusted_mm_overlaps[featurename], adjusted_align_feat_ratio, alignment_type)
         end
