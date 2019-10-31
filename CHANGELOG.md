@@ -2,7 +2,7 @@
 
 ## v1.6
 
-* FEATURE - Added i"--em\_iterations" option to use the Expectation-Maximization algorithm to re-add and allocate multimapped alignment records based on the proportion of the feature counts derived from singly-mapped reads.
+* FEATURE - Added "--em\_iterations" option to use the Expectation-Maximization algorithm to re-add and allocate multimapped alignment records based on the proportion of the feature counts derived from singly-mapped reads.
 * FEATURE -  I recently learned that the BioAlignments package takes advantage of multithreading with respect to reading the BAM file.  So therefore, FADU supports multithreading.  This can be achieved by running "export JULIA_NUM_THREADS=#" before running FADU where # is the number of threads you want to use.
 * DELETION - Due to the rewriting, the "--chunk_size" option has been removed.
 * Changed nested dictionary information for each feature (num_alignments, feat_counts, coords_set) into a mutable struct, which shaved off some slight runtime
