@@ -26,6 +26,7 @@ NOTE: Module installation instructions can be found at https://docs.julialang.or
 * BioAlignments - v1.0.0
 * BGZFStreams - v0.3.0
 * GenomicFeatures - v1.0.0
+  * Do not use v2.0.0 or later since the GFF parser has been split off into a new package
 
 ## OS Requirements
 

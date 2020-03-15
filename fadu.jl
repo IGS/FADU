@@ -25,7 +25,7 @@ include("bam_record.jl")
 include("feature_counts.jl")
 include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.6"    # Version number of the FADU program
+const VERSION_NUMBER = "1.6.1"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
@@ -112,7 +112,15 @@ function main()
     end
 
     @info("Processing annotation features...")
-    features = open(collect, GFF3.Reader, args["gff3_file"])    # Array of GFF3.Record objects
+    features = try
+        open(collect, GFF3.Reader, args["gff3_file"])    # Array of GFF3.Record objects
+    catch e
+        println(stderr, "ERROR: GFF3 file was unable to be read, due to possible improper formatting.  Please consult https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md for how to properly format the GFF3 file.  Actual error is below.  Program will now exit.\n")
+        showerror(stderr, e)
+        println(stderr, "")
+        exit(1)
+    end
+
     # Only keep features for the chosen feature type
     filter!(x -> GFF3.featuretype(x) == args["feature_type"], features)
 

@@ -16,7 +16,8 @@ function create_uniq_coords_dict(features::Array{GenomicFeatures.GFF3.Record,1},
         uniq_coords[seqid] = get_nonoverlapping_coords_by_seqid(features, seqid)
         # If alignment data is unstranded, then symdiff both strands to + strand 
         if !isstranded(stranded_type)
-            symdiff!(uniq_coords[seqid]['+'], pop!(uniq_coords[seqid], '-', Set()))
+            # Ensure a default empty set is used if that strand has no coordinates
+            symdiff!(get!(uniq_coords[seqid],'+', Set()), pop!(uniq_coords[seqid], '-', Set()))
         end
     end
     return uniq_coords

@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v1.6.1
+* BUGFIX - Fixing issue with generating uniq coordinates dictionary using unstranded data if the "+" strand key for a sequence ID is not already present.
+* Added a try/catch block for improperly-formatted GFF3 files.  If the file is improper formatting (such as non-URL-escaped '=' in a attribute tag key), the GFF3 Reader from BioJulia will throw an error, which is something out of the control of FADU.jl
+
 ## v1.6
 
 * FEATURE - Added "--em\_iterations" option to use the Expectation-Maximization algorithm to re-add and allocate multimapped alignment records based on the proportion of the feature counts derived from singly-mapped reads.
