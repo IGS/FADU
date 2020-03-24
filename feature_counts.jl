@@ -9,7 +9,7 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 mutable struct FeatureOverlap
     num_alignments::Float32
     feat_counts::Float32
-    coords_set::Set{UInt}
+    coords_set::BitSet
 end
 
 function calc_relative_abundance(feature_counts::Float32, template_totalcounts::Float32)::Float32
@@ -41,7 +41,7 @@ function calc_tpm(len::UInt, totalcounts::Float32, feat_counts::Float32)
     return @fastmath(feat_counts * 1000 / len) * 1000000 / totalcounts
 end
 
-function compute_alignment_feature_ratio(uniq_feat_coords::Set{UInt}, alignment::Interval)::Float32
+function compute_alignment_feature_ratio(uniq_feat_coords::BitSet, alignment::Interval)::Float32
     """Calculate the ratio of fragament coordinates that intersect with non-overlapping feature coordinates."""
     # Pertinent alignment info
     alignment_coords =  get_alignment_coords_set(alignment)
@@ -121,7 +121,7 @@ function increment_feature_overlap_information!(feat_overlap::FeatureOverlap, al
     feat_overlap.feat_counts += align_feat_ratio * aln_type.count_multiplier
 end
 
-function initialize_overlap_info(uniq_feat_coords::Set{UInt})
+function initialize_overlap_info(uniq_feat_coords::BitSet)
     """Initialize overlap diction information."""
     num_alignments = zero(Float32); feat_counts = zero(Float32)
     return FeatureOverlap(num_alignments, feat_counts, uniq_feat_coords)
@@ -149,6 +149,26 @@ function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_o
     end
 end
 
+# function process_overlaps!(feat_overlap::Dict{String, FeatureOverlap}, reader::BAM.Reader, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
+# #     """Process all alignment intervals that overlap with feature intervals."""
+#     record = BAM.Record()
+#      max_frag_size = convert(UInt, args["max_fragment_size"])
+
+#     while !eof(reader)
+#         read!(reader, record)
+#         BAM.ismapped(record) || continue
+#         # Establish alignment-based information
+#         alignmentinterval = get_alignment_interval(record, max_frag_size, is_reversestranded(args["stranded"]))
+#         alignmentinterval === nothing && continue
+
+#         alignmentstrand = getstrand(alignmentinterval, isstranded(args["stranded"]))
+#         alignmenttype = getalignmenttype(metadata(alignmentinterval))
+#         args["pp_only"] && isa(alignmenttype, ReadAlignment) && continue
+
+#         (process_overlap!(feat_overlap, feature, alignmentinterval, alignmentstrand, args) for feature in features)
+#     end
+# end
+
 function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_dict::Dict{String, IntervalCollection}, reader::BAM.Reader, feature::GFF3.Record, args::Dict)
     """Process all alignment intervals that overlap with feature intervals."""
     max_frag_size = convert(UInt, args["max_fragment_size"])
@@ -174,6 +194,21 @@ function process_overlaps!(feat_overlap::FeatureOverlap, multimapped_dict::Dict{
         process_overlap!(feat_overlap, aln_interval)
     end
 end
+
+# function process_overlap!(feat_overlap::Dict{String, FeatureOverlap}, feature::GFF3.Record, alignmentinterval::Interval{Bool}, alignmentstrand::String, args::Dict, relative_abundance::Float32=1.0f0)
+#     """Process current single feature-alignment overlap."""
+#     featurestrand = getstrand(feature, isstranded(args["stranded"]))
+#     alignmentstrand == featurestrand || return
+#     isoverlapping(alignmentinterval, convert(Interval, feature)) || return
+#     featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+
+#     align_feat_ratio::Float32 = compute_alignment_feature_ratio(feat_overlap.coords_set, alignmentinterval)
+#     if align_feat_ratio > 0.0
+#         aln_type = getalignmenttype(metadata(alignmentinterval))
+#         adjusted_align_feat_ratio = align_feat_ratio * relative_abundance
+#         increment_feature_overlap_information!(feat_overlap, adjusted_align_feat_ratio, aln_type)
+#     end
+# end
 
 function process_overlap!(feat_overlap::FeatureOverlap, aln_interval::Interval{Bool}, relative_abundance::Float32=1.0f0)
     """Process current single feature-alignment overlap."""

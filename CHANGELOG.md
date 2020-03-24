@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v1.7
+* Changed the Set of nonoverlapping coords to a BitSet, which significantly sped up execution
+
 ## v1.6.1
 * BUGFIX - Fixing issue with generating uniq coordinates dictionary using unstranded data if the "+" strand key for a sequence ID is not already present.
 * Added a try/catch block for improperly-formatted GFF3 files.  If the file is improper formatting (such as non-URL-escaped '=' in a attribute tag key), the GFF3 Reader from BioJulia will throw an error, which is something out of the control of FADU.jl

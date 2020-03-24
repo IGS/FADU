@@ -25,7 +25,7 @@ include("bam_record.jl")
 include("feature_counts.jl")
 include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.6.1"    # Version number of the FADU program
+const VERSION_NUMBER = "1.7"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
@@ -44,7 +44,7 @@ function parse_commandline()
     add_help = true)
 
     # The macro to add a table of arguments and options to the ArgParseSettings object
-    @add_arg_table s begin
+    @add_arg_table! s begin
         "--bam_file", "-b"
             help = "Path to BAM file (SAM is not supported)."
             metavar = "/path/to/file.bam"
@@ -146,6 +146,14 @@ function main()
     # Open a BAM file and iterate over records overlapping mRNA transcripts.
     @info("Opening BAM alignment file...")
     reader = open(BAM.Reader, args["bam_file"], index = bai_file)
+    # process_overlaps!(feat_overlaps, reader, features, args)
+
+    # exit();
+
+
+    ############
+    ### Old code
+
     @info("Now finding overlaps between alignment and annotation records...")
     for feature in features
         featurename = get_featurename_from_attrs(feature, args["attribute_type"])
