@@ -143,16 +143,9 @@ function main()
 
     multimapped_dict = Dict{String, IntervalCollection}()
 
-    # Open a BAM file and iterate over records overlapping mRNA transcripts.
+    # Open a BAM file and iterate over records overlapping GFF features.
     @info("Opening BAM alignment file...")
     reader = open(BAM.Reader, args["bam_file"], index = bai_file)
-    # process_overlaps!(feat_overlaps, reader, features, args)
-
-    # exit();
-
-
-    ############
-    ### Old code
 
     @info("Now finding overlaps between alignment and annotation records...")
     for feature in features
@@ -172,7 +165,7 @@ function main()
             @debug("\tEM iterations left: ", args["em_iter"])
             adjusted_overlaps = merge_mm_counts(feat_overlaps, mm_feat_overlaps, false)
             args["em_iter"] -= 1
-            mm_feat_overlaps = compute_mm_counts_by_em(adjusted_overlaps, multimapped_dict, features, args)
+            @time mm_feat_overlaps = compute_mm_counts_by_em(adjusted_overlaps, multimapped_dict, features, args)
         end
         # Last iteration the alignment counts are added too
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps, true)
