@@ -8,6 +8,7 @@ Requires (version number listed is earliest supported version):
     Julia - v0.7
     GenomicFeatures.jl - v1.0.0
     BioAlignments.jl - v1.0.0
+    StructArrays.jl - v0.4.3
 
 By: Shaun Adkins (sadkins@som.umaryland.edu)
     Matthew Chung (mattchung@umaryland.edu)
@@ -19,13 +20,14 @@ using ArgParse
 using BioAlignments: BAM, SAM
 using GenomicFeatures
 using Printf
+using StructArrays
 
 include("alignment_overlaps.jl")
 include("bam_record.jl")
 include("feature_counts.jl")
 include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.6.1"    # Version number of the FADU program
+const VERSION_NUMBER = "1.7"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
@@ -44,7 +46,7 @@ function parse_commandline()
     add_help = true)
 
     # The macro to add a table of arguments and options to the ArgParseSettings object
-    @add_arg_table s begin
+    @add_arg_table! s begin
         "--bam_file", "-b"
             help = "Path to BAM file (SAM is not supported)."
             metavar = "/path/to/file.bam"
@@ -141,30 +143,28 @@ function main()
     end
     @debug("Found BAM index file at $bai_file")
 
-    multimapped_dict = Dict{String, IntervalCollection}()
-
-    # Open a BAM file and iterate over records overlapping mRNA transcripts.
+    # Open a BAM file and iterate over records overlapping GFF features.
     @info("Opening BAM alignment file...")
     reader = open(BAM.Reader, args["bam_file"], index = bai_file)
+
     @info("Now finding overlaps between alignment and annotation records...")
-    for feature in features
-        featurename = get_featurename_from_attrs(feature, args["attribute_type"])
-        process_overlaps!(feat_overlaps[featurename], multimapped_dict, reader, feature, args)
-    end
+    @time multimapped_dict = process_all_feature_overlaps(feat_overlaps, features, reader, args)
     close(reader)
 
     # If multimapped reads are kept, use EM algorithm to count and re-add back into the feature counts
     if !args["rm_multimap"]
+        num_multimaps = length(collect(keys(multimapped_dict)))
+        @debug("Multimapped alignment templates: ", num_multimaps)
+
         featurenames = collect(keys(feat_overlaps))
         mm_feat_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(feat_overlaps[featurename].coords_set) for featurename in featurenames)
 
-        @debug("Multimapped alignment templates: ", length(multimapped_dict))
         @info("Counting and adjusting multimapped alignment feature counts via Expectation-Maximization algorithm...")
         while args["em_iter"] > 0
             @debug("\tEM iterations left: ", args["em_iter"])
             adjusted_overlaps = merge_mm_counts(feat_overlaps, mm_feat_overlaps, false)
             args["em_iter"] -= 1
-            mm_feat_overlaps = compute_mm_counts_by_em(adjusted_overlaps, multimapped_dict, features, args)
+            mm_feat_overlaps = compute_mm_counts_by_em(adjusted_overlaps, multimapped_dict, args)
         end
         # Last iteration the alignment counts are added too
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps, true)
@@ -177,7 +177,7 @@ function main()
     out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
     out_f = open(out_file, "w")
     write(out_f, "featureID\tuniq_len\tnum_alignments\tcounts\ttpm\n")
-    # Write output
+    # Write output, sorted alphabetically
     for featurename in sort(collect(keys(feat_overlaps)))
         uniq_len::UInt = length(feat_overlaps[featurename].coords_set)
         num_alignments = feat_overlaps[featurename].num_alignments

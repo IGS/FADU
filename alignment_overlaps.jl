@@ -11,6 +11,8 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 
 import BGZFStreams
 
+### OverlapIterator - Extended version of original BAM OverlapIterator
+
 struct OverlapIterator{T}
     reader::BAM.Reader{T}
     refname::String
@@ -30,6 +32,24 @@ end
 function GenomicFeatures.eachoverlap(reader::BAM.Reader, refname::AbstractString, interval::UnitRange, strand_type::String="no", max_frag_size::UInt=1000)
     return OverlapIterator(reader, String(refname), interval, strand_type, max_frag_size)
 end
+
+### SuperBAMRecord - BAM Record with additional information
+
+struct SuperBAMRecord
+    record::BAM.Record
+    interval::Interval{Bool}
+    strand::Char
+    #alignmenttype::T where {T<:AbstractAlignment}
+end
+
+#function SuperBAMRecord(record::BAM.Record, interval::Interval, strand::Char)
+#    return SuperBAMRecord(record, interval, strand, getalignmenttype(metadata(interval)))
+#end
+
+record(s::SuperBAMRecord) = s.record
+interval(s::SuperBAMRecord) = s.interval
+strand(s::SuperBAMRecord) = s.strand
+alignment_type(s::SuperBAMRecord) = getalignmenttype(metadata(interval(s)))
 
 # Iterator
 # --------
@@ -54,11 +74,12 @@ function Base.iterate(iter::OverlapIterator, state)
         while BGZFStreams.virtualoffset(iter.reader.stream) < chunk.stop
             read!(iter.reader, state.record)
             # Determine if fragment or read alignment.  Fragment alignments may overlap the interval whereas the single read may be to the right
-            aln_interval = get_alignment_interval(state.record, iter.max_frag_size, iter.strand_type)
-            aln_interval === nothing && continue
-            c = GenomicFeatures.compare_overlap(aln_interval, Interval(iter.refname, iter.interval), isless)
+            alignmentinterval = get_alignment_interval(state.record, iter.max_frag_size, iter.strand_type)
+            alignmentinterval === nothing && continue
+            c = GenomicFeatures.compare_overlap(alignmentinterval, Interval(iter.refname, iter.interval), isless)
             if c == 0
-                return copy(state.record), state
+                alignmentstrand = getstrand(alignmentinterval, isstranded(iter.strand_type))
+                return SuperBAMRecord(copy(state.record), alignmentinterval, alignmentstrand), state
             elseif c > 0
                 # no more overlapping records in this chunk since records are sorted
                 break

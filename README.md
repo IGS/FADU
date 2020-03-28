@@ -24,10 +24,11 @@ Julia - v1.0.0 or later
 NOTE: Module installation instructions can be found at https://docs.julialang.org/en/v1/stdlib/Pkg/index.html#Getting-Started-1
 * ArgParse
 * BioAlignments - v1.0.0
+  * Do not use v2.0.0 or later since the BAM parser has been split off into a new package
 * BGZFStreams - v0.3.0
 * GenomicFeatures - v1.0.0
   * Do not use v2.0.0 or later since the GFF parser has been split off into a new package
-
+* StructArrays - v0.4.3
 ## OS Requirements
 
 FADU is supported for both the Linux and Mac OSX operating systems, and has been tested on the following operating system versions:
@@ -50,7 +51,7 @@ The output file has the following fields:
 * Number of bases that do not overlap with other features (uniq\_len)
 * Number of BAM records that aligned to this feature's non-overlapping bases
   * Aligned reads not part of a fragment get 0.5 count, and fragments get 1 count
-* Fractionalized feature counts 
+* Fractionalized feature counts
   * For each aligned fragment, the depth is (intersect of fragment coords to feature coords that do not overlap with other features) / length of the fragment
   * Aligned reads that are not part of a fragment get their depth contribution cut in half
 * TPM count in scientific notation

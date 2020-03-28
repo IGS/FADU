@@ -15,8 +15,12 @@ struct ReadAlignment<:AbstractAlignment
     count_multiplier::Float32
 end
 
-FragmentAlignment() = FragmentAlignment(1.0)
-ReadAlignment() = ReadAlignment(0.5)
+FragmentAlignment() = FragmentAlignment(one(Float32))
+ReadAlignment() = ReadAlignment(one(Float32)/2)
+
+# TODO: consolidated into one function
+multiplier(f::FragmentAlignment) = f.count_multiplier
+multiplier(f::ReadAlignment) = f.count_multiplier
 
 is_reversestranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
 
