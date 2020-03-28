@@ -3,7 +3,8 @@
 ## v1.7
 
 * Changed the Set of nonoverlapping coords to a BitSet, which significantly sped up execution
-* Rewrote some of the EM algorithm to use dictionaries instead of much longer arrays to speed up execution
+* Rewrote some of the EM algorithm to use a dictionary of StructArrays, which speeds up execution
+* Other various performance tweaks
 
 ## v1.6.1
 

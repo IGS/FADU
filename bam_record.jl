@@ -18,6 +18,10 @@ end
 FragmentAlignment() = FragmentAlignment(one(Float32))
 ReadAlignment() = ReadAlignment(one(Float32)/2)
 
+# TODO: consolidated into one function
+multiplier(f::FragmentAlignment) = f.count_multiplier
+multiplier(f::ReadAlignment) = f.count_multiplier
+
 is_reversestranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
 
 #isduplicate(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_DUP == 0x0400
