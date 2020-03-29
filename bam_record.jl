@@ -18,9 +18,8 @@ end
 FragmentAlignment() = FragmentAlignment(one(Float32))
 ReadAlignment() = ReadAlignment(one(Float32)/2)
 
-# TODO: consolidated into one function
-multiplier(f::FragmentAlignment) = f.count_multiplier
-multiplier(f::ReadAlignment) = f.count_multiplier
+multiplier(f::T) where {T<:AbstractAlignment} = f.count_multiplier
+#multiplier(f::ReadAlignment) = f.count_multiplier
 
 is_reversestranded(strand_type::String) = return (strand_type == "reverse" ? true : false)
 
@@ -32,7 +31,6 @@ isread2(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_READ2 == 0x0080
 isreverse(record::BAM.Record) = BAM.flag(record) & SAM.FLAG_REVERSE == 0x0010
 
 # TODO: Checking specific case where dovetailed reads where the two mates completely overlap each other
-#iscompleteoverlap(record::BAM.Record) = BAM.position(record) == BAM.nextposition(record)
 iscompleteoverlap(record::BAM.Record) = get_alignment_start_end(record::BAM.Record, true) == get_alignment_start_end(record::BAM.Record, false)
 
 # Forward-stranded assay
