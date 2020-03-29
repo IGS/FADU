@@ -108,7 +108,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
         template_totalcounts > zero(Float32) || continue
 
         # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
-        for (featurename, counts) in template_feat_counts
+        Threads.@threads for (featurename, counts) in template_feat_counts
             counts > zero(Float32) || continue
             adjusted_feat_counts = compute_mm_adjusted_counts(featurecounts(feat_overlaps[featurename]), counts, template_totalcounts)
             # If the feature had no contribution to any singly-mapped alignments, ignore it.
@@ -117,51 +117,6 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
     end
     return adjusted_mm_overlaps
 end
-
-# function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, alignment_dict::Dict{String,Vector}, features::Array{GFF3.Record,1}, args::Dict)
-#     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
-#     # Initialize multimapped overlap feature dictionary
-#     featurenames = collect(keys(feat_overlaps))
-#     adjusted_mm_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(feat_overlaps[featurename].coords_set) for featurename in featurenames)
-
-#     @time for record_tempname in keys(alignment_dict)
-#         # Get all features that align with the given multimapped template name on the same strand
-
-#         template_feature_counter = Dict{String, UInt}(featurename => zero(UInt) for featurename in featurenames)
-#         template_feat_counts = Dict{String, Float32}(featurename => zero(Float32) for featurename in featurenames)
-
-#         # All multimapped alignments for a record should have the same alignment type
-#         alignmenttype = getalignmenttype(metadata(first(alignment_dict[record_tempname])))
-
-#         @time for alignmentinterval in alignment_dict[record_tempname]
-#             overlapping_features = filter_features_overlapping_alignments(features, alignmentinterval, isstranded(args["stranded"]))
-#             # Only deal with alignments that overlap with a feature
-#             isempty(overlapping_features) && continue
-#             # Process each feature found in the alignment
-#             @time for feature in overlapping_features
-#                 featurename = get_featurename_from_attrs(feature, args["attribute_type"])
-#                 template_feature_counter[featurename] += one(UInt)
-#                 align_feat_ratio = compute_alignment_feature_ratio(feat_overlaps[featurename].coords_set, alignmentinterval)
-#                 # Some features may not have contributions to any singly-mapped alignments.  They will not factor into the adjustments later
-#                 template_feat_counts[featurename] += align_feat_ratio
-#             end
-#         end
-
-#         template_totalcounts = calc_subset_totalcounts(feat_overlaps, template_feature_counter)
-#         # In cases where every feature for this template had no overlaps with any singly-mapped alignments, do not consider them.
-#         template_totalcounts > zero(Float32) || continue
-
-#         # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
-#         @time for (featurename, counts) in template_feat_counts
-#             counts > zero(Float32) || continue
-#             adjusted_feat_counts = compute_mm_adjusted_counts(feat_overlaps[featurename].feat_counts, counts, template_totalcounts)
-#             # If the feature had no contribution to any singly-mapped alignments, ignore it.
-#             adjusted_feat_counts > zero(Float32) && increment_feature_overlap_information!(adjusted_mm_overlaps[featurename], adjusted_feat_counts, alignmenttype)
-#         end
-#         exit()
-#     end
-#     return adjusted_mm_overlaps
-# end
 
 function create_feat_overlaps_dict(features::Array{GenomicFeatures.GFF3.Record,1}, uniq_coords::Dict{String,Dict}, attr_type::String, stranded_type::String)
     feat_overlaps = Dict{String, FeatureOverlap}()
@@ -212,56 +167,6 @@ function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_o
 
     [inc_alignments!(feat_overlaps[fn], totalalignments(mm_feat_overlaps[fn])) for fn in featurenames]
 end
-
-# function process_overlaps!(feat_overlap::Dict{String, FeatureOverlap}, multimapped_dict::Dict{String, IntervalCollection}, reader::BAM.Reader, features::Array{GenomicFeatures.GFF3.Record,1}, args::Dict)
-#     """Process all alignment intervals that overlap with feature intervals."""
-#     record = BAM.Record()
-#     max_frag_size = convert(UInt, args["max_fragment_size"])
-
-#     while !eof(reader)
-#         read!(reader, record)
-#         # The following steps are figuring out if the record is worth looking at
-#         # 1. Is the record mapped to the reference annotation?
-#         BAM.ismapped(record) || continue
-
-#         # 2. Establish alignment-based information.  Does the record pass validation as a read or a fragment we can use?
-#         alignmentinterval = get_alignment_interval(record, max_frag_size, is_reversestranded(args["stranded"]))
-#         alignmentinterval === nothing && continue
-
-#         # 3. If only reading fragments (properly-paired reads), skip all non-properly-paired reads
-#         alignmenttype = getalignmenttype(metadata(alignmentinterval))
-#         args["pp_only"] && isa(alignmenttype, ReadAlignment) && continue
-
-#         # 4. Only deal with alignments that overlap with a feature
-#         overlapping_features = filter_features_overlapping_alignments(features, alignmentinterval, isstranded(args["stranded"]))
-#         isempty(overlapping_features) && continue
-
-#         # 5. Save multimapped records as Interval objects for later, if needed
-#         if ismultimapped(record)
-#             if !args["rm_multimap"]
-#                 templatename = BAM.tempname(record)
-#                 get!(multimapped_dict, templatename, IntervalCollection{Bool}())
-#                 push!(multimapped_dict[templatename], alignmentinterval)
-#             end
-#             continue
-#         end
-
-#         # 6. Read/Fragment alignment can now be compared with overlapping part of feature.
-#         for feature in overlapping_features
-#             featurename = get_featurename_from_attrs(feature, args["attribute_type"])
-#             process_overlap!(feat_overlap[featurename], alignmentinterval)
-#         end
-#     end
-# end
-
-# function process_overlap!(feat_overlap::FeatureOverlap, alignmentinterval::Interval{Bool})
-#     """Process current single feature-alignment overlap."""
-#     align_feat_ratio::Float32 = compute_alignment_feature_ratio(feat_overlap.coords_set, alignmentinterval)
-#     if align_feat_ratio > zero(Float32)
-#         alignmenttype = getalignmenttype(metadata(alignmentinterval))
-#         increment_feature_overlap_information!(feat_overlap, align_feat_ratio, alignmenttype)
-#     end
-# end
 
 function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, multimapped_dict::Dict{String,StructArray}, reader::BAM.Reader, feature::GFF3.Record, args)
     """Process all alignment intervals that overlap with the given feature interval."""

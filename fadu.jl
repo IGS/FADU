@@ -148,7 +148,7 @@ function main()
     reader = open(BAM.Reader, args["bam_file"], index = bai_file)
 
     @info("Now finding overlaps between alignment and annotation records...")
-    @time multimapped_dict = process_all_feature_overlaps(feat_overlaps, features, reader, args)
+    multimapped_dict = process_all_feature_overlaps(feat_overlaps, features, reader, args)
     close(reader)
 
     # If multimapped reads are kept, use EM algorithm to count and re-add back into the feature counts
