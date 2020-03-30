@@ -96,7 +96,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
 
         template_feature_counter = Dict{String, UInt}(fn => zero(UInt) for fn in unique(overlappingfeatures))
         template_feat_counts = Dict{String, Float32}(fn => zero(Float32) for fn in unique(overlappingfeatures))
-        Threads.@threads for fn in overlappingfeatures
+        Threads.@threads for fn in unique(overlappingfeatures)
             # Filter all alignments that have this particular template-feature overlap
             templatefeaturealignments = filter(x -> x.featurename == fn, templatealignments)
             template_feature_counter[fn] += length(templatefeaturealignments)
