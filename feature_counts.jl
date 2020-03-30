@@ -96,7 +96,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
 
         template_feature_counter = Dict{String, UInt}(fn => zero(UInt) for fn in unique(overlappingfeatures))
         template_feat_counts = Dict{String, Float32}(fn => zero(Float32) for fn in unique(overlappingfeatures))
-        for fn in overlappingfeatures
+        Threads.@threads for fn in overlappingfeatures
             # Filter all alignments that have this particular template-feature overlap
             templatefeaturealignments = filter(x -> x.featurename == fn, templatealignments)
             template_feature_counter[fn] += length(templatefeaturealignments)
@@ -108,7 +108,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
         template_totalcounts > zero(Float32) || continue
 
         # Adjust contribution proportion of multimapped reads, based on estimated relative abundance
-        Threads.@threads for (featurename, counts) in template_feat_counts
+        for (featurename, counts) in template_feat_counts
             counts > zero(Float32) || continue
             adjusted_feat_counts = compute_mm_adjusted_counts(featurecounts(feat_overlaps[featurename]), counts, template_totalcounts)
             # If the feature had no contribution to any singly-mapped alignments, ignore it.

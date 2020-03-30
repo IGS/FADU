@@ -157,7 +157,7 @@ function main()
         @debug("Multimapped alignment templates: ", num_multimaps)
 
         featurenames = collect(keys(feat_overlaps))
-        mm_feat_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(feat_overlaps[featurename].coords_set) for featurename in featurenames)
+        mm_feat_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(coordinate_set(feat_overlaps[featurename])) for featurename in featurenames)
 
         @info("Counting and adjusting multimapped alignment feature counts via Expectation-Maximization algorithm...")
         while args["em_iter"] > 0
@@ -179,9 +179,9 @@ function main()
     write(out_f, "featureID\tuniq_len\tnum_alignments\tcounts\ttpm\n")
     # Write output, sorted alphabetically
     for featurename in sort(collect(keys(feat_overlaps)))
-        uniq_len::UInt = length(feat_overlaps[featurename].coords_set)
-        num_alignments = feat_overlaps[featurename].num_alignments
-        feat_counts = feat_overlaps[featurename].feat_counts
+        uniq_len::UInt = length(coordinate_set(feat_overlaps[featurename]))
+        num_alignments = totalalignments(feat_overlaps[featurename])
+        feat_counts = featurecounts(feat_overlaps[featurename])
         if isnan(feat_counts)
             feat_counts = zero(Float32)
         end

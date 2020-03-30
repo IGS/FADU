@@ -22,6 +22,7 @@ Julia - v1.0.0 or later
 ## Modules
 
 NOTE: Module installation instructions can be found at https://docs.julialang.org/en/v1/stdlib/Pkg/index.html#Getting-Started-1
+
 * ArgParse
 * BioAlignments - v1.0.0
   * Do not use v2.0.0 or later since the BAM parser has been split off into a new package
@@ -29,6 +30,7 @@ NOTE: Module installation instructions can be found at https://docs.julialang.or
 * GenomicFeatures - v1.0.0
   * Do not use v2.0.0 or later since the GFF parser has been split off into a new package
 * StructArrays - v0.4.3
+
 ## OS Requirements
 
 FADU is supported for both the Linux and Mac OSX operating systems, and has been tested on the following operating system versions:
