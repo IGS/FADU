@@ -1,0 +1,8 @@
+[deps]
+BGZFStreams = "28d598bf-9b8f-59f1-b38c-5a06b4a0f5e6"
+GFF3 = "af1dc308-cb6b-11e8-32f0-31192efa90f6"
+GenomicFeatures = "899a7d2d-5c61-547b-bef9-6698a8d05446"
+Indexes = "4ffb77ac-cb80-11e8-1b35-4b78cc642f6d"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
+XAM = "d759349c-bcba-11e9-07c2-5b90f8f05f7c"
