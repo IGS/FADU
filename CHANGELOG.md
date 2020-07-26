@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v1.8
+
+* Update packages to be compatible with Julia v1.4.2
+
 ## v1.7
 
 * Changed the Set of nonoverlapping coords to a BitSet, which significantly sped up execution
