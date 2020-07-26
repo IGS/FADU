@@ -170,6 +170,10 @@ A safe way to pass in values to the options is to enclose any string arguments (
 
 Currently at this time, only fragment depth is supported.  Performing calculations using read depth may be implemented in the future though.
 
+## How can I use FADU output as input for DESeq2?
+
+Perhaps the easiest possibility would be to extract the 'featureID' and 'counts' columns and structure them like the output from htseq-count.  From there you can follow the corresponding instructions from the DESeq2 manual on using htseq-count output as input.
+
 # Issues
 
 If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue [here](https://github.com/IGS/FADU/issues)
