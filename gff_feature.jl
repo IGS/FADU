@@ -9,7 +9,7 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 isstranded(strand_type::String) = return (strand_type == "no" ? false : true)
 
 
-function create_uniq_coords_dict(features::Array{GenomicFeatures.GFF3.Record,1}, stranded_type::String)
+function create_uniq_coords_dict(features::Array{GFF3.Record,1}, stranded_type::String)
     uniq_coords = Dict{String, Dict}()
     seqids = Set(map(x -> GFF3.seqid(x), features))
     for seqid in seqids
@@ -23,19 +23,19 @@ function create_uniq_coords_dict(features::Array{GenomicFeatures.GFF3.Record,1},
     return uniq_coords
 end
 
-function get_feature_coords_set(feature::GenomicFeatures.GFF3.Record)
+function get_feature_coords_set(feature::GFF3.Record)
     """Get the range of coordinates for this feature, returned as a Set."""
-    return BitSet(leftposition(feature) : rightposition(feature))
+    return BitSet(GFF3.leftposition(feature) : GFF3.rightposition(feature))
 end
 
-function get_featurename_from_attrs(feature::GenomicFeatures.GFF3.Record, attr_type::String)
+function get_featurename_from_attrs(feature::GFF3.Record, attr_type::String)
     """Get attribute ID to use as the feature name."""
     gene_vector = GFF3.attributes(feature, attr_type)    # col 9
     validate_feature_attribute(gene_vector)
     return gene_vector[1]
 end
 
-function get_feature_nonoverlapping_coords(feature::GenomicFeatures.GFF3.Record, uniq_coords::Dict{String, Dict}, stranded::Bool)
+function get_feature_nonoverlapping_coords(feature::GFF3.Record, uniq_coords::Dict{String, Dict}, stranded::Bool)
     """Get set of nonoverlapping coordinates for given feature."""
     seqid = GFF3.seqid(feature)
     strand = getstrand(feature, stranded)
@@ -43,7 +43,7 @@ function get_feature_nonoverlapping_coords(feature::GenomicFeatures.GFF3.Record,
     return intersect(feat_coords, uniq_coords[seqid][strand])
 end
 
-function get_nonoverlapping_coords_by_seqid(features::Array{GenomicFeatures.GFF3.Record,1}, seqid::String)
+function get_nonoverlapping_coords_by_seqid(features::Array{GFF3.Record,1}, seqid::String)
     """ Get dictionary nonoverlapping coordinates based on the features on this sequence ID."""
     uniq_seqid_coords = Dict{Char,BitSet}()
     # Get only features with this reference id
@@ -56,14 +56,14 @@ function get_nonoverlapping_coords_by_seqid(features::Array{GenomicFeatures.GFF3
     return uniq_seqid_coords
 end
 
-function get_nonoverlapping_coords_by_seqid_and_strand(features::Array{GenomicFeatures.GFF3.Record,1}, strand::Strand)
+function get_nonoverlapping_coords_by_seqid_and_strand(features::Array{GFF3.Record,1}, strand::Strand)
     """ Get set of nonoverlapping coordinates based on the features for this strand of this sequence ID."""
     # Get features one strand at a time
     seqid_feats_by_strand = filter(x-> GFF3.strand(x) == strand, features)
     return BitSet(mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand))
 end
 
-function getstrand(feature::GenomicFeatures.GFF3.Record, stranded::Bool)
+function getstrand(feature::GFF3.Record, stranded::Bool)
     """Get strand of GFF3 feature with respect to strandedness arguments."""
     return getstrand(convert(Interval, feature), stranded)
 end

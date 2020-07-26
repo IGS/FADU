@@ -5,10 +5,14 @@ FADU.jl - Feature Aggregate Depth Utility.
 
 Description - Generate fractional counts of alignments that map to non-overlapping portions of genes
 Requires (version number listed is earliest supported version):
-    Julia - v0.7
-    GenomicFeatures.jl - v1.0.0
-    BioAlignments.jl - v1.0.0
-    StructArrays.jl - v0.4.3
+    Julia - v1.4.2
+    * Modules *
+    BGZFStreams.jl - v0.3.0
+    GenomicFeatures.jl - v2.0.0
+    GFF3 - 0.1.0
+    Indexes.jl - v0.1.1
+    StructArrays.jl - v0.4.4
+    XAM.jl - v0.2.6
 
 By: Shaun Adkins (sadkins@som.umaryland.edu)
     Matthew Chung (mattchung@umaryland.edu)
@@ -17,8 +21,10 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 
 # The macro on modules and functions makes the code available to all worker processes
 using ArgParse
-using BioAlignments: BAM, SAM
+using XAM: BAM, SAM
 using GenomicFeatures
+using GFF3
+using Indexes
 using Printf
 using StructArrays
 
@@ -27,7 +33,7 @@ include("bam_record.jl")
 include("feature_counts.jl")
 include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.7"    # Version number of the FADU program
+const VERSION_NUMBER = "1.8"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 

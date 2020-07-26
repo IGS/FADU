@@ -60,7 +60,7 @@ function Base.iterate(iter::OverlapIterator)
         throw(ArgumentError("sequence name $(iter.refname) is not found in the header"))
     end
     @assert iter.reader.index !== nothing
-    chunks = GenomicFeatures.Indexes.overlapchunks(iter.reader.index.index, refindex, iter.interval)
+    chunks = Indexes.overlapchunks(iter.reader.index.index, refindex, iter.interval)
     if !isempty(chunks)
         seek(iter.reader, first(chunks).start)
     end

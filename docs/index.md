@@ -13,19 +13,19 @@ Most current available quantification tools for transcriptomics analyses have be
 
 # Requirements
 
-Julia - v1.0.0 or later
+Julia - v1.4.2 or later
 
 ## Modules
 
 NOTE: Module installation instructions can be found at https://docs.julialang.org/en/v1/stdlib/Pkg/index.html#Getting-Started-1
 
 * ArgParse
-* BioAlignments - v1.0.0
-  * Do not use v2.0.0 or later since the BAM parser has been split off into a new package
-* BGZFStreams - v0.3.0
-* GenomicFeatures - v1.0.0
-  * Do not use v2.0.0 or later since the GFF parser has been split off into a new package
-* StructArrays - v0.4.3
+* BGZFStreams.jl - v0.3.0
+* GenomicFeatures.jl - v2.0.0
+* GFF3 - 0.1.0
+* Indexes.jl - v0.1.1
+* StructArrays.jl - v0.4.4
+* XAM.jl - v0.2.6
 
 ## OS Requirements
 

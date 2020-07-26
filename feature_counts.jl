@@ -118,7 +118,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
     return adjusted_mm_overlaps
 end
 
-function create_feat_overlaps_dict(features::Array{GenomicFeatures.GFF3.Record,1}, uniq_coords::Dict{String,Dict}, attr_type::String, stranded_type::String)
+function create_feat_overlaps_dict(features::Array{GFF3.Record,1}, uniq_coords::Dict{String,Dict}, attr_type::String, stranded_type::String)
     feat_overlaps = Dict{String, FeatureOverlap}()
     for feature in features
         featurename = get_featurename_from_attrs(feature, attr_type)
@@ -128,7 +128,7 @@ function create_feat_overlaps_dict(features::Array{GenomicFeatures.GFF3.Record,1
     return feat_overlaps
 end
 
-function filter_features_overlapping_alignments(features::Array{GenomicFeatures.GFF3.Record,1}, alignment::Interval, isstranded::Bool)
+function filter_features_overlapping_alignments(features::Array{GFF3.Record,1}, alignment::Interval, isstranded::Bool)
     """Filter features to those just that align with the current alignment on the same strand."""
     alignmentstrand = getstrand(alignment, isstranded)
     overlapping_features = filter(x -> isoverlapping(convert(Interval, x), alignment), features)
