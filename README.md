@@ -15,13 +15,17 @@ Most current available quantification tools for transcriptomics analyses have be
 * Shaun Adkins (sadkins@som.umaryland.edu)
 * Matthew Chung (mattchung@umaryland.edu)
 
+# Current FADU release
+
+Version - v1.8
+
 # Requirements
 
 Julia - v1.4.2 or later
 
-## Modules
+## Packages
 
-NOTE: Module installation instructions can be found at https://docs.julialang.org/en/v1/stdlib/Pkg/index.html#Getting-Started-1
+NOTE: Packages installation instructions can be found at https://docs.julialang.org/en/v1.4/stdlib/Pkg/index.html#Getting-Started-1
 
 * ArgParse
 * BGZFStreams.jl - v0.3.0
@@ -30,6 +34,10 @@ NOTE: Module installation instructions can be found at https://docs.julialang.or
 * Indexes.jl - v0.1.1
 * StructArrays.jl - v0.4.4
 * XAM.jl - v0.2.6
+
+## NOTE on versions
+
+FADU v1.7 and earlier will not work with Julia v1.4.2 and has different package requirements.  If using one of those versions, please use the recommended version of Julia and recommended packages listed
 
 ## OS Requirements
 
