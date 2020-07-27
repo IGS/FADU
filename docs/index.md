@@ -13,7 +13,7 @@ Most current available quantification tools for transcriptomics analyses have be
 
 # Current FADU release
 
-Version - v1.8
+v1.8
 
 # Requirements
 
@@ -33,7 +33,7 @@ NOTE: Packages installation instructions can be found at https://docs.julialang.
 
 ## NOTE on versions
 
-FADU v1.7 and earlier will not work with Julia v1.4.2 and has different package requirements.  If using one of those versions, please use the recommended version of Julia and recommended packages listed
+FADU v1.7 and earlier will not work with Julia v1.4.2 and has different package requirements.  If using one of those versions, please use the recommended version of Julia and recommended packages listed on the README of that particular release.
 
 ## OS Requirements
 

@@ -6,24 +6,24 @@ Feature Aggregate Depth Utility
 
 https://igs.github.io/FADU/
 
-# Description
+## Description
 
 Most current available quantification tools for transcriptomics analyses have been designed using human data sets, in which full-length transcript sequences are available. In most prokaryotic systems, full-length transcript sequences are unavailable, causing prokaryotic transcriptomics analyses being performed using coding sequences instead. In contrast to eukaryotes, prokaryotes contain polycistronic transcripts and when genes are quantified based on coding sequences instead of transcript sequences, this leads to an increased abundance of ambiguous multi-gene fragments, especially between genes in operons. Here we describe FADU, a quantification tool designed specifically for prokaryotic RNA-Seq analyses with the purpose of quantifying operonic genes while minimizing the pitfalls associated with improperly assigning fragment counts from ambiguous transcripts.
 
-# Authors
+## Authors
 
 * Shaun Adkins (sadkins@som.umaryland.edu)
 * Matthew Chung (mattchung@umaryland.edu)
 
-# Current FADU release
+## Current FADU release
 
-Version - v1.8
+v1.8
 
-# Requirements
+## Requirements
 
 Julia - v1.4.2 or later
 
-## Packages
+### Packages
 
 NOTE: Packages installation instructions can be found at https://docs.julialang.org/en/v1.4/stdlib/Pkg/index.html#Getting-Started-1
 
@@ -35,23 +35,23 @@ NOTE: Packages installation instructions can be found at https://docs.julialang.
 * StructArrays.jl - v0.4.4
 * XAM.jl - v0.2.6
 
-## NOTE on versions
+### NOTE on versions
 
-FADU v1.7 and earlier will not work with Julia v1.4.2 and has different package requirements.  If using one of those versions, please use the recommended version of Julia and recommended packages listed
+FADU v1.7 and earlier will not work with Julia v1.4.2 and has different package requirements.  If using one of those versions, please use the recommended version of Julia and recommended packages listed on the README of that particular release.
 
-## OS Requirements
+### OS Requirements
 
 FADU is supported for both the Linux and Mac OSX operating systems, and has been tested on the following operating system versions:
 
 * Linux - CentOS 7
 * Mac OSX - High Sierra (v10.13.6)
 
-# Input
+## Input
 
 * A single BAM file of reads (sorted by position)
 * A GFF3-formatted annotation file
 
-# Output
+## Output
 
 The output is a tab-delimited file whose name is the BAM input file's basename, ending in '.counts.txt'.  For example if the name of the BAM file was 'sample123.bam', the output file name is 'sample123.counts.txt'
 
@@ -66,7 +66,7 @@ The output file has the following fields:
   * Aligned reads that are not part of a fragment get their depth contribution cut in half
 * TPM count in scientific notation
 
-# Installation instructions
+## Installation instructions
 
 First `cd` to the directory of choice to install FADU
 
@@ -75,7 +75,7 @@ git clone https://github.com/IGS/FADU.git
 cd FADU
 ```
 
-# Example command
+## Example command
 
 For this example we will create a directory called "fadu\_output" to write output into.  This example uses a BAM alignment file of subsampled Wolbachia reads.  This example should take about 60 seconds to run.
 
@@ -101,7 +101,7 @@ cds1004 1164    0.0 0.00    0.00
 cds1005 816 0.0 0.00    0.00
 ```
 
-# Usage
+## Usage
 
 ```bash
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
@@ -164,25 +164,25 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
-# Frequently Asked Questions
+## Frequently Asked Questions
 
-## Is FADU designed to work with both prokaryotic and eukaryotic samples?
+### Is FADU designed to work with both prokaryotic and eukaryotic samples?
 
 FADU currently does not support eukaryotic samples
 
-## When running FADU.jl, I get a "too many arguments" error.  How do I fix this?
+### When running FADU.jl, I get a "too many arguments" error.  How do I fix this?
 
 A safe way to pass in values to the options is to enclose any string arguments (like file paths or strandedness) in quotations so that it ensures Julia's argument parser reads the parameter as an option value instead of a command-type argument.
 
-## Can I use FADU to calculate counts for features using read depth instead of fragment depth?
+### Can I use FADU to calculate counts for features using read depth instead of fragment depth?
 
 Currently at this time, only fragment depth is supported.  Performing calculations using read depth may be implemented in the future though.
 
-## How can I use FADU output as input for DESeq2?
+### How can I use FADU output as input for DESeq2?
 
 Perhaps the easiest possibility would be to extract the 'featureID' and 'counts' columns and structure them like the output from htseq-count.  From there you can follow the corresponding instructions from the DESeq2 manual on using htseq-count output as input.
 
-# Issues
+## Issues
 
 If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue [here](https://github.com/IGS/FADU/issues)
 
