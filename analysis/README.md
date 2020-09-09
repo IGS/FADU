@@ -1,85 +1,126 @@
+# FADU
 
-# Table of Contents
 <!-- MarkdownTOC autolink="true" levels="1,2,3,4" -->
 
 - [Set software and directory paths](#set-software-and-directory-paths)
-    - [Software](#software)
-    - [Directories](#directories)
-    - [Create directories](#create-directories)
-    - [Set up reference files](#set-up-reference-files)
-        - [Download canine, tick and all E. chaffeensis reference files](#download-canine-tick-and-all-e-chaffeensis-reference-files)
-        - [Create combined canine/tick and E. chaffeensis references](#create-combined-caninetick-and-e-chaffeensis-references)
-            - [Genomic references](#genomic-references)
-            - [CDS references](#cds-references)
-- [Identify core Ehrlichia genes between the 8 E. chaffeensis strains and Ehrlichia sp. HF](#identify-core-ehrlichia-genes-between-the-8-e-chaffeensis-strains-and-ehrlichia-sp-hf)
-        - [Create CDS FNA files](#create-cds-fna-files)
-        - [Create FAA files](#create-faa-files)
-        - [Create BLASTP output file for PanOCT](#create-blastp-output-file-for-panoct)
-        - [Create gene tags file for PanOCT](#create-gene-tags-file-for-panoct)
-        - [Create gene attributes file for PanOCT](#create-gene-attributes-file-for-panoct)
-        - [Run PanOCT to find orthologous gene clusters](#run-panoct-to-find-orthologous-gene-clusters)
-- [Identify differentially expression genes in canine, tick, and E. chaffeensis strains across the data set](#identify-differentially-expression-genes-in-canine-tick-and-e-chaffeensis-strains-across-the-data-set)
-    - [Create SRR mapping file](#create-srr-mapping-file)
-    - [Download FASTQs from SRA](#download-fastqs-from-sra)
-    - [Find GO terms and InterPro descriptions for canine, tick, and Ehrlichia genes](#find-go-terms-and-interpro-descriptions-for-canine-tick-and-ehrlichia-genes)
-        - [Canine/Tick](#caninetick)
-            - [Split FASTA files into 1000 sequence chunks](#split-fasta-files-into-1000-sequence-chunks)
-            - [Run InterProScan on split FASTA files](#run-interproscan-on-split-fasta-files)
-            - [Combine split InterProScan outputs](#combine-split-interproscan-outputs)
-        - [Ehrlichia](#ehrlichia)
-            - [Run InterProScan](#run-interproscan)
-    - [Convert InterProScan outputs to geneinfo files](#convert-interproscan-outputs-to-geneinfo-files)
-    - [Create reference indices](#create-reference-indices)
-        - [HISAT2](#hisat2)
-        - [Salmon](#salmon)
-    - [Quantify canine, tick, and E. chaffeensis transcript expression levels](#quantify-canine-tick-and-e-chaffeensis-transcript-expression-levels)
-        - [E. chaffeensis](#e-chaffeensis)
-            - [Align reads to their respective combined references](#align-reads-to-their-respective-combined-references)
-            - [Sort BAM files](#sort-bam-files)
-            - [Remove nonsorted BAM files](#remove-nonsorted-bam-files)
-            - [Index BAM files](#index-bam-files)
-            - [Quantify E. chaffeensis genes from BAM files using FADU](#quantify-e-chaffeensis-genes-from-bam-files-using-fadu)
-        - [Canine/Tick](#caninetick-1)
-            - [Quantify canine/tick transcripts directly from reads using Salmon](#quantify-caninetick-transcripts-directly-from-reads-using-salmon)
-    - [Conduct differential expression analysis](#conduct-differential-expression-analysis)
-        - [Canine](#canine)
-            - [Set R inputs](#set-r-inputs)
-            - [Load R functions](#load-r-functions)
-            - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo)
-            - [Create counts data frame](#create-counts-data-frame)
-            - [Create TPM data frame](#create-tpm-data-frame)
-            - [Set group levels](#set-group-levels)
-            - [Conduct saturation analysis](#conduct-saturation-analysis)
-            - [Exclude low count samples](#exclude-low-count-samples)
-            - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally)
-            - [Conduct PCA and hierarchical clustering analyses on genes that passed the CPM cutoff](#conduct-pca-and-hierarchical-clustering-analyses-on-genes-that-passed-the-cpm-cutoff)
-            - [Divide differentially expressed genes into expression modules](#divide-differentially-expressed-genes-into-expression-modules)
-        - [Tick](#tick)
-            - [Set R inputs](#set-r-inputs-1)
-            - [Load R functions](#load-r-functions-1)
-            - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo-1)
-            - [Create counts data frame](#create-counts-data-frame-1)
-            - [Create TPM data frame](#create-tpm-data-frame-1)
-            - [Set group levels](#set-group-levels-1)
-            - [Conduct saturation analysis](#conduct-saturation-analysis-1)
-            - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally-1)
-            - [Conduct PCA and hierarchical clustering analyses on genes that passed the CPM cutoff](#conduct-pca-and-hierarchical-clustering-analyses-on-genes-that-passed-the-cpm-cutoff-1)
-            - [Divide differentially expressed genes into expression modules](#divide-differentially-expressed-genes-into-expression-modules-1)
-        - [Ehrlichia](#ehrlichia-1)
-            - [Set R inputs](#set-r-inputs-2)
-            - [Load R functions](#load-r-functions-2)
-            - [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo-2)
-            - [Constructs core genome table that consists of only gene clusters consisting of one gene per strain](#constructs-core-genome-table-that-consists-of-only-gene-clusters-consisting-of-one-gene-per-strain)
-            - [Create counts data frame](#create-counts-data-frame-2)
-            - [Calculate average gene length for all core genes](#calculate-average-gene-length-for-all-core-genes)
-            - [Create TPM data frame](#create-tpm-data-frame-2)
-            - [Set group levels](#set-group-levels-2)
-            - [Conduct saturation analysis](#conduct-saturation-analysis-2)
-            - [Exclude low count samples and samples with only 1 replicate](#exclude-low-count-samples-and-samples-with-only-1-replicate)
-            - [Identify differentially expressed genes longitudinally](#identify-differentially-expressed-genes-longitudinally-2)
-            - [Conduct PCA and hierarchical clustering analyses on genes that passed the CPM cutoff](#conduct-pca-and-hierarchical-clustering-analyses-on-genes-that-passed-the-cpm-cutoff-2)
-            - [Divide differentially expressed genes into expression modules](#divide-differentially-expressed-genes-into-expression-modules-2)
-            - [Test each module partition for over-represented functional terms](#test-each-module-partition-for-over-represented-functional-terms)
+	- [Software](#software)
+	- [Directories](#directories)
+	- [Create directories](#create-directories)
+- [Assess RNA quantification tool performance using simulated prokaryote data](#assess-rna-quantification-tool-performance-using-simulated-prokaryote-data)
+	- [Simulate E. coli K-12 substr. MG1655 RNA-Seq data with operon annotations](#simulate-e-coli-k-12-substr-mg1655-rna-seq-data-with-operon-annotations)
+		- [Download and format reference files](#download-and-format-reference-files)
+		- [Edit GTF file to contain operon annotations](#edit-gtf-file-to-contain-operon-annotations)
+			- [Set R inputs](#set-r-inputs)
+			- [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo)
+			- [Parse operon information for E. coli K-12 substr MG1655 from OperonDB](#parse-operon-information-for-e-coli-k-12-substr-mg1655-from-operondb)
+			- [Edit E. coli K-12 substr. MG1655 gtf to include operon annotations](#edit-e-coli-k-12-substr-mg1655-gtf-to-include-operon-annotations)
+		- [Simulate RNA-Seq FASTA files using operon GTF](#simulate-rna-seq-fasta-files-using-operon-gtf)
+			- [Set R inputs](#set-r-inputs-1)
+			- [Load packages and view sessionInfo](#load-packages-and-view-sessioninfo-1)
+			- [Create gene FASTA reference](#create-gene-fasta-reference)
+			- [Create transcript FASTA reference using OperonDB predictions](#create-transcript-fasta-reference-using-operondb-predictions)
+			- [Simulate RNA-Seq experiment using transcript FASTA reference](#simulate-rna-seq-experiment-using-transcript-fasta-reference)
+		- [Convert simulated FASTAs to FASTQs](#convert-simulated-fastas-to-fastqs)
+		- [Quantify simulated FASTQs using alignment-based quantification tools](#quantify-simulated-fastqs-using-alignment-based-quantification-tools)
+			- [Create HISAT2 indexes and align simulated reads](#create-hisat2-indexes-and-align-simulated-reads)
+			- [Sort and index BAM files](#sort-and-index-bam-files)
+			- [Process GFF to contain only gene feature](#process-gff-to-contain-only-gene-feature)
+			- [Remove Windows end-of-line characters from R-generated FASTAs](#remove-windows-end-of-line-characters-from-r-generated-fastas)
+			- [Quantify simulated FASTQ files using alignment-based tools \(eXpress, FADU, featureCounts, HTSeq\)](#quantify-simulated-fastq-files-using-alignment-based-tools-express-fadu-featurecounts-htseq)
+		- [Quantify simulated FASTQs using alignment-free quantification tools](#quantify-simulated-fastqs-using-alignment-free-quantification-tools)
+			- [Create reference indexes](#create-reference-indexes)
+			- [Quantify simulated FASTQ files using alignment-free tools \(kallisto, Salmon\)](#quantify-simulated-fastq-files-using-alignment-free-tools-kallisto-salmon)
+	- [Determine whether FADU better predicts operon counts compared to other tools in a simulated data set](#determine-whether-fadu-better-predicts-operon-counts-compared-to-other-tools-in-a-simulated-data-set)
+		- [Set R inputs](#set-r-inputs-2)
+		- [Load R packages and view sessionInfo](#load-r-packages-and-view-sessioninfo)
+		- [Load R functions](#load-r-functions)
+		- [Establish list of samples](#establish-list-of-samples)
+		- [Store counts data from each tool in a list consisting of dataframes](#store-counts-data-from-each-tool-in-a-list-consisting-of-dataframes)
+		- [Parse operon information for E. coli K-12 substr MG1655 from OperonDB](#parse-operon-information-for-e-coli-k-12-substr-mg1655-from-operondb-1)
+		- [Read and prep GTF reference files](#read-and-prep-gtf-reference-files)
+		- [Conduct hiearchical clustering analysis on counts for simulated datasets](#conduct-hiearchical-clustering-analysis-on-counts-for-simulated-datasets)
+		- [Identify simulated differentially expressed genes from list of differentially expressed transcripts](#identify-simulated-differentially-expressed-genes-from-list-of-differentially-expressed-transcripts)
+		- [Conduct differential expression analysis](#conduct-differential-expression-analysis)
+			- [DESeq2](#deseq2)
+			- [edgeR](#edger)
+		- [Construct table of DE stats](#construct-table-of-de-stats)
+			- [DESeq2](#deseq2-1)
+			- [edgeR](#edger-1)
+		- [Plot stacked bar charts from DE stats](#plot-stacked-bar-charts-from-de-stats)
+			- [Plot legend](#plot-legend)
+			- [DESeq2](#deseq2-2)
+			- [edgeR](#edger-2)
+			- [Combine DESeq2 and edgeR plots](#combine-deseq2-and-edger-plots)
+		- [Compare counts for each tool to expected counts from simulation](#compare-counts-for-each-tool-to-expected-counts-from-simulation)
+			- [Plot the distributions of the actual versus expected values for each tool](#plot-the-distributions-of-the-actual-versus-expected-values-for-each-tool)
+- [Assess RNA quantification tool performance using actual RNA-Seq data](#assess-rna-quantification-tool-performance-using-actual-rna-seq-data)
+	- [Download and construct reference files](#download-and-construct-reference-files)
+		- [Download E. chaffeensis, E. coli, and wBm reference files](#download-e-chaffeensis-e-coli-and-wbm-reference-files)
+		- [Create CDS nucleotide fasta files](#create-cds-nucleotide-fasta-files)
+			- [Input Sets](#input-sets)
+			- [Commands](#commands)
+		- [Create combined reference files for B. malayi + wBm](#create-combined-reference-files-for-b-malayi--wbm)
+		- [Remove extra wBm entry in combined B. malayi + wBm reference](#remove-extra-wbm-entry-in-combined-b-malayi--wbm-reference)
+	- [Download FASTQ data from SRA](#download-fastq-data-from-sra)
+	- [Quantify FASTQs using alignment-based quantification tools](#quantify-fastqs-using-alignment-based-quantification-tools)
+		- [Create HISAT2 indexes and align simulated reads](#create-hisat2-indexes-and-align-simulated-reads-1)
+		- [Sort and index BAM files](#sort-and-index-bam-files-1)
+		- [Quantify simulated FASTQ files using alignment-based tools \(eXpress, FADU, featureCounts, HTSeq\)](#quantify-simulated-fastq-files-using-alignment-based-tools-express-fadu-featurecounts-htseq-1)
+	- [Quantify FASTQs using alignment-free quantification tools](#quantify-fastqs-using-alignment-free-quantification-tools)
+		- [Create reference indexes](#create-reference-indexes-1)
+		- [Quantify simulated FASTQ files using alignment-free tools \(kallisto, Salmon\)](#quantify-simulated-fastq-files-using-alignment-free-tools-kallisto-salmon-1)
+	- [Prepare wBm files for more specific analyses](#prepare-wbm-files-for-more-specific-analyses)
+		- [Split wBm genome BAM file by strandedness](#split-wbm-genome-bam-file-by-strandedness)
+		- [Index stranded wBm BAM files](#index-stranded-wbm-bam-files)
+		- [Calculate depth for stranded wBm BAM files](#calculate-depth-for-stranded-wbm-bam-files)
+	- [Determine whether FADU better quantifies compared to other tools in actual data sets](#determine-whether-fadu-better-quantifies-compared-to-other-tools-in-actual-data-sets)
+		- [Set R inputs](#set-r-inputs-3)
+		- [Load R packages and view sessionInfo](#load-r-packages-and-view-sessioninfo-1)
+		- [Load R functions](#load-r-functions-1)
+		- [Establish list of samples](#establish-list-of-samples-1)
+		- [Store counts data from each tool in a list consisting of dataframes](#store-counts-data-from-each-tool-in-a-list-consisting-of-dataframes-1)
+		- [Remove B. malayi genes from wBm analysis](#remove-b-malayi-genes-from-wbm-analysis)
+		- [Plot FADU log2counts v other tools' log2counts](#plot-fadu-log2counts-v-other-tools-log2counts)
+			- [Set plot order](#set-plot-order)
+			- [Plot FADU default v other tools](#plot-fadu-default-v-other-tools)
+			- [Plot FADU 10em v other tools](#plot-fadu-10em-v-other-tools)
+			- [Plot FADU no_multimapped v other tools](#plot-fadu-no_multimapped-v-other-tools)
+			- [Create figure legend](#create-figure-legend)
+		- [Conduct MA analysis](#conduct-ma-analysis)
+			- [Select quantification methods for MA analysis](#select-quantification-methods-for-ma-analysis)
+			- [Identify the methods over-/under-counted relative to default FADU](#identify-the-methods-over-under-counted-relative-to-default-fadu)
+			- [Identify the genes over-/under-counted relative to default FADU](#identify-the-genes-over-under-counted-relative-to-default-fadu)
+			- [Plot MA plots](#plot-ma-plots)
+		- [Examine counts for genes within a specific operon](#examine-counts-for-genes-within-a-specific-operon)
+			- [Set plot order](#set-plot-order-1)
+			- [Set operon genes and start and stop coordinates](#set-operon-genes-and-start-and-stop-coordinates)
+			- [Read and subset depth over operon region](#read-and-subset-depth-over-operon-region)
+			- [Calculate normalized relative count values](#calculate-normalized-relative-count-values)
+			- [Plot depth over operon region](#plot-depth-over-operon-region)
+			- [Plot normalized relative count values of operon region](#plot-normalized-relative-count-values-of-operon-region)
+			- [Create figure legend](#create-figure-legend-1)
+			- [Combine plots](#combine-plots)
+		- [Examine counts for genes under-counted by FADU](#examine-counts-for-genes-under-counted-by-fadu)
+			- [Set under-counted genes and start and stop coordinates](#set-under-counted-genes-and-start-and-stop-coordinates)
+			- [Read and subset depth over under-counted gene region](#read-and-subset-depth-over-under-counted-gene-region)
+			- [Plot depth over under-counted gene region](#plot-depth-over-under-counted-gene-region)
+			- [Plot count values of operon region](#plot-count-values-of-operon-region)
+- [Generate scripts for benchmarking](#generate-scripts-for-benchmarking)
+	- [Create benchmarking scripts directory](#create-benchmarking-scripts-directory)
+	- [Create benchmarking scripts](#create-benchmarking-scripts)
+	- [Remove extra scripts that do not need to be benchmarked](#remove-extra-scripts-that-do-not-need-to-be-benchmarked)
+	- [Download Shaun's benchmarking stats](#download-shauns-benchmarking-stats)
+	- [Plot benchmarking data](#plot-benchmarking-data)
+		- [Set R inputs](#set-r-inputs-4)
+		- [Load R packages and view sessionInfo](#load-r-packages-and-view-sessioninfo-2)
+		- [Load R functions](#load-r-functions-2)
+		- [Convert wallclock time units to seconds](#convert-wallclock-time-units-to-seconds)
+		- [Parse benchmarking data to create timing data frames for each dataset](#parse-benchmarking-data-to-create-timing-data-frames-for-each-dataset)
+		- [Parse benchmarking data to create VMem data frames for each dataset](#parse-benchmarking-data-to-create-vmem-data-frames-for-each-dataset)
+		- [Set plot order](#set-plot-order-2)
+		- [Create timing plots](#create-timing-plots)
+		- [Create VMem plots](#create-vmem-plots)
+		- [Combine timing and VMem plots](#combine-timing-and-vmem-plots)
 
 <!-- /MarkdownTOC -->
 
@@ -88,3400 +129,3081 @@
 For rerunning analyses, all paths in this section must be set by the user.
 
 ## Software
+
 ```{bash, eval = F}
-JULIA_DEPOT_PATH=/home/mattchung/.julia
-PYTHON_LIB_PATH=/usr/local/packages/python-3.5/lib
+SCRIPTS_BIN_DIR=/home/mattchung/scripts
 
 JULIA_BIN_DIR=/usr/local/bin
-R_BIN_DIR=/usr/local/packages/r-3.6.0/bin
+JULIA_LIB_DIR=/home/mattchung/.julia
+PYTHON_BIN_DIR=/usr/local/packages/python-3.5.2/bin
+PYTHON_LIB_DIR=/usr/local/packages/python-3.5.2/lib
 
-EMBOSS_BIN_DIR=/usr/local/packages/emboss-6.6.0/bin
+BBTOOLS_BIN_DIR=/usr/local/packages/bbtools-38.47
+DOS2UNIX_BIN_DIR=/usr/bin
+SAMTOOLS_BIN_DIR=/usr/local/packages/samtools-1.9/bin
+SEQTK_BIN_DIR=/usr/local/packages/seqtk-1.2/bin
+
+EXPRESS_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/express-1.5.1
 FADU_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/FADU_v1.7
 HISAT2_BIN_DIR=/usr/local/packages/hisat2-2.1.0
-INTERPROSCAN_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/interproscan-5.34-73.0
-NCBIBLAST_BIN_DIR=/usr/local/packages/ncbi-blast-2.2.26/bin
-PANOCT_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/panoct_v3.23/bin
-SAMTOOLS_BIN_DIR=/usr/local/packages/samtools-1.9/bin
+KALLISTO_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/kallisto_v0.46.1
 SALMON_BIN_DIR=/local/aberdeen2rw/julie/Matt_dir/packages/salmon_v1.1.0/bin
-SRATOOLKIT_BIN_DIR=/usr/local/packages/sratoolkit-2.10.0/bin
+SRATOOLKIT_BIN_DIR=/usr/local/packages/sratoolkit-2.9.0/bin
+SUBREAD_BIN_DIR=/usr/local/packages/subread-1.6.4/bin
 ```
 
 ## Directories
+
 ```{bash, eval = F}
-WORKING_DIR=/local/projects-t3/EBMAL/mchung_dir/PECHA/
-SCRIPTS_DIR=~/scripts/
+REFERENCES_DIR=/local/projects-t3/EBMAL/mchung_dir/fadu/references
+WORKING_DIR=/local/projects-t3/EBMAL/mchung_dir/fadu/
+OUTPUT_DIR=/local/projects-t3/EBMAL/mchung_dir/fadu/output
 ```
 
 ## Create directories
+
+```{bash, eval = F}
+mkdir "$WORKING_DIR"/simulation/
+mkdir "$WORKING_DIR"/simulation/reads
+```
+
+# Assess RNA quantification tool performance using simulated prokaryote data
+
+## Simulate E. coli K-12 substr. MG1655 RNA-Seq data with operon annotations
+
+### Download and format reference files
+```{bash, eval = F}
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.gff.gz
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.gtf.gz
+
+gunzip "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna.gz
+gunzip "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gff.gz
+gunzip "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gtf.gz
+
+cp "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna "$REFERENCES_DIR"/NC_000913.3.fa
+
+grep -v "#" "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gff > "$REFERENCES_DIR"/temp
+mv "$REFERENCES_DIR"/temp "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gff
+```
+
+### Edit GTF file to contain operon annotations
+
+#### Set R inputs
+
+R inputs from bash should be:
+
+REFERENCES.DIR = "$REFERENCES_DIR"
+
+```{R}
+REFERENCES.DIR <- "Z:/EBMAL/mchung_dir/fadu/references"
+```
+#### Load packages and view sessionInfo
+
+```{R}
+library(stringr)
+library(rlist)
+
+sessionInfo()
+```
+
+```{R, eval = F}
+R version 3.5.1 (2018-07-02)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 7 x64 (build 7601) Service Pack 1
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
+[3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
+[5] LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] stringr_1.4.0 rlist_0.4.6.1
+
+loaded via a namespace (and not attached):
+[1] compiler_3.5.1    magrittr_1.5      tools_3.5.1       yaml_2.2.0        stringi_1.4.3    
+[6] data.table_1.12.2 knitr_1.22        xfun_0.6
+```
+
+#### Parse operon information for E. coli K-12 substr MG1655 from OperonDB
+```{R}
+operon_page <- readLines("http://operondb.cbcb.umd.edu/cgi-bin/operondb/pairs.cgi?genome_id=376",warn=F)
+operon_delimit <- c(grep("coords:",operon_page),length(operon_page))
+
+operon_list <- list()
+while(length(operon_delimit) > 1){
+	operon_page_subset <- operon_page[(operon_delimit[1]+1):operon_delimit[2]]
+	operon_page_subset <- gsub(".*term=","",grep("entrez",operon_page_subset,value = T))
+	operon_list <- list.append(operon_list,
+								unique(sort(gsub(". .*","",operon_page_subset))))
+	operon_delimit <- operon_delimit[-1]
+}
+```
+
+#### Edit E. coli K-12 substr. MG1655 gtf to include operon annotations
+```{R}
+gtf <- read.delim(paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_genomic.gtf"), header = F, comment.char = "#")
+gtf <- gtf[gtf[,3] == "gene",]
+gtf[,9] <- gsub(";.*",";",gtf[,9])
+
+for(i in 1:length(operon.list)){
+	if(length(operon_list[[i]]) > 0){
+		start <- min(as.numeric(gtf[gtf[,9] %in% paste0("gene_id ", operon_list[[i]],";"),4]))
+		stop <- max(as.numeric(gtf[gtf[,9] %in% paste0("gene_id ", operon_list[[i]],";"),5]))
+		strand <- as.character(unique(gtf[gtf[,9] %in% paste0("gene_id ",operon_list[[i]],";"),7]))
+		
+		gtf <- gtf[!(gtf[,9] %in% paste0("gene_id ",operon_list[[i]],";")),]
+		
+		gtf <- as.data.frame(rbind(gtf,
+								  c("NC_000913.3",
+									"RefSeq",
+									"gene",
+									start,
+									stop,
+									".",
+									strand,
+									".",
+									paste0("gene_id operon",str_pad(i, 3, pad = "0"),";"))))
+	}
+}
+
+gtf <- gtf[order(as.numeric(as.character(gtf[,4]))),]
+
+write.table(gtf,
+			paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_genomic.operon.gtf"),
+			row.names = F,
+			col.names = F,
+			quote = F,
+			sep = "\t")
+```
+
+### Simulate RNA-Seq FASTA files using operon GTF
+
+#### Set R inputs
+
+R inputs from bash should be:
+
+REFERENCES.DIR = "$REFERENCES_DIR"
+WORKING.DIR = "$WORKING_DIR"/simulation/reads
+
+```{R}
+REFERENCES.DIR <- "Z:/EBMAL/mchung_dir/fadu/references"
+WORKING.DIR <- "Z:/EBMAL/mchung_dir/fadu/"
+```
+
+#### Load packages and view sessionInfo
+
+```{R}
+library(Biostrings)
+library(polyester)
+
+sessionInfo()
+```
+
+```{R, eval = F}
+R version 3.5.1 (2018-07-02)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 7 x64 (build 7601) Service Pack 1
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252    LC_MONETARY=English_United States.1252
+[4] LC_NUMERIC=C                           LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] stats4    parallel  stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] Biostrings_2.50.2   XVector_0.22.0      IRanges_2.16.0      S4Vectors_0.20.1    BiocGenerics_0.28.0 polyester_1.9.7    
+
+loaded via a namespace (and not attached):
+[1] zlibbioc_1.28.0  compiler_3.5.1   limma_3.38.3     tools_3.5.1      logspline_2.1.13 yaml_2.2.0
+```
+
+#### Create gene FASTA reference
+```{R}
+gene_fasta <- seq_gtf(gtf = paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_genomic.gtf"), 
+					  seqs = REFERENCES.DIR,
+					  feature = "transcript",
+					  exononly = F,
+					  idfield = "gene_id", 
+					  attrsep = "; ")
+writeXStringSet(gene_fasta, paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_genomic.gene.fna"))
+```
+
+#### Create transcript FASTA reference using OperonDB predictions
+
+```{R}
+gene_fasta <- seq_gtf(gtf = paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_iseed=enomic.operon.gtf"), 
+					  seqs = REFERENCES.DIR,
+					  feature = "transcript", 
+					  exononly = F,
+					  idfield = "gene_id", 
+					  attrsep = "; ")
+writeXStringSet(gene_fasta, paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_genomic.transcript.fna"))
+```
+
+#### Simulate RNA-Seq experiment using transcript FASTA reference
+
+RNA-Seq experiment contains 2 biological groups with 2 replicates each and 300 up- and 300 down-regulated genes.
+```{R}
+num_reps <- c(2,2)
+
+fold_change_matrix <- matrix(1,
+							 ncol = 1,
+							 nrow = count_transcripts(paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_genomic.operon.gtf"),
+													  fasta = F,identifier="gene_id"))
+
+set.seed(5)
+fold_change_matrix[sample(1:nrow(fold_change_matrix),600)[1:300],1] <- 2
+fold_change_matrix[sample(1:nrow(fold_change_matrix),600)[301:600],1] <- 0.5
+
+#fold_change_matrix <- fold_change_matrix[1:987,]
+simulate_experiment(fasta=paste0(REFERENCES.DIR,"/GCF_000005845.2_ASM584v2_genomic.transcript.fna"),
+					outdir = paste0(WORKING.DIR,"/simulation/reads"),
+					num_reps = num_reps,
+					fold_changes = fold_change_matrix,
+					strand_specific = T,
+					gzip = T,
+					seed = 5)
+```
+### Convert simulated FASTAs to FASTQs
+
+##### Inputs
+```{bash, eval = F}
+READS_DIR="$WORKING_DIR"/simulation/reads
+```
+
+##### Commands
+```{bash, eval = F}
+for SAMPLE in $(find "$READS_DIR" -name "*[.]fasta.gz" | sed "s/.*\\///g" | sort | sed "s/_[12].fasta.gz//g" | uniq)
+do
+	"$BBTOOLS_BIN_DIR"/reformat.sh in="$READS_DIR"/"$SAMPLE"_1.fasta.gz in2="$READS_DIR"/"$SAMPLE"_2.fasta.gz out="$READS_DIR"/"$SAMPLE"_1.fastq.gz out2="$READS_DIR"/"$SAMPLE"_2.fastq.gz qfake=35
+done
+```
+
+### Quantify simulated FASTQs using alignment-based quantification tools
+
+#### Create HISAT2 indexes and align simulated reads
+##### Inputs
+```{bash, eval = F}
+READS_DIR="$WORKING_DIR"/simulation/reads
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna
+THREADS=16
+```
+
+##### Commands
 ```{bash, eval = F}
 mkdir -p "$WORKING_DIR"/bam
-mkdir -p "$WORKING_DIR"/fadu
-mkdir -p "$WORKING_DIR"/panoct
-mkdir -p "$WORKING_DIR"/plots
-mkdir -p "$WORKING_DIR"/reads
-mkdir -p "$WORKING_DIR"/references
-mkdir -p "$WORKING_DIR"/salmon
+
+"$HISAT2_BIN_DIR"/hisat2-build --large-index "$NUC_GENOME_FNA" "$NUC_GENOME_FNA"
+"$HISAT2_BIN_DIR"/hisat2-build --large-index "$NUC_GENE_FNA" "$NUC_GENE_FNA"
+
+for SAMPLE in $(find "$READS_DIR" -name "*[.]fasta.gz" | sed "s/.*\\///g" | sort | sed "s/_[12].fasta.gz//g" | uniq)
+do
+	echo -e ""$HISAT2_BIN_DIR"/hisat2 -p "$THREADS" -k 200 -X 1000 -x "$NUC_GENOME_FNA" -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz --no-spliced-alignment --no-discordant | "$SAMTOOLS_BIN_DIR"/samtools view -bhSo "$WORKING_DIR"/bam/"$SAMPLE".genome.bam -" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N hisat2 -wd "$WORKING_DIR"/bam
+
+	echo -e ""$HISAT2_BIN_DIR"/hisat2 -p "$THREADS" -k 200 -X 1000 -x "$NUC_GENE_FNA" -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz --no-spliced-alignment --no-discordant | "$SAMTOOLS_BIN_DIR"/samtools view -bhSo "$WORKING_DIR"/bam/"$SAMPLE".transcript.bam -" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N hisat2 -wd "$WORKING_DIR"/bam
+done
 ```
 
-## Set up reference files
+#### Sort and index BAM files
 
-### Download canine, tick and all E. chaffeensis reference files
+##### Inputs
+```{bash, eval = F}
+BAM_DIR="$WORKING_DIR"/bam
+THREADS=16
+```
+
+##### Commands
+```{bash, eval = F}
+for SAMPLE in $(find "$BAM_DIR" -name "*[.]bam" | sed "s/.*\\///g" | sort | sed "s/[.].*//g" | uniq)
+do
+  "$SAMTOOLS_BIN_DIR"/samtools sort "$BAM_DIR"/"$SAMPLE".genome.bam -@ "$THREADS" -o "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam
+  "$SAMTOOLS_BIN_DIR"/samtools sort "$BAM_DIR"/"$SAMPLE".transcript.bam -@ "$THREADS" -n -o "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam
+  "$SAMTOOLS_BIN_DIR"/samtools index "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -@ "$THREADS"
+done 
+```
+
+#### Process GFF to contain only gene feature
+
+##### Inputs
+```{bash, eval = F}
+GFF3=/local/projects-t3/EBMAL/mchung_dir/fadu/references/GCF_000005845.2_ASM584v2_genomic.gff
+```
 
 ```{bash, eval = F}
-## Canine
-wget -O "$WORKING_DIR"/references/canine.fna.gz ftp://ftp.ensembl.org/pub/release-99/fasta/canis_familiaris/dna/Canis_familiaris.CanFam3.1.dna.toplevel.fa.gz
-wget -O "$WORKING_DIR"/references/canine.cds.fna.gz ftp://ftp.ensembl.org/pub/release-99/fasta/canis_familiaris/cds/Canis_familiaris.CanFam3.1.cds.all.fa.gz
+awk '$3 == "gene" {print $0}' "$GFF3" > $(echo "$GFF3" | sed "s/[.]gff/.gene.gff/g")""
+```
 
-## Tick
-wget -O "$WORKING_DIR"/references/tick.fna.gz ftp://ftp.ensemblgenomes.org/pub/metazoa/release-46/fasta/ixodes_scapularis/dna/Ixodes_scapularis.IscaW1.dna.toplevel.fa.gz
-wget -O "$WORKING_DIR"/references/tick.cds.fna.gz ftp://ftp.ensemblgenomes.org/pub/metazoa/release-46/fasta/ixodes_scapularis/cds/Ixodes_scapularis.IscaW1.cds.all.fa.gz
+#### Remove Windows end-of-line characters from R-generated FASTAs
+
+##### Inputs
+```{bash, eval = F}
+## Input Set 1
+FNA=/local/projects-t3/EBMAL/mchung_dir/fadu/references/GCF_000005845.2_ASM584v2_genomic.gene.fna
+
+## Input Set 2
+FNA=/local/projects-t3/EBMAL/mchung_dir/fadu/references/GCF_000005845.2_ASM584v2_genomic.transcript.fna
+```
+
+```{bash, eval = F}
+"$DOS2UNIX_BIN_DIR"/dos2unix "$FNA"
+```
+
+#### Quantify simulated FASTQ files using alignment-based tools (eXpress, FADU, featureCounts, HTSeq)
+
+##### Inputs
+```{bash, eval = F}
+BAM_DIR="$WORKING_DIR"/bam
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.gff
+FEAT_TYPE=gene
+ATTR_ID=ID
+THREADS=16
+STRANDED=yes
+```
+
+##### Commands
+```{bash, eval = F}
+mkdir -p "$WORKING_DIR"/quant
+
+for SAMPLE in $(find "$BAM_DIR" -name "*[.]bam" | sed "s/.*\\///g" | sort | sed "s/[.].*//g" | uniq)
+do
+if [ "$STRANDED" == reverse ]
+then
+
+	echo -e ""$EXPRESS_BIN_DIR"/express --rf-stranded -o "$WORKING_DIR"/quant/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+	echo -e ""$EXPRESS_BIN_DIR"/express --rf-stranded -B10 --no-bias-correct -o "$WORKING_DIR"/quant/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_default.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID"" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_10em.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_nomm.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_union.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionstrict.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionnonempty.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_unionnonuniqueall.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+
+elif [ "$STRANDED" == yes ]
+then
+
+	echo -e ""$EXPRESS_BIN_DIR"/express --fr-stranded -o "$WORKING_DIR"/quant/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+	echo -e ""$EXPRESS_BIN_DIR"/express --fr-stranded -B10 --no-bias-correct -o "$WORKING_DIR"/quant/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_default.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID"" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_10em.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_nomm.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_union.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionstrict.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionnonempty.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_unionnonuniqueall.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+
+else
+
+	echo -e ""$EXPRESS_BIN_DIR"/express -o "$WORKING_DIR"/quant/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+	echo -e ""$EXPRESS_BIN_DIR"/express -B10 --no-bias-correct -o "$WORKING_DIR"/quant/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_default.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID"" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_10em.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_nomm.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_union.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionstrict.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionnonempty.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_unionnonuniqueall.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+
+fi
+done
+```
+### Quantify simulated FASTQs using alignment-free quantification tools
+
+#### Create reference indexes
+##### Inputs
+```{bash, eval = F}
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+```
+
+##### Commands
+```{bash, eval = F}
+"$KALLISTO_BIN_DIR"/kallisto index -i "$NUC_GENE_FNA".kallisto.index --make-unique "$NUC_GENE_FNA"
+"$SALMON_BIN_DIR"/salmon index --keepDuplicates -t "$NUC_GENE_FNA" -i "$NUC_GENE_FNA".salmon.index 
+```
+
+#### Quantify simulated FASTQ files using alignment-free tools (kallisto, Salmon)
+
+##### Inputs
+```{bash, eval = F}
+READS_DIR="$WORKING_DIR"/simulation/reads
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+THREADS=16
+STRANDED=yes
+```
+
+##### Commands
+```{bash, eval = F}
+for SAMPLE in $(find "$READS_DIR" -name "*[.]fasta.gz" | sed "s/.*\\///g" | sort | sed "s/_[12].fasta.gz//g" | uniq)
+do
+	echo -e ""$SALMON_BIN_DIR"/salmon quant -i "$NUC_GENE_FNA".salmon.index --libType A -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz -p "$THREADS" -o "$WORKING_DIR"/quant/"$SAMPLE".salmon_default.counts --validateMappings" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N salmon -wd "$WORKING_DIR"/quant/
+
+	echo -e ""$SALMON_BIN_DIR"/salmon quant -i "$NUC_GENE_FNA".salmon.index --libType A -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz -p "$THREADS" -o "$WORKING_DIR"/quant/"$SAMPLE".salmon_optimized.counts --validateMappings  --allowDovetail" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N salmon -wd "$WORKING_DIR"/quant/
+
+	if [ "$STRANDED" == reverse ]
+	then
+		echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" --rf-stranded -o "$WORKING_DIR"/quant/"$SAMPLE".kallisto_default.counts "$READS_DIR"/"$SAMPLE"_1.fastq.gz "$READS_DIR"/"$SAMPLE"_2.fastq.gz" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N kallisto -wd "$WORKING_DIR"/quant/
+	elif [ "$STRANDED" == yes ]
+	then
+		echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" --fr-stranded -o "$WORKING_DIR"/quant/"$SAMPLE".kallisto_default.counts "$READS_DIR"/"$SAMPLE"_1.fastq.gz "$READS_DIR"/"$SAMPLE"_2.fastq.gz" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N kallisto -wd "$WORKING_DIR"/quant/
+
+	else
+		echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" -o "$WORKING_DIR"/quant/"$SAMPLE".kallisto_default.counts "$READS_DIR"/"$SAMPLE"_1.fastq.gz "$READS_DIR"/"$SAMPLE"_2.fastq.gz" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N kallisto -wd "$WORKING_DIR"/quant/
+	fi
+done
+```
+
+## Determine whether FADU better predicts operon counts compared to other tools in a simulated data set
+
+### Set R inputs
+
+```{R}
+QUANT_DIR <- "Z:/EBMAL/mchung_dir/fadu/quant"
+OUTPUT_DIR <- "Z:/EBMAL/mchung_dir/fadu/output"
+REFERENCES_DIR <- "Z:/EBMAL/mchung_dir/fadu/references"
+
+EXPECTED_COUNTS_PATH <- "Z:/EBMAL/mchung_dir/fadu/simulation/reads/sim_counts_matrix.rda"
+EXPECTED_DE_PATH <- "Z:/EBMAL/mchung_dir/fadu/simulation/reads/sim_tx_info.txt"
+```
+
+### Load R packages and view sessionInfo
+
+```{R}
+library(dendextend)
+library(ggdendro)
+library(ggplot2)
+library(gridExtra)
+library(matrixStats)
+library(pvclust)
+library(reshape2)
+library(rlist)
+library(see)
+
+sessionInfo()
+```
+
+```{R, eval = F}
+R version 3.5.0 (2018-04-23)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 18362)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
+[3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
+[5] LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] see_0.3.0                   rlist_0.4.6.1               reshape2_1.4.3             
+ [4] pvclust_2.0-0               gridExtra_2.3               ggplot2_3.2.0              
+ [7] ggdendro_0.1-20             DESeq2_1.22.2               SummarizedExperiment_1.12.0
+[10] DelayedArray_0.8.0          BiocParallel_1.16.6         matrixStats_0.54.0         
+[13] Biobase_2.42.0              GenomicRanges_1.34.0        GenomeInfoDb_1.18.2        
+[16] IRanges_2.16.0              S4Vectors_0.20.1            BiocGenerics_0.28.0        
+[19] dendextend_1.12.0           cowplot_1.0.0               edgeR_3.24.3               
+[22] limma_3.38.3               
+
+loaded via a namespace (and not attached):
+ [1] bitops_1.0-6           bit64_0.9-7            insight_0.8.0          RColorBrewer_1.1-2    
+ [5] tools_3.5.0            backports_1.1.4        R6_2.4.0               rpart_4.1-13          
+ [9] Hmisc_4.2-0            DBI_1.0.0              lazyeval_0.2.2         colorspace_1.4-1      
+[13] nnet_7.3-12            withr_2.1.2            tidyselect_0.2.5       bit_1.1-14            
+[17] compiler_3.5.0         htmlTable_1.13.1       labeling_0.3           bayestestR_0.4.0      
+[21] scales_1.0.0           checkmate_1.9.4        genefilter_1.64.0      ggridges_0.5.2        
+[25] stringr_1.4.0          digest_0.6.20          foreign_0.8-70         XVector_0.22.0        
+[29] base64enc_0.1-3        pkgconfig_2.0.2        htmltools_0.3.6        htmlwidgets_1.3       
+[33] rlang_0.4.0            rstudioapi_0.10        RSQLite_2.1.2          acepack_1.4.1         
+[37] dplyr_0.8.3            RCurl_1.95-4.12        magrittr_1.5           GenomeInfoDbData_1.2.0
+[41] Formula_1.2-3          parameters_0.3.0       Matrix_1.2-14          Rcpp_1.0.2            
+[45] munsell_0.5.0          viridis_0.5.1          stringi_1.4.3          MASS_7.3-51.4         
+[49] zlibbioc_1.28.0        plyr_1.8.4             grid_3.5.0             blob_1.2.0            
+[53] crayon_1.3.4           lattice_0.20-35        splines_3.5.0          annotate_1.60.1       
+[57] locfit_1.5-9.1         zeallot_0.1.0          knitr_1.23             pillar_1.4.2          
+[61] effectsize_0.0.1       geneplotter_1.60.0     XML_3.98-1.20          glue_1.3.1            
+[65] latticeExtra_0.6-28    data.table_1.12.2      vctrs_0.2.0            gtable_0.3.0          
+[69] purrr_0.3.2            assertthat_0.2.1       xfun_0.8               xtable_1.8-4          
+[73] survival_2.41-3        viridisLite_0.3.0      tibble_2.1.3           AnnotationDbi_1.44.0  
+[77] memoise_1.1.0          cluster_2.0.7-1       
+```
+
+### Load R functions
+```{R}
+formalize_names <- function(vector){
+	vector <- gsub("express_default","eXpress",vector)
+	vector <- gsub("express_optimized","eXpress\n-B10 --no-bias-correct",vector)
+
+	vector <- gsub("fadu_default","FADU",vector)
+	vector <- gsub("fadu_10em","FADU\n--em_iterations 10",vector)
+	vector <- gsub("fadu_nomm","FADU\n--remove_multimapped",vector)
+
+	 vector <- gsub("htseq_unionnonuniqueall","HTSeq\n-m union --nonunique all",vector)
+	vector <- gsub("htseq_union","HTSeq\n-m union",vector)
+	vector <- gsub("htseq_intersectionstrict","HTSeq\n-m intersection-strict",vector)
+	vector <- gsub("htseq_intersectionnonempty","HTSeq\n-m intersection-nonempty",vector)
+	
+
+	vector <- gsub("featurecounts_default","featureCounts",vector)
+	vector <- gsub("featurecounts_overlap","featureCounts\n-O",vector)
+	vector <- gsub("featurecounts_fractionaloverlap","featureCounts\n-O --fraction",vector)
+
+	vector <- gsub("salmon_default","Salmon\n--validateMappings",vector)
+	vector <- gsub("salmon_optimized","Salmon\n--validateMappings --allowDovetail",vector)
+
+	vector <- gsub("kallisto_default","kallisto",vector)
+}
+
+g_legend<-function(a.gplot){ 
+  tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
+  legend <- tmp$grobs[[leg]] 
+  return(legend)
+} 
+```
+
+### Establish list of samples
+
+```{R}
+samples <- c("sample_01","sample_02","sample_03","sample_04")
+```
+
+### Store counts data from each tool in a list consisting of dataframes
+
+```{R}
+quant_tools <- c("fadu_default",
+                 "fadu_10em",
+                 "fadu_nomm",
+                 "express_default",
+                 "express_optimized",
+                 "featurecounts_default",
+                 "featurecounts_overlap",
+                 "featurecounts_fractionaloverlap",
+                 "htseq_union",
+                 "htseq_intersectionstrict",
+                 "htseq_intersectionnonempty",
+                 "htseq_unionnonuniqueall",
+                 "kallisto_default",
+                 "salmon_default",
+                 "salmon_optimized")
+
+counts <- list()
+for(i in 1:length(samples)){
+  counts[[i]] <- as.data.frame(matrix(nrow = nrow(read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_default.counts/",samples[i],".genome.sortedbyposition.counts.txt"))),
+                                 ncol = length(quant_tools)))
+  rownames(counts[[i]]) <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_default.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,1]
+  colnames(counts[[i]]) <- quant_tools
+  
+  counts[[i]]$fadu_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_default.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,4]
+  counts[[i]]$fadu_10em <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_10em.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,4]
+  counts[[i]]$fadu_nomm <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_nomm.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,4]
+  
+  counts[[i]]$express_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".express_default.counts/results.xprs"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".express_default.counts/results.xprs"))[,2]),8]
+  counts[[i]]$express_optimized <- read.delim(paste0(QUANT_DIR,"/",samples[i],".express_optimized.counts/results.xprs"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".express_optimized.counts/results.xprs"))[,2]),8]
+  
+  counts[[i]]$featurecounts_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_default.counts"),comment.char="#")[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_default.counts"),comment.char="#")[,1]),7]
+  counts[[i]]$featurecounts_overlap <- read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_overlap.counts"),comment.char="#")[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_overlap.counts"),comment.char="#")[,1]),7]
+  counts[[i]]$featurecounts_fractionaloverlap <- read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_fractionaloverlap.counts"),comment.char="#")[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_fractionaloverlap.counts"),comment.char="#")[,1]),7]
+  
+  counts[[i]]$htseq_union <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_union.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_union.counts"),header = F)[,1]),2]
+  counts[[i]]$htseq_intersectionstrict <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionstrict.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionstrict.counts"),header = F)[,1]),2]
+  counts[[i]]$htseq_intersectionnonempty <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionnonempty.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionnonempty.counts"),header = F)[,1]),2]
+  counts[[i]]$htseq_unionnonuniqueall <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_unionnonuniqueall.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_unionnonuniqueall.counts"),header = F)[,1]),2]
+  
+  counts[[i]]$kallisto_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".kallisto_default.counts/abundance.tsv"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".kallisto_default.counts/abundance.tsv"))[,1]),4]
+  
+  counts[[i]]$salmon_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_default.counts/quant.sf"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_default.counts/quant.sf"))[,1]),5]
+  counts[[i]]$salmon_optimized <- read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_optimized.counts/quant.sf"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_optimized.counts/quant.sf"))[,1]),5]
+}
+
+```
+
+### Parse operon information for E. coli K-12 substr MG1655 from OperonDB
+
+```{R}
+operon_page <- readLines("http://operondb.cbcb.umd.edu/cgi-bin/operondb/pairs.cgi?genome_id=376",warn=F)
+operon_delimit <- c(grep("coords:",operon_page),length(operon_page))
+
+operon_list <- list()
+while(length(operon_delimit) > 1){
+	operon_page_subset <- operon_page[(operon_delimit[1]+1):operon_delimit[2]]
+	operon_page_subset <- gsub(".*term=","",grep("entrez",operon_page_subset,value = T))
+	operon_list <- list.append(operon_list,
+								unique(sort(gsub(". .*","",operon_page_subset))))
+	operon_delimit <- operon_delimit[-1]
+}
+operon_list <- operon_list[lapply(operon_list,length)>0]
+```
+
+### Read and prep GTF reference files
+
+```{R}
+gtf <- read.delim(paste0(REFERENCES_DIR,"/GCF_000005845.2_ASM584v2_genomic.gtf"),header = F)
+gene_gtf <- gtf[gtf[,3] == "gene",]
+operon_gtf <- read.delim(paste0(REFERENCES_DIR,"/GCF_000005845.2_ASM584v2_genomic.operon.gtf"),header = F)
+
+pseudogenes <- gene_gtf[grep("gene_biotype pseudogene",gene_gtf[,9]),9]
+
+gene_gtf[,9] <- gsub("gene_id b","gene-b",gene_gtf[,9])
+gene_gtf[,9] <- gsub(";.*","",gene_gtf[,9])
+operon_gtf[,9] <- gsub("gene_id b","gene-b",operon_gtf[,9])
+operon_gtf[,9] <- gsub(";.*","",operon_gtf[,9])
+pseudogenes <- gsub("gene_id b","gene-b",pseudogenes)
+pseudogenes <- gsub(";.*","",pseudogenes)
+
+operon_gtf[grep("operon",operon_gtf[,9]),9] <- gsub("gene_id ","",operon_gtf[grep("operon",operon_gtf[,9]),9])
+names(operon_list) <- operon_gtf[grep("operon",operon_gtf[,9]),9]
+```
+
+### Conduct hiearchical clustering analysis on counts for simulated datasets
+
+```{R,fig.height = 4, fig.width = 6}
+pvclust <- pvclust(log2(counts[[1]]+1), method.hclust="average",
+                   method.dist="correlation",
+                   nboot=100,
+                   iseed = 5)
+
+structure <- hang.dendrogram(as.dendrogram(pvclust$hclust))
+structure <- capture.output(str(structure))
+structure <- structure[grepl("leaf", structure)]
+structure  <- as.numeric(as.character(substr(structure,
+             regexpr("h=", structure )+ 3,
+             regexpr("  )", structure ))))
+# colorkey <- read.table(colorkey.path)
+# color <- substr(colnames(df), regexpr("Bm", colnames(df)), regexpr("_.$", colnames(df)) - 1)
+# for(i in 1:nrow(colorkey)){
+#   color <- gsub(colorkey[i,1], colorkey[i,2], color)
+# }
+# shape <- c()
+# for(i in 1:length(colnames(tpm.de))){
+#   if(grepl("agss", colnames(tpm.de)[i])){
+#     shape[i] <- 16
+#   }else{
+#     shape[i] <- 17
+#   }
+# }
+# dendroshape <- shape[result$hclust$order]
+dendrocolor <- gsub("_.*","",colnames(counts[[1]]))[pvclust$hclust$order]
+
+dendro.data <- dendro_data(pvclust$hclust)
+dendro.data <- dendro.data$segments[which(dendro.data$segments$y == dendro.data$segments$yend),]
+for(i in 1:nrow(dendro.data)){
+  dendro.data$minx[i] <- min(c(dendro.data$x[i], dendro.data$xend[i]))
+}
+dendro.data <- dendro.data[order(as.numeric(as.character(dendro.data$y)), as.numeric(as.character(dendro.data$minx))),]
+
+bootstrap.positions <- as.data.frame(matrix(nrow = length(dendro.data$y[duplicated(dendro.data$y)]),
+                                            ncol = 2))
+for(i in 1:length(dendro.data$y[duplicated(dendro.data$y)])){
+  dendro.data.subset <- dendro.data[which(dendro.data$y == dendro.data$y[duplicated(dendro.data$y)][i]),]
+  bootstrap.positions[i,1] <- unique(dendro.data.subset$x)
+  bootstrap.positions[i,2] <- unique(dendro.data.subset$y)
+}
+
+points.df <- as.data.frame(cbind(seq(1,length(structure),1),
+                                 structure))
+pvclust$hclust$labels <- formalize_names(pvclust$hclust$labels)
+
+root.dendro <- ggdendrogram(hang.dendrogram(as.dendrogram(pvclust$hclust)), theme_dendro = T)+
+  geom_point(aes(x=points.df[,1], y = points.df[,2], color = dendrocolor), size = 3)+
+  guides(color = F)+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+for(i in 1:length(pvclust$edges$bp)){
+  text <- round(pvclust$edges$bp[i] * 100,0)
+  root.dendro <- root.dendro + annotate("text", label = text, x=bootstrap.positions[i,1] + 0.2, y=bootstrap.positions[i,2] + 0.012, size = 2)
+}
+
+pdf(paste0(OUTPUT_DIR,"/counts_dendro.pdf"),
+    height=4,
+    width=6)
+print(root.dendro)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/counts_dendro.png"),
+    height=4,
+    width=6,
+    units = "in",res=300)
+print(root.dendro)
+dev.off()
+
+print(root.dendro)
+```
+
+### Identify simulated differentially expressed genes from list of differentially expressed transcripts
+
+```{R}
+expected_de <- read.delim(EXPECTED_DE_PATH)
+expected_de <- expected_de[expected_de[,3] == T,]
+expected_de_up_transcripts <- expected_de[expected_de[,2] == 2,1]
+expected_de_down_transcripts <- expected_de[expected_de[,2] == 0.5,1]
+
+length(expected_de_up_transcripts)
+length(expected_de_down_transcripts)
+```
+
+```{R, eval = F}
+[1] 256
+[1] 300
+```
+
+```{R}
+expected_de_up_genes <- expected_de_up_transcripts
+expected_de_down_genes <- expected_de_down_transcripts
+
+for(i in grep("operon",expected_de_up_genes)){
+  operon <- gsub(";","",expected_de_up_genes[i])
+  expected_de_up_genes <- c(as.character(expected_de_up_genes),operon_list[[operon]])
+}
+
+for(i in grep("operon",expected_de_down_genes)){
+  operon <- gsub(";","",expected_de_down_genes[i])
+  expected_de_down_genes <- c(as.character(expected_de_down_genes),operon_list[[operon]])
+}
+
+expected_de_up_genes <- unique(paste0("gene-",gsub(";","",expected_de_up_genes[grep("operon",expected_de_up_genes,invert=T)])))
+expected_de_down_genes <- unique(paste0("gene-",gsub(";","",expected_de_down_genes[grep("operon",expected_de_down_genes,invert=T)])))
+
+length(expected_de_up_genes)
+length(expected_de_down_genes)
+```
+
+```{R, eval = F}
+[1] 585
+[1] 678
+```
+
+### Conduct differential expression analysis
+
+#### DESeq2
+```{R}
+FDRcutoff <- 0.05
+
+deseq2.pairwise.degenes <- list()
+deseq2.pairwise.excludegenes <- list()
+for(i in 1:ncol(counts[[1]])){
+  counts.pairwise <- as.data.frame(cbind(counts[[1]][,i],
+                                         counts[[2]][,i],
+                                         counts[[3]][,i],
+                                         counts[[4]][,i]))
+  rownames(counts.pairwise) <- rownames(counts[[1]])
+  deseq.groups <- as.data.frame(matrix(nrow=4,
+                                       ncol=1))
+  deseq.groups[,1] <- as.factor(c("a","a","b","b"))
+
+  rownames(deseq.groups) <- colnames(counts.pairwise)
+  colnames(deseq.groups) <- "condition"
+  
+  dds <- DESeqDataSetFromMatrix(countData = round(counts.pairwise),
+					colData = deseq.groups,
+					design = ~ condition)
+  dds <- DESeq(dds, test="LRT", reduced=~1)
+  keep <- rowSums(counts(dds)) >= 10
+  deseq2.pairwise.excludegenes[[i]] <-  rownames(counts.pairwise)[which(keep == F)]
+
+  res <- results(dds, cooksCutoff=T)
+  res <- res[!is.na(res$padj),]
+  deseq2.pairwise.degenes[[i]] <- rownames(res)[res$padj < FDRcutoff]
+}
+names(deseq2.pairwise.degenes) <- colnames(counts[[1]])
+names(deseq2.pairwise.excludegenes) <- colnames(counts[[1]])
+```
+
+#### edgeR
+```{R}
+FDRcutoff <- 0.05
+
+edgeR.pairwise.degenes <- list()
+edgeR.pairwise.excludegenes <- list()
+
+for(i in 1:ncol(counts[[1]])){
+  counts.pairwise <- as.data.frame(cbind(counts[[1]][,i],
+                                         counts[[2]][,i],
+                                         counts[[3]][,i],
+                                         counts[[4]][,i]))
+  rownames(counts.pairwise) <- rownames(counts[[1]])
+  groups.pairwise <- c(1,1,2,2)
+  #groups.pairwise[,2] <- factor(groups.pairwise[,2],levels=unique(groups.pairwise[,2]))
+  
+  cpm.cutoff <- 5/min(colSums(counts.pairwise)) * 1000000
+  
+  y <- DGEList(counts = counts.pairwise, group = groups.pairwise)
+  y <- calcNormFactors(y)
+  keep <- rowSums(cpm(y) >= cpm.cutoff) >= min(table(groups.pairwise))
+  edgeR.pairwise.excludegenes[[i]] <- rownames(counts.pairwise)[keep == F]
+
+  y <- y[keep, , keep.lib.sizes = F]
+  design <- model.matrix(~groups.pairwise)
+  y <- estimateDisp(y , design)
+  fit <- glmQLFit(y, design)
+  qlf <- glmQLFTest(fit, coef = 2)
+  
+  qlf$table$padj <- p.adjust(qlf$table$PValue, method="BH")
+  edgeR.pairwise.degenes[[i]] <- rownames(qlf$table)[qlf$table$padj < FDRcutoff]
+}
+names(edgeR.pairwise.degenes) <- colnames(counts[[1]])
+names(edgeR.pairwise.excludegenes) <- colnames(counts[[1]])
+```
+
+### Construct table of DE stats
+
+#### DESeq2
+```{R}
+deseq2_de_stats <- as.data.frame(matrix(nrow=length(deseq2.pairwise.degenes),
+                                 ncol = 0))
+for(i in 1:length(deseq2.pairwise.degenes)){
+  deseq2_de_stats$'Quantification Method'[i] <- names(deseq2.pairwise.degenes)[i]
+  deseq2_de_stats$'DE Genes Excluded by Expression Threshold'[i] <- length(intersect(edgeR.pairwise.excludegenes[[i]],unique(expected_de_up_genes,expected_de_down_genes)))
+  deseq2_de_stats$'NDE Genes Excluded by Expression Threshold'[i] <- length(deseq2.pairwise.excludegenes[[i]]) - deseq2_de_stats$'DE Genes Excluded by Expression Threshold'[i]
+  deseq2_de_stats$'DE Genes Identified'[i] <- length(deseq2.pairwise.degenes[[i]])
+  deseq2_de_stats$'Correct DE Genes'[i] <- length(intersect(expected_de_up_genes,deseq2.pairwise.degenes[[i]])) + length(intersect(expected_de_down_genes,deseq2.pairwise.degenes[[i]]))
+  deseq2_de_stats$'Correct Upregulated DE Genes'[i] <- length(intersect(expected_de_up_genes,deseq2.pairwise.degenes[[i]]))
+  deseq2_de_stats$'Correct Downregulated DE Genes'[i] <- length(intersect(expected_de_down_genes,deseq2.pairwise.degenes[[i]]))
+}
+deseq2_de_stats$'False Positive DE Genes' <- deseq2_de_stats$'DE Genes Identified' - deseq2_de_stats$'Correct DE Genes'
+deseq2_de_stats$'Missed DE Genes' <- length(unique(c(expected_de_up_genes,expected_de_down_genes))) - deseq2_de_stats$'Correct DE Genes'
+deseq2_de_stats$'Correct NDE Genes' <- nrow(counts[[1]]) - deseq2_de_stats$'Correct DE Genes' - deseq2_de_stats$'False Positive DE Genes' - deseq2_de_stats$'Missed DE Genes'
+
+# deseq2_de_stats$correct <- deseq2_de_stats$'Correct Upregulated DE Genes' + deseq2_de_stats$'Correct Downregulated DE Genes' + deseq2_de_stats$'Correct NDE Genes'
+# deseq2_de_stats$wrong <- deseq2_de_stats$'False Positive DE Genes' + deseq2_de_stats$'Missed DE Genes'
+
+deseq2_de_stats$'Quantification Method' <- formalize_names(deseq2_de_stats$'Quantification Method')
+```
+
+#### edgeR
+```{R}
+edgeR_de_stats <- as.data.frame(matrix(nrow=length(edgeR.pairwise.degenes),
+                                 ncol = 0))
+for(i in 1:length(edgeR.pairwise.degenes)){
+  edgeR_de_stats$'Quantification Method'[i] <- names(edgeR.pairwise.degenes)[i]
+  edgeR_de_stats$'DE Genes Excluded by Expression Threshold'[i] <- length(intersect(edgeR.pairwise.excludegenes[[i]],unique(expected_de_up_genes,expected_de_down_genes)))
+  edgeR_de_stats$'NDE Genes Excluded by Expression Threshold'[i] <- length(edgeR.pairwise.excludegenes[[i]]) - edgeR_de_stats$'DE Genes Excluded by Expression Threshold'[i]
+  edgeR_de_stats$'DE Genes Identified'[i] <- length(edgeR.pairwise.degenes[[i]])
+  edgeR_de_stats$'Correct DE Genes'[i] <- length(intersect(expected_de_up_genes,edgeR.pairwise.degenes[[i]])) + length(intersect(expected_de_down_genes,edgeR.pairwise.degenes[[i]]))
+  edgeR_de_stats$'Correct Upregulated DE Genes'[i] <- length(intersect(expected_de_up_genes,edgeR.pairwise.degenes[[i]]))
+  edgeR_de_stats$'Correct Downregulated DE Genes'[i] <- length(intersect(expected_de_down_genes,edgeR.pairwise.degenes[[i]]))
+}
+edgeR_de_stats$'False Positive DE Genes' <- edgeR_de_stats$'DE Genes Identified' - edgeR_de_stats$'Correct DE Genes'
+edgeR_de_stats$'Missed DE Genes' <- length(unique(c(expected_de_up_genes,expected_de_down_genes))) - edgeR_de_stats$'Correct DE Genes'
+edgeR_de_stats$'Correct NDE Genes' <- nrow(counts[[1]]) - edgeR_de_stats$'Correct DE Genes' - edgeR_de_stats$'False Positive DE Genes' - edgeR_de_stats$'Missed DE Genes'
+
+edgeR_de_stats$'Quantification Method' <- formalize_names(edgeR_de_stats$'Quantification Method')
+```
+
+### Plot stacked bar charts from DE stats
+
+#### Plot legend
+```{R,fig.height=5,fig.width=8}
+deseq2_de_stats.plot_df <- melt(deseq2_de_stats)
+plot_categories <- c("Correct DE Genes",
+                     "Correct NDE Genes",
+                     "Missed DE Genes",
+                     "False Positive DE Genes",
+                     "DE Genes Excluded by Expression Threshold",
+                     "NDE Genes Excluded by Expression Threshold")
+deseq2_de_stats.plot_df <- deseq2_de_stats.plot_df[deseq2_de_stats.plot_df[,2] %in% plot_categories,]
+deseq2_de_stats.plot_df[,1] <- factor(deseq2_de_stats.plot_df[,1],levels=formalize_names(colnames(counts[[1]]))[pvclust$hclust$order])
+deseq2_de_stats.plot_df[,2] <- factor(deseq2_de_stats.plot_df[,2],levels=plot_categories)
+
+deseq2_main.plot <- ggplot(mapping=aes(x=deseq2_de_stats.plot_df $'Quantification Method', 
+                                       y=deseq2_de_stats.plot_df[,3], 
+                                       fill=deseq2_de_stats.plot_df[,2],
+                                       label=deseq2_de_stats.plot_df[,3]))+
+  geom_bar(stat="identity")+
+  geom_text(size = 3, position = position_stack(vjust = 0.5))+
+  labs(x="",y="genes",fill="Gene Categories:")+
+  scale_y_continuous(expand=c(0.03,0.03))+
+  scale_fill_manual(values=rev(c("tan","indianred2","#9B2915","#50A2A7","#688E26","#FAA613")))+
+  coord_flip()+
+  theme_bw()+
+  theme(legend.position="bottom")
+
+legend <- g_legend(deseq2_main.plot)
+
+pdf(paste0(OUTPUT_DIR,"/gene_legend.pdf"),
+    height=2,
+    width=7)
+grid.arrange(legend)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/gene_legend.png"),
+    height=2,
+    width=7,
+	units = "in",res=300)
+grid.arrange(legend)
+dev.off()
+
+grid.arrange(heat.legend)
+```
+
+![image](/images/gene_legend.png)
+
+#### DESeq2
+
+```{R,fig.height=5,fig.width=8}
+deseq2_de_stats.plot_df <- melt(deseq2_de_stats)
+plot_categories <- c("Correct DE Genes",
+                    "Correct NDE Genes",
+                    "Missed DE Genes",
+                    "False Positive DE Genes")
+deseq2_de_stats.plot_df <- deseq2_de_stats.plot_df[deseq2_de_stats.plot_df[,2] %in% plot_categories,]
+deseq2_de_stats.plot_df[,1] <- factor(deseq2_de_stats.plot_df[,1],levels=formalize_names(colnames(counts[[1]]))[pvclust$hclust$order])
+deseq2_de_stats.plot_df[,2] <- factor(deseq2_de_stats.plot_df[,2],levels=rev(plot_categories))
+
+deseq2_main.plot <- ggplot(mapping=aes(x=deseq2_de_stats.plot_df $'Quantification Method', 
+                                       y=deseq2_de_stats.plot_df[,3], 
+                                       fill=deseq2_de_stats.plot_df[,2],
+                                       label=deseq2_de_stats.plot_df[,3]))+
+  geom_bar(stat="identity")+
+  geom_text(size = 3, position = position_stack(vjust = 0.5))+
+  labs(x="",y="genes",fill="Gene Categories:")+
+  scale_y_continuous(expand=c(0.03,0.03))+
+  scale_fill_manual(values=c("#9B2915","#50A2A7","#688E26","#FAA613"))+
+  guides(fill=F)+
+  coord_flip()+
+  theme_bw()+
+  theme(legend.position="bottom")
+
+deseq2_de_stats.sideplot_df <- melt(deseq2_de_stats)
+plot_categories <- c("DE Genes Excluded by Expression Threshold",
+                    "NDE Genes Excluded by Expression Threshold")
+deseq2_de_stats.sideplot_df <- deseq2_de_stats.sideplot_df[deseq2_de_stats.sideplot_df[,2] %in% plot_categories,]
+deseq2_de_stats.sideplot_df[,1] <- factor(deseq2_de_stats.sideplot_df[,1],levels=formalize_names(colnames(counts[[1]]))[pvclust$hclust$order])
+
+deseq2_side.plot <- ggplot(mapping=aes(x=deseq2_de_stats.sideplot_df $'Quantification Method', 
+                                             y=deseq2_de_stats.sideplot_df[,3], 
+                                             fill=deseq2_de_stats.sideplot_df[,2],
+                                             label=deseq2_de_stats.sideplot_df[,3]))+
+  geom_bar(stat="identity")+
+  geom_text(size = 3, position = position_stack(vjust = 0.5))+
+  labs(x="",y="genes",fill="Gene Categories:")+
+  scale_y_continuous(expand=c(0.05,0.05))+
+  scale_fill_manual(values=c("indianred2","tan"))+
+  coord_flip()+
+  guides(fill=F)+
+  theme_bw()+
+  theme(axis.text.y = element_blank(),
+        legend.position="bottom")
+```
+
+#### edgeR
+```{R,fig.height=5,fig.width=8}
+edgeR_de_stats.plot_df <- melt(edgeR_de_stats)
+plot_categories <- c("Correct DE Genes",
+                    "Correct NDE Genes",
+                    "Missed DE Genes",
+                    "False Positive DE Genes")
+edgeR_de_stats.plot_df <- edgeR_de_stats.plot_df[edgeR_de_stats.plot_df[,2] %in% plot_categories,]
+edgeR_de_stats.plot_df[,1] <- factor(edgeR_de_stats.plot_df[,1],levels=formalize_names(colnames(counts[[1]]))[pvclust$hclust$order])
+edgeR_de_stats.plot_df[,2] <- factor(edgeR_de_stats.plot_df[,2],levels=rev(plot_categories))
+
+edgeR_main.plot <- ggplot(mapping=aes(x=edgeR_de_stats.plot_df $'Quantification Method', 
+                                       y=edgeR_de_stats.plot_df[,3], 
+                                       fill=edgeR_de_stats.plot_df[,2],
+                                       label=edgeR_de_stats.plot_df[,3]))+
+  geom_bar(stat="identity")+
+  geom_text(size = 3, position = position_stack(vjust = 0.5))+
+  labs(x="",y="genes",fill="Gene Categories:")+
+  scale_y_continuous(expand=c(0.03,0.03))+
+  scale_fill_manual(values=c("#9B2915","#50A2A7","#688E26","#FAA613"))+
+  guides(fill=F)+
+  coord_flip()+
+  theme_bw()+
+  theme(legend.position="bottom")
+
+edgeR_de_stats.sideplot_df <- melt(edgeR_de_stats)
+plot_categories <- c("DE Genes Excluded by Expression Threshold",
+                    "NDE Genes Excluded by Expression Threshold")
+edgeR_de_stats.sideplot_df <- edgeR_de_stats.sideplot_df[edgeR_de_stats.sideplot_df[,2] %in% plot_categories,]
+edgeR_de_stats.sideplot_df[,1] <- factor(edgeR_de_stats.sideplot_df[,1],levels=formalize_names(colnames(counts[[1]]))[pvclust$hclust$order])
+
+edgeR_side.plot <- ggplot(mapping=aes(x=edgeR_de_stats.sideplot_df $'Quantification Method', 
+                                             y=edgeR_de_stats.sideplot_df[,3], 
+                                             fill=edgeR_de_stats.sideplot_df[,2],
+                                             label=edgeR_de_stats.sideplot_df[,3]))+
+  geom_bar(stat="identity")+
+  geom_text(size = 3, position = position_stack(vjust = 0.5))+
+  labs(x="",y="genes",fill="Gene Categories:")+
+  scale_y_continuous(expand=c(0.05,0.05))+
+  scale_fill_manual(values=c("indianred2","tan"))+
+  coord_flip()+
+  guides(fill=F)+
+  theme_bw()+
+  theme(axis.text.y = element_blank(),
+        legend.position="bottom")
+```
+
+#### Combine DESeq2 and edgeR plots
+```{R,fig.height=9,fig.width=8}
+pdf(paste0(OUTPUT_DIR,"/sim_de_plot.pdf"),
+    height=9,
+    width=8)
+plot_grid(deseq2_main.plot,deseq2_side.plot,
+          edgeR_main.plot,edgeR_side.plot,rel_widths=c(7,1))
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/sim_de_plot.png"),
+    height=9,
+    width=8,
+	units = "in",res=300)
+plot_grid(deseq2_main.plot,deseq2_side.plot,
+          edgeR_main.plot,edgeR_side.plot,rel_widths=c(7,1))
+dev.off()
+
+plot_grid(deseq2_main.plot,deseq2_side.plot,
+          edgeR_main.plot,edgeR_side.plot,rel_widths=c(7,1))
+
+```
+
+![image](/images/sim_de_plot.png)
+
+### Compare counts for each tool to expected counts from simulation
+
+For each gene, the counts obtained from each tool were divided by the expected number of counts as simulated. For operonic genes, the expected number of counts was obtained by dividing the expected operonic gene counts by the proportion of the operon that the gene covers.
+
+values close to 1 indicate a similar number of counts were obtained compared to the simulated/expected values. Values > 1 indicate a tool is over-counting a gene while values < 1 indicate a tool is undercounting a gene.
+
+```{R}
+load(file = EXPECTED_COUNTS_PATH)
+rownames(counts_matrix) <- gsub("^b","gene-b",rownames(counts_matrix))
+rownames(counts_matrix) <- gsub(";","",rownames(counts_matrix))
+counts_matrix <- counts_matrix[!(rownames(counts_matrix) %in% pseudogenes),]
+
+actual_v_expected <- counts[[1]]
+
+for(i in 1:nrow(counts_matrix)){
+  if(grepl("operon",rownames(counts_matrix)[i],fixed = T)){
+    operon_genes <- unlist(operon_list[grep(rownames(counts_matrix)[i],names(operon_list))])
+    operon_length <- operon_gtf[operon_gtf[,9] == rownames(counts_matrix)[i],5] - operon_gtf[operon_gtf[,9] == rownames(counts_matrix)[i],4] + 1
+    for(j in 1:length(operon_genes)){
+      gene_length <- gene_gtf[gene_gtf[,9] == paste0("gene-",operon_genes[j]),5] - gene_gtf[gene_gtf[,9] == paste0("gene-",operon_genes[j]),4] + 1
+      
+      actual_v_expected[rownames(actual_v_expected) == paste0("gene-",operon_genes[j]),] <- actual_v_expected[rownames(actual_v_expected) == paste0("gene-",operon_genes[j]),]/(counts_matrix[i,1]*gene_length/operon_length)
+    }
+    
+  }else{
+    actual_v_expected[rownames(actual_v_expected) == rownames(counts_matrix)[i],] <- actual_v_expected[which(rownames(actual_v_expected) == rownames(counts_matrix)[i]),]/counts_matrix[i,1]
+    
+  }
+}
+
+print(colMeans(actual_v_expected))
+```
+
+```{R, eval = F}
+                   fadu_default                       fadu_10em                       fadu_nomm 
+                      0.9683484                       0.9673215                       0.9337055 
+                express_default               express_optimized           featurecounts_default 
+                      0.9385846                       0.9837095                       0.9573941 
+          featurecounts_overlap featurecounts_fractionaloverlap                     htseq_union 
+                      1.2598515                       1.0586884                       0.8841110 
+       htseq_intersectionstrict      htseq_intersectionnonempty         htseq_unionnonuniqueall 
+                      0.7334817                       0.8976557                       1.2939391 
+               kallisto_default                  salmon_default                salmon_optimized 
+                      0.9561832                       0.9581836                       0.9580046 
+```
+
+```{R}
+log2 <- log2(actual_v_expected)
+for(i in 1:ncol(log2)){
+  print(paste(colnames(log2)[[i]],
+              round(quantile(log2[,i])[2],2),
+              round(quantile(log2[,i])[3],2),
+              round(quantile(log2[,i])[4],2),
+              sep = " | "))
+  # print(colnames(log2)[[i]])
+  # print(quantile(log2[,i]))
+}
+```
+
+```{R, eval = F}
+[1] "fadu_default | -0.17 | 0 | 0.08"
+[1] "fadu_10em | -0.17 | 0 | 0.08"
+[1] "fadu_nomm | -0.19 | 0 | 0.08"
+[1] "express_default | -0.67 | -0.14 | 0.19"
+[1] "express_optimized | -0.31 | -0.04 | 0.15"
+[1] "featurecounts_default | -0.19 | 0 | 0.11"
+[1] "featurecounts_overlap | 0 | 0.17 | 0.42"
+[1] "featurecounts_fractionaloverlap | -0.07 | 0.02 | 0.19"
+[1] "htseq_union | -0.47 | -0.07 | 0.05"
+[1] "htseq_intersectionstrict | -0.87 | -0.32 | -0.01"
+[1] "htseq_intersectionnonempty | -0.44 | -0.06 | 0.05"
+[1] "htseq_unionnonuniqueall | 0 | 0.19 | 0.45"
+[1] "kallisto_default | -0.28 | -0.01 | 0.06"
+[1] "salmon_default | -0.25 | -0.02 | 0.03"
+[1] "salmon_optimized | -0.25 | -0.02 | 0.03"
+```
+
+#### Plot the distributions of the actual versus expected values for each tool
+
+```{R,fig.height = 6, fig.width = 8}
+operon_ave.plot <- melt(actual_v_expected)
+operon_ave.plot[,1] <- formalize_names(operon_ave.plot[,1])
+operon_ave.plot[,2] <- log2(operon_ave.plot[,2])
+
+operon_ave.plot[,1] <- factor(operon_ave.plot[,1], levels=formalize_names(colnames(actual_v_expected))[pvclust$hclust$order])
+
+operon_ave.plot[,3] <- gsub("\n.*","",operon_ave.plot[,1])
+
+actual_v_expected.plot <- ggplot(mapping=aes(x=operon_ave.plot[,1],y=operon_ave.plot[,2],fill=operon_ave.plot[,3]))+
+  geom_violinhalf(scale = "width")+
+  geom_text(data = means, aes(label = operon_ave.plot[,2], y = operon_ave.plot[,2] + 0.08))
+  geom_boxplot(width=0.2)+
+  labs(x="quantification method", y="log2 actual v. expected count ratio")+
+  guides(fill = F)+
+  coord_flip(ylim = c(-10,10))+
+  theme_bw()
+
+pdf(paste0(OUTPUT_DIR,"/actual_v_expected_sim_plot.pdf"),
+    height=6,
+    width=8)
+print(actual_v_expected.plot)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/actual_v_expected_sim_plot.png"),
+    height=6,
+    width=8,
+    units = "in",res=300)
+print(actual_v_expected.plot)
+dev.off()
+
+print(actual_v_expected.plot)
+```
+
+![image](/images/actual_v_expected_sim_plot.png)
+
+```{R,fig.height = 6, fig.width = 4}
+actual_v_expected_zoom.plot <- ggplot(mapping=aes(x=operon_ave.plot[,1],y=operon_ave.plot[,2],fill=operon_ave.plot[,3]))+
+  geom_violinhalf(scale="width")+
+  geom_boxplot(width=0.2)+
+  labs(x="quantification method", y="log2 actual v. expected count ratio")+
+  guides(fill = F)+
+  #coord_cartesian()+
+  coord_flip(ylim = c(-1,1))+
+  theme_bw()
+
+pdf(paste0(OUTPUT_DIR,"/actual_v_expected_sim_zoom_plot.pdf"),
+    height=6,
+    width=4)
+print(actual_v_expected_zoom.plot)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/actual_v_expected_sim_zoom_plot.png"),
+    height=6,
+    width=4,
+    units = "in",res=300)
+print(actual_v_expected_zoom.plot)
+dev.off()
+
+print(actual_v_expected_zoom.plot)
+```
+
+![image](/images/actual_v_expected_sim_zoom_plot.png)
+
+
+# Assess RNA quantification tool performance using actual RNA-Seq data
+
+## Download and construct reference files
+
+### Download E. chaffeensis, E. coli, and wBm reference files
+
+```{bash}
+## E. chaffeensis
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/013/145/GCF_000013145.1_ASM1314v1/GCF_000013145.1_ASM1314v1_genomic.fna.gz
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/013/145/GCF_000013145.1_ASM1314v1/GCF_000013145.1_ASM1314v1_genomic.gff.gz
+gunzip -f "$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.fna.gz
+gunzip -f "$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.gff.gz
+
+## E. coli
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.gff.gz
+gunzip -f "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna.gz
+gunzip -f "$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gff.gz
+
+## wBm
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/008/385/GCF_000008385.1_ASM838v1/GCF_000008385.1_ASM838v1_genomic.fna.gz
+wget -P "$REFERENCES_DIR" ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/008/385/GCF_000008385.1_ASM838v1/GCF_000008385.1_ASM838v1_genomic.gff.gz
+gunzip -f "$REFERENCES_DIR"/GCF_000008385.1_ASM838v1_genomic.fna.gz
+gunzip -f "$REFERENCES_DIR"/GCF_000008385.1_ASM838v1_genomic.gff.gz
+
+## B. malayi
+wget -P "$REFERENCES_DIR" ftp://ftp.wormbase.org/pub/wormbase/releases/WS275/species/b_malayi/PRJNA10729/b_malayi.PRJNA10729.WS275.genomic.fa.gz
+wget -P "$REFERENCES_DIR" ftp://ftp.wormbase.org/pub/wormbase/releases/WS275/species/b_malayi/PRJNA10729/b_malayi.PRJNA10729.WS275.annotations.gff3.gz
+gunzip -f "$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.genomic.fa.gz
+gunzip -f "$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.annotations.gff3.gz
+mv "$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.genomic.fa "$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.genomic.fna
+```
+
+### Create CDS nucleotide fasta files
+
+#### Input Sets
+```{bash}
+## E. chaffeensis
+FNA="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.gff
+
+## E. coli
+FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gff
+
+## wBm
+FNA="$REFERENCES_DIR"/GCF_000008385.1_ASM838v1_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000008385.1_ASM838v1_genomic.gff
+
+## B. malayi
+FNA="$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.genomic.fna
+GFF3="$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.annotations.gff3
+```
+
+#### Commands
+```{bash}
+"$SCRIPTS_DIR"/createnuccdsfasta.sh -n "$FNA" -g "$GFF3" -f gene -i ID > "$(echo "$FNA" | sed "s/[.]fna$/.gene.fna/g")" &
+```
+
+### Create combined reference files for B. malayi + wBm
+
+```{bash}
+cat "$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.genomic.fna "$REFERENCES_DIR"/GCF_000008385.1_ASM838v1_genomic.fna > "$REFERENCES_DIR"/bmalayi_wbm.fna
+cat "$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.genomic.gene.fna "$REFERENCES_DIR"/GCF_000008385.1_ASM838v1_genomic.gene.fna > "$REFERENCES_DIR"/bmalayi_wbm.gene.fna
+cat "$REFERENCES_DIR"/b_malayi.PRJNA10729.WS275.annotations.gff3 "$REFERENCES_DIR"/GCF_000008385.1_ASM838v1_genomic.gff > "$REFERENCES_DIR"/bmalayi_wbm.gff
+```
+
+### Remove extra wBm entry in combined B. malayi + wBm reference
+```{bash}
+grep ">" "$REFERENCES_DIR"/bmalayi_wbm.fna | grep -v "wBm_Wolbachia" | sed "s/>//g" | cut -d" "-f1 > "$REFERENCES_DIR"/contigs.list
+"$SAMTOOLS_BIN_DIR"/samtools faidx "$REFERENCES_DIR"/bmalayi_wbm.fna -r "$REFERENCES_DIR"/contigs.list > "$REFERENCES_DIR"/temp.fna
+mv "$REFERENCES_DIR"/temp.fna "$REFERENCES_DIR"/bmalayi_wbm.fna
+rm "$REFERENCES_DIR"/contigs.list
+```
+
+## Download FASTQ data from SRA
+
+##### Input Sets
+```{bash}
+## E. chaffeensis
+SRR=SRR1188323
+OUTPUT_DIR="$WORKING_DIR"/echaffeensis
+
+## E. coli
+SRR=SRR2601722
+OUTPUT_DIR="$WORKING_DIR"/ecoli
+
+## wBm
+SRR=SRR5192555
+OUTPUT_DIR="$WORKING_DIR"/wbm
+```
+
+##### Commands)
+```{bash}
+qsub -P jdhotopp-lab -l mem_free=2G -N fastq_dump -wd "$OUTPUT_DIR" -b y "$SRATOOLKIT_BIN_DIR"/fastq-dump --split-files "$SRR" --gzip -O "$OUTPUT_DIR"
+```
+
+## Quantify FASTQs using alignment-based quantification tools
+
+### Create HISAT2 indexes and align simulated reads
+
+##### Input Sets
+```{bash}
+THREADS=16
 
 ## E. chaffeensis
-wget -O "$WORKING_DIR"/references/Arkansas.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/013/145/GCF_000013145.1_ASM1314v1/GCF_000013145.1_ASM1314v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/Heartland.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/815/GCF_000632815.1_ASM63281v1/GCF_000632815.1_ASM63281v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/Jax.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/865/GCF_000632865.1_ASM63286v1/GCF_000632865.1_ASM63286v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/Liberty.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/885/GCF_000632885.1_ASM63288v1/GCF_000632885.1_ASM63288v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/Osceola.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/905/GCF_000632905.1_ASM63290v1/GCF_000632905.1_ASM63290v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/StVincent.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/925/GCF_000632925.1_ASM63292v1/GCF_000632925.1_ASM63292v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/Wakulla.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/945/GCF_000632945.1_ASM63294v1/GCF_000632945.1_ASM63294v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/WestPaces.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/965/GCF_000632965.1_ASM63296v1/GCF_000632965.1_ASM63296v1_genomic.fna.gz
-wget -O "$WORKING_DIR"/references/HF.fna.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/845/GCF_000632845.1_ASM63284v1/GCF_000632845.1_ASM63284v1_genomic.fna.gz
+SRR=SRR1188323
+FASTQ1=/local/projects-t3/EBMAL/mchung_dir/fadu/echaffeensis/SRR1188323_1.fastq.gz
+FASTQ2=/local/projects-t3/EBMAL/mchung_dir/fadu/echaffeensis/SRR1188323_2.fastq.gz
+OUTPUT_DIR="$WORKING_DIR"/echaffeensis
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.fna
 
-wget -O "$WORKING_DIR"/references/Arkansas.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/013/145/GCF_000013145.1_ASM1314v1/GCF_000013145.1_ASM1314v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/Heartland.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/815/GCF_000632815.1_ASM63281v1/GCF_000632815.1_ASM63281v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/Jax.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/865/GCF_000632865.1_ASM63286v1/GCF_000632865.1_ASM63286v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/Liberty.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/885/GCF_000632885.1_ASM63288v1/GCF_000632885.1_ASM63288v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/Osceola.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/905/GCF_000632905.1_ASM63290v1/GCF_000632905.1_ASM63290v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/StVincent.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/925/GCF_000632925.1_ASM63292v1/GCF_000632925.1_ASM63292v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/Wakulla.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/945/GCF_000632945.1_ASM63294v1/GCF_000632945.1_ASM63294v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/WestPaces.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/965/GCF_000632965.1_ASM63296v1/GCF_000632965.1_ASM63296v1_genomic.gff.gz
-wget -O "$WORKING_DIR"/references/HF.gff.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/632/845/GCF_000632845.1_ASM63284v1/GCF_000632845.1_ASM63284v1_genomic.gff.gz
+## E. coli
+SRR=SRR2601722
+FASTQ1=/local/projects-t3/EBMAL/mchung_dir/fadu/ecoli/SRR2601722_1.fastq.gz
+FASTQ2=/local/projects-t3/EBMAL/mchung_dir/fadu/ecoli/SRR2601722_2.fastq.gz
+OUTPUT_DIR="$WORKING_DIR"/ecoli
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna
 
-gunzip "$WORKING_DIR"/references/*gz
-```
-
-### Create combined canine/tick and E. chaffeensis references
-
-#### Genomic references
-```{bash, eval = F}
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/Arkansas.fna > Arkansas_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/Heartland.fna > Heartland_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/Jax.fna > Jax_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/Liberty.fna > Liberty_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/Osceola.fna > Osceola_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/StVincent.fna > StVincent_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/Wakulla.fna > Wakulla_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/WestPaces.fna > WestPaces_canine.combined.fna
-cat "$WORKING_DIR"/references/canine.fna "$WORKING_DIR"/references/HF.fna > HF_canine.combined.fna
-
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/Arkansas.fna > Arkansas_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/Heartland.fna > Heartland_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/Jax.fna > Jax_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/Liberty.fna > Liberty_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/Osceola.fna > Osceola_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/StVincent.fna > StVincent_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/Wakulla.fna > Wakulla_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/WestPaces.fna > WestPaces_tick.combined.fna
-cat "$WORKING_DIR"/references/tick.fna "$WORKING_DIR"/references/HF.fna > HF_tick.combined.fna
-```
-
-#### CDS references
-```{bash, eval = F}
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/Arkansas.cds.fna > Arkansas_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/Heartland.cds.fna > Heartland_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/Jax.cds.fna > Jax_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/Liberty.cds.fna > Liberty_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/Osceola.cds.fna > Osceola_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/StVincent.cds.fna > StVincent_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/Wakulla.cds.fna > Wakulla_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/WestPaces.cds.fna > WestPaces_canine.cds.combined.fna
-cat "$WORKING_DIR"/references/canine.cds.fna "$WORKING_DIR"/references/HF.cds.fna > HF_canine.cds.combined.fna
-
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/Arkansas.cds.fna > Arkansas_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/Heartland.cds.fna > Heartland_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/Jax.cds.fna > Jax_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/Liberty.cds.fna > Liberty_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/Osceola.cds.fna > Osceola_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/StVincent.cds.fna > StVincent_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/Wakulla.cds.fna > Wakulla_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/WestPaces.cds.fna > WestPaces_tick.cds.combined.fna
-cat "$WORKING_DIR"/references/tick.cds.fna "$WORKING_DIR"/references/HF.cds.fna > HF_tick.cds.combined.fna
-```
-
-# Identify core Ehrlichia genes between the 8 E. chaffeensis strains and Ehrlichia sp. HF
-
-
-### Create CDS FNA files
-
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
+## wBm
+SRR=SRR5192555
+FASTQ1=/local/projects-t3/EBMAL/mchung_dir/fadu/wbm/SRR5192555_1.fastq.gz
+FASTQ2=/local/projects-t3/EBMAL/mchung_dir/fadu/wbm/SRR5192555_2.fastq.gz
+OUTPUT_DIR="$WORKING_DIR"/wbm
+NUC_GENE_FNA="$REFERENCES_DIR"/bmalayi_wbm.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/bmalayi_wbm.fna
 ```
 
 ##### Commands
-```{bash, eval = F}
-for GFF in "$REFERENCES_DIR"/*gff
+```{bash}
+"$HISAT2_BIN_DIR"/hisat2-build --large-index "$NUC_GENOME_FNA" "$NUC_GENOME_FNA"
+"$HISAT2_BIN_DIR"/hisat2-build --large-index "$NUC_GENE_FNA" "$NUC_GENE_FNA"
+
+echo -e ""$HISAT2_BIN_DIR"/hisat2 -p "$THREADS" -k 200 -X 1000 -x "$NUC_GENOME_FNA" -1 "$FASTQ1" -2 "$FASTQ2" --no-spliced-alignment --no-discordant | "$SAMTOOLS_BIN_DIR"/samtools view -bhSo "$OUTPUT_DIR"/"$SRR".genome.bam -" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=10G -N hisat2 -wd "$OUTPUT_DIR"
+
+echo -e ""$HISAT2_BIN_DIR"/hisat2 -p "$THREADS" -k 200 -X 1000 -x "$NUC_GENE_FNA" -1 "$FASTQ1" -2 "$FASTQ2" --no-spliced-alignment --no-discordant | "$SAMTOOLS_BIN_DIR"/samtools view -bhSo "$OUTPUT_DIR"/"$SRR".transcript.bam -" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=10G -N hisat2 -wd "$OUTPUT_DIR"
+```
+
+### Sort and index BAM files
+
+##### Input Sets
+```{bash}
+THREADS=4
+
+## E. chaffeensis
+SRR=SRR1188323
+BAM_DIR="$WORKING_DIR"/echaffeensis
+
+## E. coli
+SRR=SRR2601722
+BAM_DIR="$WORKING_DIR"/ecoli
+
+## wBm
+SRR=SRR5192555
+BAM_DIR="$WORKING_DIR"/wbm
+```
+
+##### Commands
+```{bash}
+for SAMPLE in $(find "$BAM_DIR" -name "*[.]bam" | sed "s/.*\\///g" | sort | sed "s/[.].*//g" | uniq | grep -v pseudoalignments)
 do
-	FNA="$(echo "$GFF" | sed "s/[.]gff$/.fna/g")"
-	"$SAMTOOLS_BIN_DIR"/samtools faidx "$FNA"
-
-	CDS_FNA="$(echo "$GFF" | sed "s/[.]gff$/.cds.fna/g")"
-	rm "$CDS_FNA"
-
-	awk -F "\t" '$3 == "gene" {print $0}' "$GFF" | grep "gene_biotype=protein_coding" | while read LINE
-	do
-
-	CONTIG="$(echo "$LINE" | awk -F "\t" '{print $1}')"
-	START="$(echo "$LINE" | awk -F "\t" '{print $4}')"
-	STOP="$(echo "$LINE" | awk -F "\t" '{print $5}')"
-	STRAND=$(echo "$LINE" | awk -F "\t" '{print $7}')
-	GENE="$(echo "$LINE" | awk -F "\t" '{print $9}' | sed "s/.*ID=//g" | sed "s/;.*//g")"
-
-	if [ "$STRAND" = "+" ]
-	then
-		"$SAMTOOLS_BIN_DIR"/samtools faidx "$FNA" "$CONTIG":"$START"-"$STOP" | sed -e "s/>.*/>"$GENE"/g" >> "$CDS_FNA"
-	else
-		"$SAMTOOLS_BIN_DIR"/samtools faidx -i "$FNA" "$CONTIG":"$START"-"$STOP" | sed -e "s/>.*/>"$GENE"/g" >> "$CDS_FNA"
-	fi
-	done
+  "$SAMTOOLS_BIN_DIR"/samtools sort "$BAM_DIR"/"$SRR".genome.bam -@ "$THREADS" -o "$BAM_DIR"/"$SRR".genome.sortedbyposition.bam
+  #"$SAMTOOLS_BIN_DIR"/samtools sort "$BAM_DIR"/"$SRR".transcript.bam -@ "$THREADS" -n -o "$BAM_DIR"/"$SRR".transcript.sortedbyname.bam
+  "$SAMTOOLS_BIN_DIR"/samtools index "$BAM_DIR"/"$SRR".genome.sortedbyposition.bam -@ "$THREADS"
 done
 ```
 
-### Create FAA files
+### Quantify simulated FASTQ files using alignment-based tools (eXpress, FADU, featureCounts, HTSeq)
 
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
-```
-
-##### Commands
-```{bash, eval = F}
-rm "$REFERENCES_DIR"/combined_ehrlichia.faa
-for CDS_FNA in "$REFERENCES_DIR"/*cds.fna
-do
-	"$EMBOSS_BIN_DIR"/transeq -sequence $CDS_FNA -outseq "$(echo "$CDS_FNA" | sed "s/[.]cds.fna/.faa/g")"
-done
-
-cat "$WORKING_DIR"/references/*[.]faa > "$REFERENCES_DIR"/combined_ehrlichia.faa
-sed -i "s/_1$//g" "$REFERENCES_DIR"/*faa
-```
-
-### Create BLASTP output file for PanOCT
-
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
-```
-
-##### Commands
-```{bash, eval = F}
-"$NCBIBLAST_BIN_DIR"/formatdb -i "$WORKING_DIR"/references/combined_ehrlichia.faa -p T
-"$NCBIBLAST_BIN_DIR"/blastall -p blastp -i "$WORKING_DIR"/references/combined_ehrlichia.faa -d "$WORKING_DIR"/references/combined_ehrlichia.faa -e 1e-5 -m 8 -o "$WORKING_DIR"/panoct/blastall_out.txt
-```
-
-### Create gene tags file for PanOCT
-
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
-```
-
-##### Commands
-```{bash, eval = F}
-cat "$WORKING_DIR"/references/*[.]gff | grep -v "^#" | cut -f1 | sort -n | uniq > "$WORKING_DIR"/panoct/gene_tags.txt
-```
-
-### Create gene attributes file for PanOCT
-
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
-```
-
-##### Commands
-```{bash, eval = F}
-rm "$WORKING_DIR"/panoct/gene_atts.txt
-awk -F "\t" '$3 == "gene" {print $0}' "$REFERENCES_DIR"/*gff | grep "gene_biotype=protein_coding" | while read LINE
-do
-	CONTIG="$(echo "$LINE" | awk -F "\t" '{print $1}' )"
-	GENE="$(echo "$LINE" | awk -F "\t" '{print $9}' | sed "s/.*ID=//g" | sed "s/;.*//g")"
-	START="$(echo "$LINE" | awk -F "\t" '{print $4}' )"
-	STOP="$(echo "$LINE" | awk -F "\t" '{print $5}' )"
-	PRODUCT="$(grep "$GENE" "$REFERENCES_DIR"/*gff | awk -F "\t" '$3 == "CDS" {print $9}' | sed "s/.*product=//g" | sed "s/;.*//g" | uniq)"
-
-	echo -e ""$CONTIG"\t"$GENE"\t"$START"\t"$STOP"\t"$PRODUCT"\t"$CONTIG""  >> "$WORKING_DIR"/panoct/gene_atts.txt
-done
-```
-
-### Run PanOCT to find orthologous gene clusters
-
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
-```
-
-##### Commands
-```{bash, eval = F}
-"$PANOCT_BIN_DIR"/panoct.pl -b "$WORKING_DIR"/panoct -t blastall_out.txt -f gene_tags.txt -g gene_atts.txt -Q "$REFERENCES_DIR" -P combined_ehrlichia.faa  -S Y -L 1 -M Y -H Y -V Y -N Y -F 1.33 -G y -c 0,25,50,75,100 -T
-```
-
-# Identify differentially expression genes in canine, tick, and E. chaffeensis strains across the data set
-
-
-
-## Create SRR mapping file
-
-##### Commands
-```{bash, eval = F}
-vim "$WORKING_DIR"/pecha_groups.tsv
-```
-
-```{bash, eval = F}
-SRR1188323	PECHA_Arkansas_mRNA1	#497FCA	16	Arkansas
-SRR1188505	PECHA_Arkansas_mRNA2	#497FCA	16	Arkansas
-SRR1188516	PECHA_Arkansas_mRNA3	#497FCA	16	Arkansas
-SRR1188524	PECHA_Arkansas_totalRNA1	#497FCA	16	Arkansas
-SRR1188570	PECHA_Arkansas_totalRNA2	#497FCA	16	Arkansas
-SRR1188615	PECHA_Arkansas_totalRNA3	#497FCA	16	Arkansas
-SRR1188623	PECHA_DH82_mRNA1	#000000	16	DH82
-SRR1188622	PECHA_DH82_mRNA1	#000000	16	DH82
-SRR1188624	PECHA_DH82_mRNA2	#000000	16	DH82
-SRR1188625	PECHA_DH82_mRNA3	#000000	16	DH82
-SRR1188626	PECHA_DH82_totalRNA1	#000000	16	DH82
-SRR1188627	PECHA_DH82_totalRNA2	#000000	16	DH82
-SRR1188628	PECHA_DH82_totalRNA3	#000000	16	DH82
-SRR1188629	PECHA_Heartland_mRNA1	#6c3c83	16	Heartland
-SRR1188630	PECHA_Heartland_mRNA2	#6c3c83	16	Heartland
-SRR1190411	PECHA_Heartland_mRNA3	#6c3c83	16	Heartland
-SRR1190422	PECHA_Heartland_totalRNA1	#6c3c83	16	Heartland
-SRR1190421	PECHA_Heartland_totalRNA1	#6c3c83	16	Heartland
-SRR1190436	PECHA_Heartland_totalRNA2	#6c3c83	16	Heartland
-SRR1190444	PECHA_Heartland_totalRNA3	#6c3c83	16	Heartland
-SRR1190443	PECHA_Heartland_totalRNA3	#6c3c83	16	Heartland
-SRR1190449	PECHA_HF_mRNA1	#84af6b	16	HF
-SRR1190450	PECHA_HF_mRNA2	#84af6b	16	HF
-SRR1190456	PECHA_HF_mRNA3	#84af6b	16	HF
-SRR1190447	PECHA_HF_totalRNA1	#84af6b	16	HF
-SRR1190446	PECHA_HF_totalRNA1	#84af6b	16	HF
-SRR1190445	PECHA_HF_totalRNA1	#84af6b	16	HF
-SRR1188632	PECHA_HF_totalRNA2	#84af6b	16	HF
-SRR1188631	PECHA_HF_totalRNA2	#84af6b	16	HF
-SRR1188660	PECHA_HF_totalRNA3	#84af6b	16	HF
-SRR1188703	PECHA_ISE6_Arkansas_mRNA1	#497fca	17	Arkansas
-SRR1188747	PECHA_ISE6_Arkansas_mRNA4	#497fca	17	Arkansas
-SRR1188748	PECHA_ISE6_Arkansas_mRNA5	#497fca	17	Arkansas
-SRR1188749	PECHA_ISE6_Arkansas_totalRNA1	#497fca	17	Arkansas
-SRR1188750	PECHA_ISE6_Arkansas_totalRNA4	#497fca	17	Arkansas
-SRR1188751	PECHA_ISE6_Arkansas_totalRNA5	#497fca	17	Arkansas
-SRR1188752	PECHA_ISE6_Heartland_mRNA1	#6c3c83	17	Heartland
-SRR1188753	PECHA_ISE6_Heartland_mRNA2	#6c3c83	17	Heartland
-SRR1188755	PECHA_ISE6_Heartland_mRNA3	#6c3c83	17	Heartland
-SRR1189460	PECHA_ISE6_Heartland_totalRNA1	#6c3c83	17	Heartland
-SRR1189488	PECHA_ISE6_Heartland_totalRNA2	#6c3c83	17	Heartland
-SRR1189534	PECHA_ISE6_Heartland_totalRNA3	#6c3c83	17	Heartland
-SRR1189544	PECHA_ISE6_HF_mRNA1	#84af6b	17	HF
-SRR1189545	PECHA_ISE6_HF_mRNA2	#84af6b	17	HF
-SRR1189546	PECHA_ISE6_HF_mRNA3	#84af6b	17	HF
-SRR1189547	PECHA_ISE6_HF_totalRNA1	#84af6b	17	HF
-SRR1189548	PECHA_ISE6_HF_totalRNA2	#84af6b	17	HF
-SRR1189549	PECHA_ISE6_HF_totalRNA3	#84af6b	17	HF
-SRR1189551	PECHA_ISE6_Jax_mRNA1	#e27660	17	Jacksonville
-SRR1189550	PECHA_ISE6_Jax_mRNA1	#e27660	17	Jacksonville
-SRR1189553	PECHA_ISE6_Jax_mRNA2	#e27660	17	Jacksonville
-SRR1189552	PECHA_ISE6_Jax_mRNA2	#e27660	17	Jacksonville
-SRR1189556	PECHA_ISE6_Jax_mRNA3	#e27660	17	Jacksonville
-SRR1189555	PECHA_ISE6_Jax_mRNA3	#e27660	17	Jacksonville
-SRR1189557	PECHA_ISE6_Jax_totalRNA1	#e27660	17	Jacksonville
-SRR1189560	PECHA_ISE6_Jax_totalRNA2	#e27660	17	Jacksonville
-SRR1189585	PECHA_ISE6_Jax_totalRNA3	#e27660	17	Jacksonville
-SRR1189614	PECHA_ISE6_Liberty_mRNA1	#f0b67f	17	Liberty
-SRR1189619	PECHA_ISE6_Liberty_mRNA2	#f0b67f	17	Liberty
-SRR1189633	PECHA_ISE6_Liberty_mRNA3	#f0b67f	17	Liberty
-SRR1189636	PECHA_ISE6_Liberty_totalRNA1	#f0b67f	17	Liberty
-SRR1189644	PECHA_ISE6_Liberty_totalRNA2	#f0b67f	17	Liberty
-SRR1189645	PECHA_ISE6_Liberty_totalRNA3	#f0b67f	17	Liberty
-SRR1188683	PECHA_ISE6_mRNA1	#000000	17	ISE6
-SRR1189646	PECHA_ISE6_mRNA2	#000000	17	ISE6
-SRR1189647	PECHA_ISE6_mRNA3	#000000	17	ISE6
-SRR1189648	PECHA_ISE6_Osceola_mRNA1	#83c9fc	17	Osceola
-SRR1189649	PECHA_ISE6_Osceola_mRNA2	#83c9fc	17	Osceola
-SRR1189657	PECHA_ISE6_Osceola_mRNA3	#83c9fc	17	Osceola
-SRR1189650	PECHA_ISE6_Osceola_totalRNA1	#83c9fc	17	Osceola
-SRR1189651	PECHA_ISE6_Osceola_totalRNA2	#83c9fc	17	Osceola
-SRR1189652	PECHA_ISE6_Osceola_totalRNA3	#83c9fc	17	Osceola
-SRR1189689	PECHA_ISE6_StVincent_mRNA1	#9966ab	17	St. Vincent
-SRR1189688	PECHA_ISE6_StVincent_mRNA1	#9966ab	17	St. Vincent
-SRR1189704	PECHA_ISE6_StVincent_mRNA2	#9966ab	17	St. Vincent
-SRR1189703	PECHA_ISE6_StVincent_mRNA2	#9966ab	17	St. Vincent
-SRR1189711	PECHA_ISE6_StVincent_mRNA3	#9966ab	17	St. Vincent
-SRR1189710	PECHA_ISE6_StVincent_mRNA3	#9966ab	17	St. Vincent
-SRR1189721	PECHA_ISE6_StVincent_totalRNA1	#9966ab	17	St. Vincent
-SRR1189746	PECHA_ISE6_StVincent_totalRNA2	#9966ab	17	St. Vincent
-SRR1189747	PECHA_ISE6_StVincent_totalRNA3	#9966ab	17	St. Vincent
-SRR1189748	PECHA_ISE6_totalRNA1	#000000	17	ISE6
-SRR1189749	PECHA_ISE6_totalRNA2	#000000	17	ISE6
-SRR1189750	PECHA_ISE6_totalRNA3	#000000	17	ISE6
-SRR1189751	PECHA_ISE6_Wakulla_mRNA1	#BF5073	17	Wakulla
-SRR1189752	PECHA_ISE6_Wakulla_mRNA2	#BF5073	17	Wakulla
-SRR1189753	PECHA_ISE6_Wakulla_mRNA3	#BF5073	17	Wakulla
-SRR1189754	PECHA_ISE6_Wakulla_totalRNA1	#BF5073	17	Wakulla
-SRR1189759	PECHA_ISE6_Wakulla_totalRNA2	#BF5073	17	Wakulla
-SRR1189779	PECHA_ISE6_Wakulla_totalRNA3	#BF5073	17	Wakulla
-SRR1189808	PECHA_ISE6_WestPaces_mRNA1	#c66b9f	17	West Paces
-SRR1189807	PECHA_ISE6_WestPaces_mRNA1	#c66b9f	17	West Paces
-SRR1189818	PECHA_ISE6_WestPaces_mRNA2	#c66b9f	17	West Paces
-SRR1189817	PECHA_ISE6_WestPaces_mRNA2	#c66b9f	17	West Paces
-SRR1189835	PECHA_ISE6_WestPaces_mRNA3	#c66b9f	17	West Paces
-SRR1189834	PECHA_ISE6_WestPaces_mRNA3	#c66b9f	17	West Paces
-SRR1189845	PECHA_ISE6_WestPaces_totalRNA1	#c66b9f	17	West Paces
-SRR1189846	PECHA_ISE6_WestPaces_totalRNA2	#c66b9f	17	West Paces
-SRR1189847	PECHA_ISE6_WestPaces_totalRNA3	#c66b9f	17	West Paces
-SRR1189848	PECHA_Jax_mRNA1	#e27660	16	Jacksonville
-SRR1189849	PECHA_Jax_mRNA2	#e27660	16	Jacksonville
-SRR1189850	PECHA_Jax_mRNA3	#e27660	16	Jacksonville
-SRR1189851	PECHA_Jax_totalRNA1	#e27660	16	Jacksonville
-SRR1189853	PECHA_Jax_totalRNA2	#e27660	16	Jacksonville
-SRR1189852	PECHA_Jax_totalRNA2	#e27660	16	Jacksonville
-SRR1189867	PECHA_Jax_totalRNA3	#e27660	16	Jacksonville
-SRR1189889	PECHA_Liberty_mRNA1	#f0b67f	16	Liberty
-SRR1189895	PECHA_Liberty_mRNA2	#f0b67f	16	Liberty
-SRR1189900	PECHA_Liberty_mRNA3	#f0b67f	16	Liberty
-SRR1189912	PECHA_Liberty_totalRNA1	#f0b67f	16	Liberty
-SRR1189933	PECHA_Liberty_totalRNA2	#f0b67f	16	Liberty
-SRR1189942	PECHA_Liberty_totalRNA3	#f0b67f	16	Liberty
-SRR1189951	PECHA_Osceola_mRNA1	#83c9fc	16	Osceola
-SRR1189952	PECHA_Osceola_mRNA2	#83c9fc	16	Osceola
-SRR1189953	PECHA_Osceola_mRNA3	#83c9fc	16	Osceola
-SRR1189955	PECHA_Osceola_totalRNA1	#83c9fc	16	Osceola
-SRR1189954	PECHA_Osceola_totalRNA1	#83c9fc	16	Osceola
-SRR1189956	PECHA_Osceola_totalRNA2	#83c9fc	16	Osceola
-SRR1189963	PECHA_Osceola_totalRNA3	#83c9fc	16	Osceola
-SRR1189964	PECHA_StVincent_mRNA1	#9966ab	16	St. Vincent
-SRR1189965	PECHA_StVincent_mRNA2	#9966ab	16	St. Vincent
-SRR1189966	PECHA_StVincent_mRNA3	#9966ab	16	St. Vincent
-SRR1189967	PECHA_StVincent_totalRNA1	#9966ab	16	St. Vincent
-SRR1189971	PECHA_StVincent_totalRNA2	#9966ab	16	St. Vincent
-SRR1189970	PECHA_StVincent_totalRNA2	#9966ab	16	St. Vincent
-SRR1189969	PECHA_StVincent_totalRNA2	#9966ab	16	St. Vincent
-SRR1189968	PECHA_StVincent_totalRNA2	#9966ab	16	St. Vincent
-SRR1189972	PECHA_StVincent_totalRNA3	#9966ab	16	St. Vincent
-SRR1189983	PECHA_Wakulla_mRNA1	#BF5073	16	Wakulla
-SRR1189984	PECHA_Wakulla_mRNA2	#BF5073	16	Wakulla
-SRR1189985	PECHA_Wakulla_mRNA3	#BF5073	16	Wakulla
-SRR1189986	PECHA_Wakulla_totalRNA1	#BF5073	16	Wakulla
-SRR1189987	PECHA_Wakulla_totalRNA2	#BF5073	16	Wakulla
-SRR1190000	PECHA_Wakulla_totalRNA3	#BF5073	16	Wakulla
-SRR1190026	PECHA_WestPaces_mRNA1	#c66b9f	16	West Paces
-SRR1190032	PECHA_WestPaces_mRNA2	#c66b9f	16	West Paces
-SRR1190040	PECHA_WestPaces_mRNA3	#c66b9f	16	West Paces
-SRR1190039	PECHA_WestPaces_mRNA3	#c66b9f	16	West Paces
-SRR1190042	PECHA_WestPaces_totalRNA1	#c66b9f	16	West Paces
-SRR1190041	PECHA_WestPaces_totalRNA1	#c66b9f	16	West Paces
-SRR1190069	PECHA_WestPaces_totalRNA2	#c66b9f	16	West Paces
-SRR1190075	PECHA_WestPaces_totalRNA3	#c66b9f	16	West Paces
-```
-
-## Download FASTQs from SRA
-
-##### Inputs
-```{bash, eval = F}
-SRR_MAP="$WORKING_DIR"/pecha_groups.tsv
-READS_DIR="$WORKING_DIR"/reads
-```
-
-##### Commands
-```{bash, eval = F}
-cut -f1 "$SRR_MAP" | while read SRR_ID
-do
-	qsub -P jdhotopp-lab -l mem_free=2G -N fastq_dump -wd "$READS_DIR" -b y "$SRATOOLKIT_BIN_DIR"/fastq-dump --gzip --split-files "$SRR_ID" -O "$READS_DIR"
-done
-```
-
-## Find GO terms and InterPro descriptions for canine, tick, and Ehrlichia genes 
-
-### Canine/Tick
-
-#### Split FASTA files into 1000 sequence chunks
-
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
-```
-
-##### Commands
-```{bash, eval = F}
-awk 'BEGIN {n_seq=0;} /^>/ {if(n_seq%1000==0){file=sprintf("canine%d.cds.fna",n_seq);} print >> file; n_seq++; next;} { print >> file; }' < "$WORKING_DIR"/references/canine.cds.fna
-awk 'BEGIN {n_seq=0;} /^>/ {if(n_seq%1000==0){file=sprintf("tick%d.cds.fna",n_seq);} print >> file; n_seq++; next;} { print >> file; }' < "$WORKING_DIR"/references/tick.cds.fna
-```
-
-#### Run InterProScan on split FASTA files
-
-##### Inputs
-```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
+##### Input Sets
+```{bash}
+FEAT_TYPE=gene
+ATTR_ID=ID
 THREADS=16
+
+## E. chaffeensis
+BAM_DIR="$WORKING_DIR"/echaffeensis
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.gff
+STRANDED=no
+
+## E. coli
+BAM_DIR="$WORKING_DIR"/ecoli
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gff
+STRANDED=no
+
+## wBm
+BAM_DIR="$WORKING_DIR"/wbm
+NUC_GENE_FNA="$REFERENCES_DIR"/bmalayi_wbm.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/bmalayi_wbm.fna
+GFF3="$REFERENCES_DIR"/bmalayi_wbm.gff
+STRANDED=reverse
 ```
 
 ##### Commands
 ```{bash, eval = F}
-ls "$REFERENCES_DIR"/*.fna | grep canine | grep -v combined | grep -v canine.fna | grep -v canine.cds.fna | while read FNA
+for SAMPLE in $(find "$BAM_DIR" -name "*[.]bam" | sed "s/.*\\///g" | sort | sed "s/[.].*//g" | uniq | grep -v pseudoalignments)
 do
-	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_PATH":"$LD_LIBRARY_PATH"\n"$INTERPROSCAN_BIN_DIR"/interproscan.sh -i "$FNA" -f tsv -o "$FNA".interproscan.tsv --seqtype n --goterms --iprlookup" | qsub -P jdhotopp-lab -q threaded.q  -pe thread "$THREADS" -l mem_free=20G -N interproscan -wd "$REFERENCES_DIR"
-done
+if [ "$STRANDED" == reverse ]
+then
 
-ls "$REFERENCES_DIR"/*.fna | grep tick | grep -v combined | grep -v tick.fna | grep -v tick.cds.fna | while read FNA
-do
-	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_PATH":"$LD_LIBRARY_PATH"\n"$INTERPROSCAN_BIN_DIR"/interproscan.sh -i "$FNA" -f tsv -o "$FNA".interproscan.tsv --seqtype n --goterms --iprlookup" | qsub -P jdhotopp-lab -q threaded.q  -pe thread "$THREADS" -l mem_free=20G -N interproscan -wd "$REFERENCES_DIR"
+	echo -e ""$EXPRESS_BIN_DIR"/express --rf-stranded -o "$WORKING_DIR"/quant/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+	echo -e ""$EXPRESS_BIN_DIR"/express --rf-stranded -B10 --no-bias-correct -o "$WORKING_DIR"/quant/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_default.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID"" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_10em.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_nomm.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_union.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionstrict.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionnonempty.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_unionnonuniqueall.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+
+elif [ "$STRANDED" == yes ]
+then
+
+	echo -e ""$EXPRESS_BIN_DIR"/express --fr-stranded -o "$WORKING_DIR"/quant/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+	echo -e ""$EXPRESS_BIN_DIR"/express --fr-stranded -B10 --no-bias-correct -o "$WORKING_DIR"/quant/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_default.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID"" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_10em.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_nomm.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_union.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionstrict.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionnonempty.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_unionnonuniqueall.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+
+else
+
+	echo -e ""$EXPRESS_BIN_DIR"/express -o "$WORKING_DIR"/quant/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+	echo -e ""$EXPRESS_BIN_DIR"/express -B10 --no-bias-correct -o "$WORKING_DIR"/quant/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N express -wd "$WORKING_DIR"/quant/
+
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_default.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID"" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_10em.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+	echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".fadu_nomm.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N fadu -wd "$WORKING_DIR"/quant/
+
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_union.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionstrict.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_intersectionnonempty.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/quant/"$SAMPLE".htseq_unionnonuniqueall.counts" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N htseq -wd "$WORKING_DIR"/quant/
+
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+	echo -e ""$SUBREAD_BIN_DIR"/featureCounts -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/quant/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N featurecounts -wd "$WORKING_DIR"/quant/
+
+fi
 done
 ```
 
-#### Combine split InterProScan outputs
+## Quantify FASTQs using alignment-free quantification tools
+
+### Create reference indexes
+
+##### Input Sets
+```{bash, eval = F}
+## E. chaffeensis
+NUC_GENE_FNA="$REFERENCES_DIR"/canine_echaf.gene.fna
+
+## E. coli
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+
+## wBm
+NUC_GENE_FNA="$REFERENCES_DIR"/bmalayi_wbm.gene.fna
+```
+
+##### Commands
+```{bash, eval = F}
+"$KALLISTO_BIN_DIR"/kallisto index -i "$NUC_GENE_FNA".kallisto.index --make-unique "$NUC_GENE_FNA"
+"$SALMON_BIN_DIR"/salmon index --keepDuplicates -t "$NUC_GENE_FNA" -i "$NUC_GENE_FNA".salmon.index 
+```
+
+### Quantify simulated FASTQ files using alignment-free tools (kallisto, Salmon)
 
 ##### Inputs
 ```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
 THREADS=16
+
+## E. chaffeensis
+SRR=SRR1188323
+FASTQ1=/local/projects-t3/EBMAL/mchung_dir/fadu/echaffeensis/SRR1188323_1.fastq.gz
+FASTQ2=/local/projects-t3/EBMAL/mchung_dir/fadu/echaffeensis/SRR1188323_2.fastq.gz
+NUC_GENE_FNA="$REFERENCES_DIR"/canine_echaf.gene.fna
+STRANDED=no
+
+## E. coli
+SRR=SRR2601722
+FASTQ1=/local/projects-t3/EBMAL/mchung_dir/fadu/ecoli/SRR2601722_1.fastq.gz
+FASTQ2=/local/projects-t3/EBMAL/mchung_dir/fadu/ecoli/SRR2601722_2.fastq.gz
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+STRANDED=no
+
+## wBm
+NUC_GENE_FNA="$REFERENCES_DIR"/bmalayi_wbm.gene.fna
+STRANDED=reverse
+SRR=SRR5192555
+FASTQ1=/local/projects-t3/EBMAL/mchung_dir/fadu/wbm/SRR5192555_1.fastq.gz
+FASTQ2=/local/projects-t3/EBMAL/mchung_dir/fadu/wbm/SRR5192555_2.fastq.gz
 ```
 
 ##### Commands
 ```{bash, eval = F}
-cat "$REFERENCES_DIR"/canine[0-9]*.cds.fna.interproscan.tsv > "$REFERENCES_DIR"/canine.cds.fna.interproscan.tsv
-cat "$REFERENCES_DIR"/tick[0-9]*.cds.fna.interproscan.tsv > "$REFERENCES_DIR"/tick.cds.fna.interproscan.tsv
+echo -e ""$SALMON_BIN_DIR"/salmon quant -i "$NUC_GENE_FNA".salmon.index --libType A -1 "$FASTQ1" -2 "$FASTQ2" -p "$THREADS" -o "$WORKING_DIR"/quant/"$SRR".salmon_default.counts --validateMappings" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N salmon -wd "$WORKING_DIR"/quant/
 
-rm "$REFERENCES_DIR"/canine[0-9]*.cds.fna.interproscan.tsv
-rm "$REFERENCES_DIR"/tick[0-9]*.cds.fna.interproscan.tsv
+echo -e ""$SALMON_BIN_DIR"/salmon quant -i "$NUC_GENE_FNA".salmon.index --libType A -1 "$FASTQ1" -2 "$FASTQ2" -p "$THREADS" -o "$WORKING_DIR"/quant/"$SRR".salmon_optimized.counts --validateMappings  --allowDovetail" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N salmon -wd "$WORKING_DIR"/quant/
+
+if [ "$STRANDED" == reverse ]
+then
+	echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" --rf-stranded -o $WORKING_DIR"/quant/"$SRR".kallisto_default.counts "$FASTQ1" "$FASTQ2" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N kallisto -wd "$WORKING_DIR"/quant/
+elif [ "$STRANDED" == yes ]
+then
+	echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" --fr-stranded -o $WORKING_DIR"/quant/"$SRR".kallisto_default.counts"$FASTQ1" "$FASTQ2" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N kallisto -wd "$WORKING_DIR"/quant/
+
+else
+	echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" -o $WORKING_DIR"/quant/"$SRR".kallisto_default.counts "$FASTQ1" "$FASTQ2" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N kallisto -wd "$WORKING_DIR"/quant/
+fi
 ```
 
-### Ehrlichia
+## Prepare wBm files for more specific analyses
 
-#### Run InterProScan
+### Split wBm genome BAM file by strandedness
 
 ##### Inputs
 ```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
-THREADS=16
+THREADS=4
+BAM="$WORKING_DIR"/wbm/SRR5192555.genome.sortedbyposition.bam
+STRANDED=reverse
 ```
 
 ##### Commands
 ```{bash, eval = F}
-ls "$REFERENCES_DIR"/*cds.fna | grep -v canine | grep -v tick | while read FNA
-do
-	echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_PATH":"$LD_LIBRARY_PATH"\n"$INTERPROSCAN_BIN_DIR"/interproscan.sh -i "$FNA" -f tsv -o "$FNA".interproscan.tsv --seqtype n --goterms --iprlookup" | qsub -P jdhotopp-lab -q threaded.q  -pe thread "$THREADS" -l mem_free=20G -N interproscan -wd "$REFERENCES_DIR"
-done
+"$SCRIPTS_BIN_DIR"/split_bam_by_strand.sh -i "$BAM" -s "$STRANDED" -t "$(dirname "$BAM")" -o "$(dirname "$BAM")" -@ "$THREADS"
 ```
 
-## Convert InterProScan outputs to geneinfo files
-
-```{bash, eval = F}
-ls "$REFERENCES_DIR"/*interproscan.tsv | while read IPRSCAN_OUTPUT
-do
-	"$R_BIN_DIR"/Rscript "$SCRIPTS_DIR"/interproscan2geneinfo_v2.R "$IPRSCAN_OUTPUT"
-done
-```
-
-## Create reference indices
-
-### HISAT2
+### Index stranded wBm BAM files
 
 ##### Inputs
 ```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
+BAM_F="$WORKING_DIR"/wbm/SRR5192555.genome.sortedbyposition.f.bam
+BAM_R="$WORKING_DIR"/wbm/SRR5192555.genome.sortedbyposition.r.bam
 ```
 
 ##### Commands
 ```{bash, eval = F}
-ls "$REFERENCES_DIR"/*combined.fna | grep -v cds | while read FNA
-do
-	qsub -P jdhotopp-lab -l mem_free=20G -N hisat_index -wd "$REFERENCES_DIR" -b y "$HISAT2_BIN_DIR"/hisat2-build --large-index "$FNA" "$FNA"
-done
-
-qsub -P jdhotopp-lab -l mem_free=20G -N hisat2_index -wd "$REFERENCES_DIR" -b y "$HISAT2_BIN_DIR"/hisat2-build --large-index "$REFERENCES_DIR"/canine.fna "$REFERENCES_DIR"/canine.fna
-qsub -P jdhotopp-lab -l mem_free=20G -N hisat2_index -wd "$REFERENCES_DIR" -b y "$HISAT2_BIN_DIR"/hisat2-build --large-index "$REFERENCES_DIR"/tick.fna "$REFERENCES_DIR"/tick.fna
+"$SAMTOOLS_BIN_DIR"/samtools index "$BAM_F"
+"$SAMTOOLS_BIN_DIR"/samtools index "$BAM_R"
 ```
 
-### Salmon
+### Calculate depth for stranded wBm BAM files
 
 ##### Inputs
 ```{bash, eval = F}
-REFERENCES_DIR="$WORKING_DIR"/references/
+CONTIG=NC_006833.1
+BAM_F="$WORKING_DIR"/wbm/SRR5192555.genome.sortedbyposition.f.bam
+BAM_R="$WORKING_DIR"/wbm/SRR5192555.genome.sortedbyposition.r.bam
 ```
 
 ##### Commands
 ```{bash, eval = F}
-ls "$REFERENCES_DIR"/*cds.combined.fna | while read FNA
-do
-	qsub -P jdhotopp-lab -l mem_free=5G -N salmon_index -wd "$REFERENCES_DIR" -b y "$SALMON_BIN_DIR"/salmon index --keepDuplicates -t "$FNA" -i "$FNA".salmon.index
-done
-qsub -P jdhotopp-lab -l mem_free=5G -N salmon_index -wd "$REFERENCES_DIR" -b y "$SALMON_BIN_DIR"/salmon index --keepDuplicates -t "$REFERENCES_DIR"/canine.cds.fna -i "$REFERENCES_DIR"/canine.cds.fna.salmon.index
-qsub -P jdhotopp-lab -l mem_free=5G -N salmon_index -wd "$REFERENCES_DIR" -b y "$SALMON_BIN_DIR"/salmon index --keepDuplicates -t "$REFERENCES_DIR"/tick.cds.fna -i "$REFERENCES_DIR"/tick.cds.fna.salmon.index
+"$SAMTOOLS_BIN_DIR"/samtools depth -aa -d 1000000 -r "$CONTIG" "$BAM_F" > "$BAM_F".depth
+"$SAMTOOLS_BIN_DIR"/samtools depth -aa -d 1000000 -r "$CONTIG" "$BAM_R" > "$BAM_R".depth
 ```
 
-## Quantify canine, tick, and E. chaffeensis transcript expression levels
+## Determine whether FADU better quantifies compared to other tools in actual data sets
+
+### Set R inputs
+
+```{R}
+QUANT_DIR <- "Z:/EBMAL/mchung_dir/fadu/quant"
+OUTPUT_DIR <- "C:/Users/MChung.SOM/Documents/plots"
+
+GFF_PATH <- "Z:/EBMAL/mchung_dir/fadu/references/GCF_000008385.1_ASM838v1_genomic.gff"
+DEPTH_F_PATH <- "Z:/EBMAL/mchung_dir/fadu/wbm/SRR5192555.genome.sortedbyposition.f.bam.depth"
+DEPTH_R_PATH <- "Z:/EBMAL/mchung_dir/fadu/wbm/SRR5192555.genome.sortedbyposition.r.bam.depth"
+```
+
+### Load R packages and view sessionInfo
+
+```{R}
+library(cowplot)
+library(dendextend)
+library(DESeq2)
+library(ggdendro)
+library(gggenes)
+library(ggplot2)
+library(ggrepel)
+library(gridExtra)
+library(matrixStats)
+library(pvclust)
+library(reshape2)
+library(rlist)
+library(see)
+library(viridis)
+
+sessionInfo()
+```
+
+```{R, eval = F}
+R version 3.5.1 (2018-07-02)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 7 x64 (build 7601) Service Pack 1
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252    LC_MONETARY=English_United States.1252
+[4] LC_NUMERIC=C                           LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] viridis_0.5.1               viridisLite_0.3.0           see_0.3.0                   rlist_0.4.6.1              
+ [5] reshape2_1.4.3              pvclust_2.0-0               gridExtra_2.3               ggrepel_0.8.0              
+ [9] gggenes_0.3.2               ggdendro_0.1-20             DESeq2_1.22.2               SummarizedExperiment_1.12.0
+[13] DelayedArray_0.8.0          BiocParallel_1.16.6         matrixStats_0.55.0          Biobase_2.42.0             
+[17] GenomicRanges_1.34.0        GenomeInfoDb_1.18.2         IRanges_2.16.0              S4Vectors_0.20.1           
+[21] BiocGenerics_0.28.0         dendextend_1.9.0            cowplot_0.9.4               ggplot2_3.2.1              
+
+loaded via a namespace (and not attached):
+ [1] bitops_1.0-6           bit64_0.9-7            insight_0.7.1          RColorBrewer_1.1-2     prabclus_2.2-7        
+ [6] tools_3.5.1            backports_1.1.3        R6_2.4.0               rpart_4.1-13           Hmisc_4.2-0           
+[11] DBI_1.0.0              lazyeval_0.2.2         colorspace_1.4-1       trimcluster_0.1-2.1    nnet_7.3-12           
+[16] withr_2.1.2            tidyselect_0.2.5       bit_1.1-14             compiler_3.5.1         htmlTable_1.13.1      
+[21] bayestestR_0.4.0       diptest_0.75-7         scales_1.0.0           checkmate_1.9.1        DEoptimR_1.0-8        
+[26] mvtnorm_1.0-10         robustbase_0.93-4      genefilter_1.64.0      ggridges_0.5.1         stringr_1.4.0         
+[31] digest_0.6.18          foreign_0.8-70         XVector_0.22.0         base64enc_0.1-3        pkgconfig_2.0.2       
+[36] htmltools_0.3.6        htmlwidgets_1.3        rlang_0.4.0            rstudioapi_0.10        RSQLite_2.1.1         
+[41] mclust_5.4.3           acepack_1.4.1          dplyr_0.8.3            RCurl_1.95-4.12        magrittr_1.5          
+[46] modeltools_0.2-22      GenomeInfoDbData_1.2.0 Formula_1.2-3          parameters_0.3.0       Matrix_1.2-14         
+[51] Rcpp_1.0.1             munsell_0.5.0          ggfittext_0.6.0        stringi_1.4.3          whisker_0.3-2         
+[56] yaml_2.2.0             MASS_7.3-50            zlibbioc_1.28.0        plyr_1.8.4             flexmix_2.3-15        
+[61] grid_3.5.1             blob_1.1.1             crayon_1.3.4           lattice_0.20-35        splines_3.5.1         
+[66] annotate_1.60.1        locfit_1.5-9.1         knitr_1.22             pillar_1.3.1           fpc_2.1-11.1          
+[71] effectsize_0.0.1       geneplotter_1.60.0     XML_3.98-1.19          glue_1.3.1             latticeExtra_0.6-28   
+[76] data.table_1.12.2      gtable_0.3.0           purrr_0.3.2            kernlab_0.9-27         assertthat_0.2.1      
+[81] xfun_0.6               xtable_1.8-3           class_7.3-14           survival_2.42-3        tibble_2.1.1          
+[86] AnnotationDbi_1.44.0   memoise_1.1.0          cluster_2.0.7-   
+```
+
+### Load R functions
+```{R}
+formalize_names <- function(vector){
+	vector <- gsub("express_default","eXpress",vector)
+	vector <- gsub("express_optimized","eXpress\n-B10 --no-bias-correct",vector)
+
+	vector <- gsub("fadu_default","FADU",vector)
+	vector <- gsub("fadu_10em","FADU\n--em_iterations 10",vector)
+	vector <- gsub("fadu_nomm","FADU\n--remove_multimapped",vector)
+
+	vector <- gsub("htseq_unionnonuniqueall","HTSeq\n-m union --nonunique all",vector)
+	vector <- gsub("htseq_union","HTSeq\n-m union",vector)
+	vector <- gsub("htseq_intersectionstrict","HTSeq\n-m intersection-strict",vector)
+	vector <- gsub("htseq_intersectionnonempty","HTSeq\n-m intersection-nonempty",vector)
+	
+
+	vector <- gsub("featurecounts_default","featureCounts",vector)
+	vector <- gsub("featurecounts_overlap","featureCounts\n-O",vector)
+	vector <- gsub("featurecounts_fractionaloverlap","featureCounts\n-O --fraction",vector)
+
+	vector <- gsub("salmon_default","Salmon\n--validateMappings",vector)
+	vector <- gsub("salmon_optimized","Salmon\n--validateMappings --allowDovetail",vector)
+
+	vector <- gsub("kallisto_default","kallisto",vector)
+}
+
+g_legend<-function(a.gplot){ 
+  tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
+  legend <- tmp$grobs[[leg]] 
+  return(legend)
+} 
+
+lm_eqn <- function(vector1,vector2){
+  df <-as.data.frame(cbind(vector1,vector2))
+  m <- lm(df[,2] ~ df[,1], df)
+  eq <- substitute(italic(r)^2~"="~r2, 
+                   list(r2 = format(summary(m)$r.squared, digits = 3)))
+  as.character(as.expression(eq));                 
+}
+```
+
+### Establish list of samples
+
+```{R}
+samples <- c("SRR1188323","SRR2601722","SRR5192555")
+```
+
+### Store counts data from each tool in a list consisting of dataframes
+
+```{R}
+quant_tools <- c("fadu_default",
+                 "fadu_10em",
+                 "fadu_nomm",
+                 "express_default",
+                 "express_optimized",
+                 "featurecounts_default",
+                 "featurecounts_overlap",
+                 "featurecounts_fractionaloverlap",
+                 "htseq_union",
+                 "htseq_intersectionstrict",
+                 "htseq_intersectionnonempty",
+                 "htseq_unionnonuniqueall",
+                 "kallisto_default",
+                 "salmon_default",
+                 "salmon_optimized")
+
+counts <- list()
+for(i in 1:length(samples)){
+  counts[[i]] <- as.data.frame(matrix(nrow = nrow(read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_default.counts/",samples[i],".genome.sortedbyposition.counts.txt"))),
+                                 ncol = length(quant_tools)))
+  rownames(counts[[i]]) <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_default.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,1]
+  colnames(counts[[i]]) <- quant_tools
+  
+  counts[[i]]$fadu_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_default.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,4]
+  counts[[i]]$fadu_10em <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_10em.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,4]
+  counts[[i]]$fadu_nomm <- read.delim(paste0(QUANT_DIR,"/",samples[i],".fadu_nomm.counts/",samples[i],".genome.sortedbyposition.counts.txt"))[,4]
+  
+  counts[[i]]$express_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".express_default.counts/results.xprs"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".express_default.counts/results.xprs"))[,2]),8]
+  counts[[i]]$express_optimized <- read.delim(paste0(QUANT_DIR,"/",samples[i],".express_optimized.counts/results.xprs"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".express_optimized.counts/results.xprs"))[,2]),8]
+  
+  counts[[i]]$featurecounts_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_default.counts"),comment.char="#")[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_default.counts"),comment.char="#")[,1]),7]
+  counts[[i]]$featurecounts_overlap <- read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_overlap.counts"),comment.char="#")[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_overlap.counts"),comment.char="#")[,1]),7]
+  counts[[i]]$featurecounts_fractionaloverlap <- read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_fractionaloverlap.counts"),comment.char="#")[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".featurecounts_fractionaloverlap.counts"),comment.char="#")[,1]),7]
+  
+  counts[[i]]$htseq_union <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_union.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_union.counts"),header = F)[,1]),2]
+  counts[[i]]$htseq_intersectionstrict <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionstrict.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionstrict.counts"),header = F)[,1]),2]
+  counts[[i]]$htseq_intersectionnonempty <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionnonempty.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_intersectionnonempty.counts"),header = F)[,1]),2]
+  counts[[i]]$htseq_unionnonuniqueall <- read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_unionnonuniqueall.counts"),header = F)[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".htseq_unionnonuniqueall.counts"),header = F)[,1]),2]
+  
+  counts[[i]]$kallisto_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".kallisto_default.counts/abundance.tsv"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".kallisto_default.counts/abundance.tsv"))[,1]),4]
+  
+  counts[[i]]$salmon_default <- read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_default.counts/quant.sf"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_default.counts/quant.sf"))[,1]),5]
+  counts[[i]]$salmon_optimized <- read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_optimized.counts/quant.sf"))[match(rownames(counts[[i]]),read.delim(paste0(QUANT_DIR,"/",samples[i],".salmon_optimized.counts/quant.sf"))[,1]),5]
+}
+```
+
+### Remove B. malayi genes from wBm analysis
+```{R}
+counts[[3]] <- counts[[3]][grep("Gene:",rownames(counts[[3]]),invert = T),]
+```
+
+### Plot FADU log2counts v other tools' log2counts
+
+#### Set plot order 
+```{R}
+colorder <- c("fadu_default","fadu_10em","fadu_nomm",
+              "salmon_optimized","salmon_default","kallisto_default","express_optimized","express_default",
+              "featurecounts_default","htseq_intersectionnonempty","htseq_union","htseq_intersectionstrict",
+              "htseq_unionnonuniqueall","featurecounts_overlap","featurecounts_fractionaloverlap")
+for(i in 1:length(counts)){
+  counts[[i]] <- counts[[i]][,match(colorder,colnames(counts[[i]]))]
+}
+```
+
+#### Plot FADU default v other tools
+```{R, fig.height=11, fig.width=4}
+plot.list <- list()
+for(i in 4:ncol(counts[[1]])){
+  for(j in 1:length(counts)){
+      plot.df <- as.data.frame(cbind(log2(counts[[j]][,1] + 1),
+                                   log2(counts[[j]][,i] + 1)))
+      plot.list <- list.append(plot.list,
+                   ggplot(plot.df,aes_string(x=plot.df[,1],y=plot.df[,2]))+
+                      stat_density_2d(aes(fill = ..level..), geom = "polygon")+
+                      scale_fill_viridis()+
+                      geom_abline(slope = 1, intercept = 0,color = "black", linetype = "dotted")+
+                      annotate("text",x = 0, y = 14, label = lm_eqn(plot.df[,1],plot.df[,2]),parse = T,size = 2.5, hjust = 0)+
+                      guides(fill = F)+
+                      coord_cartesian(xlim=c(0,15),ylim=c(0,15))+
+                      theme_bw()+
+                      theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank())
+    )
+  }
+}
+
+pdf(paste0(OUTPUT_DIR,"/actual_fadudefault_countsvcounts.pdf"),
+    height=11,
+    width=4)
+plot_grid(plotlist = plot.list,
+          ncol=3)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/actual_fadudefault_countsvcounts.png"),
+    height=11,
+    width=4,
+    units = "in",res=300)
+plot_grid(plotlist = plot.list,
+          ncol=3)
+dev.off()
+
+plot_grid(plotlist = plot.list,
+          ncol=3)
+```
+
+![image](/images/actual_fadudefault_countsvcounts.png)
+
+#### Plot FADU 10em v other tools
+```{R fig.height=11, fig.width=4}
+plot.list <- list()
+for(i in 4:ncol(counts[[1]])){
+  for(j in 1:length(counts)){
+      plot.df <- as.data.frame(cbind(log2(counts[[j]][,2] + 1),
+                                   log2(counts[[j]][,i] + 1)))
+      plot.list <- list.append(plot.list,
+                   ggplot(plot.df,aes_string(x=plot.df[,1],y=plot.df[,2]))+
+                      stat_density_2d(aes(fill = ..level..), geom = "polygon")+
+                      scale_fill_viridis()+
+                      geom_abline(slope = 1, intercept = 0,color = "black", linetype = "dotted")+
+                      annotate("text",x = 0, y = 14, label = lm_eqn(plot.df[,1],plot.df[,2]),parse = T,size = 2.5, hjust = 0)+
+                      guides(fill = F)+
+                      coord_cartesian(xlim=c(0,15),ylim=c(0,15))+
+                      theme_bw()+
+                      theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank())
+    )
+  }
+}
+
+pdf(paste0(OUTPUT_DIR,"/actual_fadu10em_countsvcounts.pdf"),
+    height=11,
+    width=4)
+plot_grid(plotlist = plot.list,
+          ncol=3)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/actual_fadu10em_countsvcounts.png"),
+    height=11,
+    width=4,
+    units = "in",res=300)
+plot_grid(plotlist = plot.list,
+          ncol=3)
+dev.off()
+
+plot_grid(plotlist = plot.list,
+          ncol=3)
+```
+
+![image](/images/actual_fadu10em_countsvcounts.png)
+
+#### Plot FADU no_multimapped v other tools
+```{R, fig.height=11, fig.width=4}
+plot.list <- list()
+for(i in 4:ncol(counts[[1]])){
+  for(j in 1:length(counts)){
+      plot.df <- as.data.frame(cbind(log2(counts[[j]][,3] + 1),
+                                   log2(counts[[j]][,i] + 1)))
+      plot.list <- list.append(plot.list,
+                   ggplot(plot.df,aes_string(x=plot.df[,1],y=plot.df[,2]))+
+                      stat_density_2d(aes(fill = ..level..), geom = "polygon")+
+                      scale_fill_viridis()+
+                      geom_abline(slope = 1, intercept = 0,color = "black", linetype = "dotted")+
+                      annotate("text",x = 0, y = 14, label = lm_eqn(plot.df[,1],plot.df[,2]),parse = T,size = 2.5, hjust = 0)+
+                      guides(fill = F)+
+                      coord_cartesian(xlim=c(0,15),ylim=c(0,15))+
+                      theme_bw()+
+                      theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank())
+    )
+  }
+}
+
+pdf(paste0(OUTPUT_DIR,"/actual_fadunomm_countsvcounts.pdf"),
+    height=11,
+    width=4)
+plot_grid(plotlist = plot.list,
+          ncol=3)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/actual_fadunomm_countsvcounts.png"),
+    height=11,
+    width=4,
+    units = "in",res=300)
+plot_grid(plotlist = plot.list,
+          ncol=3)
+dev.off()
+
+plot_grid(plotlist = plot.list,
+          ncol=3)
+```
+
+![image](/images/actual_fadunomm_countsvcounts.png)
+
+#### Create figure legend
+```{R,fig.height=2, fig.width=4}
+legend.plot <- ggplot(plot.df,aes_string(x=plot.df[,1],y=plot.df[,2]))+
+                      stat_density_2d(aes(fill = ..level..), geom = "polygon")+
+                      scale_fill_viridis()+
+                      geom_abline(slope = 1, intercept = 0,color = "black", linetype = "dotted")+
+                      annotate("text",x = 0, y = 14, label = lm_eqn(plot.df[,1],plot.df[,2]),parse = T,size = 2.5, hjust = 0)+
+                      coord_cartesian(xlim=c(0,15),ylim=c(0,15))+
+                      labs(fill="Level")+
+                      theme_bw()+
+                      theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank())
+
+level.legend <- g_legend(legend.plot)
+
+pdf(paste0(OUTPUT_DIR,"/countsvcounts_key.pdf"),
+    height=2,
+    width=4)
+grid.arrange(level.legend)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/countsvcounts_key.png"),
+    height=2,
+    width=4,
+    units = "in",res=300)
+grid.arrange(level.legend)
+dev.off()
+
+grid.arrange(level.legend)
+```
+
+![image](/images/countsvcounts_key.png")
+
+### Conduct MA analysis
+
+#### Select quantification methods for MA analysis
+```{R}
+colorder <- c("fadu_default","fadu_10em",
+              "salmon_optimized","express_optimized","featurecounts_default",
+              "htseq_union","htseq_unionnonuniqueall","featurecounts_fractionaloverlap")
+```
+
+#### Identify the methods over-/under-counted relative to default FADU
+```{R}
+ma.m.df <- as.data.frame(apply(counts[[3]],2,function(x){return(log2((x+1)/(counts[[3]]$fadu_default+1)))}))
+ma.a.df <- as.data.frame(apply(counts[[3]],2,function(x){return(0.5*log2(x+1)+log2(counts[[3]]$fadu_default+1))}))
+
+ma.m.subset.df <- ma.m.df[,which(colnames(ma.a.df) %in% colorder)]
+ma.m.simplified.subset.df <- ma.m.subset.df[,2:ncol(ma.m.subset.df)]
+ma.m.simplified.subset.df[abs(ma.m.simplified.subset.df) <= 2] <- 0
+ma.m.simplified.subset.df[ma.m.simplified.subset.df > 2] <- 1
+ma.m.simplified.subset.df[ma.m.simplified.subset.df < -2] <- -1
+
+fadu_overcount_methods <- c()
+fadu_undercount_methods <- c()
+for(i in 1:nrow(ma.m.simplified.subset.df)){
+  if(length(which(ma.m.simplified.subset.df[i,] == -1)) > 0){
+    fadu_overcount_methods <- c(fadu_overcount_methods,paste(colnames(ma.m.simplified.subset.df)[which(ma.m.simplified.subset.df[i,] == -1)],collapse = " | "))
+  }
+  if(length(which(ma.m.simplified.subset.df[i,] == 1)) > 0){
+    fadu_undercount_methods <- c(fadu_undercount_methods,paste(colnames(ma.m.simplified.subset.df)[which(ma.m.simplified.subset.df[i,] == 1)],collapse = " | "))
+  }
+}
+
+rev(sort(table(strsplit(paste(fadu_overcount_methods,collapse = " | "), split = " [|] "))))
+```
+
+```{R, eval = F}
+      express_optimized        salmon_optimized             htseq_union   featurecounts_default htseq_unionnonuniqueall 
+                    122                      68                      67                      29                       2
+```
+
+```{R}
+rev(sort(table(fadu_overcount_methods)))
+```
+
+```{R, eval = F}
+                                      salmon_optimized | express_optimized 
+                                                                        34 
+                                                         express_optimized 
+                                                                        33 
+salmon_optimized | express_optimized | featurecounts_default | htseq_union 
+                                                                        24 
+                                           express_optimized | htseq_union 
+                                                                        18 
+                                                               htseq_union 
+                                                                        10 
+                        salmon_optimized | express_optimized | htseq_union 
+                                                                         8 
+                   express_optimized | featurecounts_default | htseq_union 
+                                                                         3 
+                 express_optimized | htseq_union | htseq_unionnonuniqueall 
+                                                                         2 
+                    salmon_optimized | featurecounts_default | htseq_union 
+                                                                         1 
+                                                          salmon_optimized 
+                                                                         1 
+                                       featurecounts_default | htseq_union 
+                                                                         1 
+```
+
+```{R}
+rev(sort(table(strsplit(paste(fadu_undercount_methods,collapse = " | "), split = " [|] "))))
+```
+
+```{R, eval = F}
+        htseq_unionnonuniqueall featurecounts_fractionaloverlap                salmon_optimized                     htseq_union 
+                             28                              13                               8                               5 
+          featurecounts_default               express_optimized 
+                              5                               2 
+```
+
+
+```{R}
+rev(sort(table(fadu_undercount_methods)))
+```
+
+```{R, eval = F}
+                                                                                           htseq_unionnonuniqueall 
+                                                                                                                15 
+                                                         htseq_unionnonuniqueall | featurecounts_fractionaloverlap 
+                                                                                                                 8 
+                                                                                                  salmon_optimized 
+                                                                                                                 6 
+                   featurecounts_default | htseq_union | htseq_unionnonuniqueall | featurecounts_fractionaloverlap 
+                                                                                                                 3 
+salmon_optimized | featurecounts_default | htseq_union | htseq_unionnonuniqueall | featurecounts_fractionaloverlap 
+                                                                                                                 2 
+                                                                                                 express_optimized 
+                                                                                                                 2 
+```
+
+#### Identify the genes over-/under-counted relative to default FADU
+```{R}
+fadu_overcount_genes <- c()
+fadu_undercount_genes <- c()
+
+fadu_overcount_genes <- rownames(ma.m.simplified.subset.df)[ma.m.simplified.subset.df$salmon_optimized == -1 &
+                                                            ma.m.simplified.subset.df$express_optimized == -1 &
+                                                            ma.m.simplified.subset.df$featurecounts_default == -1 &
+                                                            ma.m.simplified.subset.df$htseq_union == -1]
+
+fadu_undercount_genes <- rownames(ma.m.simplified.subset.df)[ma.m.simplified.subset.df$htseq_unionnonuniqueall == 1 &
+                                                             ma.m.simplified.subset.df$featurecounts_fractionaloverlap == 1]
+
+fadu_overcount_genes
+```
+
+```{R, eval = F}
+ [1] "gene100" "gene120" "gene167" "gene287" "gene322" "gene335" "gene344" "gene36"  "gene43"  "gene453" "gene477" "gene483"
+[13] "gene496" "gene500" "gene545" "gene575" "gene604" "gene672" "gene761" "gene833" "gene835" "gene836" "gene936" "gene989"
+```
+
+```{R}
+fadu_undercount_genes
+```
+
+```{R, eval = F}
+ [1] "gene154" "gene23"  "gene335" "gene43"  "gene505" "gene615" "gene761" "gene771" "gene776" "gene779" "gene849" "gene892"
+[13] "gene94"
+```
+
+```{R}
+intersect(fadu_overcount_genes,fadu_undercount_genes)
+```
+
+```{R, eval = F}
+[1] "gene335" "gene43"  "gene761"
+```
+
+#### Plot MA plots
+```{R,fig.height=5,fig.width=7}
+blue_genes <- c("gene833","gene835","gene836")
+red_genes <- c("gene776")
+
+blue_labels <- rownames(counts[[3]])
+blue_labels[!(blue_labels %in% blue_genes)] <- ""
+blue_genes_coords <- which(rownames(counts[[3]]) %in% blue_genes)
+
+red_labels <- rownames(counts[[3]])
+red_labels[!(red_labels %in% red_genes)] <- ""
+red_genes_coords <- which(rownames(counts[[3]]) %in% red_genes)
+
+maplot.list <- list()
+for(i in 3:length(colorder)){
+  plot.df <- as.data.frame(cbind(ma.m.df[,which(colnames(ma.m.df) == colorder[i])],
+                                 ma.a.df[,which(colnames(ma.a.df) == colorder[i])]))
+  maplot.list <- list.append(maplot.list,
+                      ggplot(mapping = aes_string(x=plot.df[,2],y=plot.df[,1]))+
+                        geom_hline(mapping=aes(yintercept=2),color = "darkorange", linetype = "dashed", size = 0.25)+
+                        geom_hline(mapping=aes(yintercept=-2),color = "darkorange", linetype = "dashed", size = 0.25)+
+                        geom_point(size = 0.1)+
+                        geom_point(mapping = aes_string(x=plot.df[blue_genes_coords,2],y=plot.df[blue_genes_coords,1]),size= 1,color="blue")+
+                        geom_point(mapping = aes_string(x=plot.df[red_genes_coords,2],y=plot.df[red_genes_coords,1]),size= 1,color="red")+
+                        geom_text_repel(mapping = aes_string(label="red_labels"),size=3,color="red",ylim = c(5,NA))+
+                        geom_text_repel(mapping = aes_string(label="blue_labels"),size=3,color="blue",ylim = c(NA,-5))+
+                        #ggtitle(colorder[i])+
+                        scale_y_continuous(limits=c(-10,10))+
+                        labs(x="A",y="M")+
+                        guides(fill = F)+
+                        theme_bw()+
+                        theme(axis.title.x = element_blank(),
+                              axis.title.y = element_blank())
+  )
+                      
+  maplot.list <- list.append(maplot.list,
+                      ggplot(mapping = aes_string(x=plot.df[,2],y=plot.df[,1]))+
+                        geom_hline(mapping=aes(yintercept=2),color = "darkorange", linetype = "dashed", size = 0.25)+
+                        geom_hline(mapping=aes(yintercept=-2),color = "darkorange", linetype = "dashed", size = 0.25)+
+                        stat_density_2d(aes(fill = ..level..), geom = "polygon")+
+                        scale_fill_viridis()+
+                        #ggtitle(colorder[i])+
+                        scale_y_continuous(limits=c(-10,10))+
+                        labs(x="A",y="M")+
+                        guides(fill = F)+
+                        theme_bw()+
+                        theme(axis.title.x = element_blank(),
+                              axis.title.y = element_blank())
+  )
+}
+
+pdf(paste0(OUTPUT_DIR,"/maplots.pdf"),
+    height=2,
+    width=4)
+plot_grid(plotlist = maplot.list,
+          ncol=4)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/maplots.png"),
+    height=2,
+    width=4,
+    units = "in",res=300)
+plot_grid(plotlist = maplot.list,
+          ncol=4)
+dev.off()
+
+plot_grid(plotlist = maplot.list,
+          ncol=4)
+```
+
+![image](/images/maplots.png")
+
+### Examine counts for genes within a specific operon
+
+#### Set plot order 
+```{R}
+colorder <- c("salmon_optimized","salmon_default","kallisto_default","express_optimized","express_default",
+              "featurecounts_default","fadu_nomm","htseq_intersectionnonempty","htseq_union","htseq_intersectionstrict",
+              "htseq_unionnonuniqueall","featurecounts_overlap","featurecounts_fractionaloverlap",
+              "fadu_10em","fadu_default")
+for(i in 1:length(counts)){
+  counts[[i]] <- counts[[i]][,match(colorder,colnames(counts[[i]]))]
+}
+```
+
+#### Set operon genes and start and stop coordinates
+```{R}
+operon_genes <- c("gene826","gene827","gene828","gene829","gene830",
+                  "gene831","gene832","gene833","gene834","gene835",
+                  "gene836")
+highlight_operon_genes <- c("gene833","gene835","gene836")
+
+gff <- read.delim(GFF_PATH,comment.char="#",header=F)
+gff <- gff[gff[,3] == "gene",]
+gff[,10] <- gsub(".*;locus_tag=","",gff[,9])
+gff[,10] <- gsub(";.*","",gff[,10])
+gff[,11] <- gsub(".*;old_locus_tag=","",gff[,9])
+gff[,11] <- gsub(";.*","",gff[,11])
+gff[,9] <- gsub(";.*","",gff[,9])
+gff[,9] <- gsub("ID=","",gff[,9])
+
+gff.operon <- gff[gff[,9] %in% operon_genes,]
+
+operon_start <- min(c(gff.operon[,4],gff.operon[,5]))
+operon_stop <- max(c(gff.operon[,4],gff.operon[,5]))
+
+operon_start <- min(c(gff.operon[,4],gff.operon[,5])) - 0.05*(operon_stop-operon_start)
+operon_stop <- max(c(gff.operon[,4],gff.operon[,5])) + 0.05*(operon_stop-operon_start)
+
+strand <- unique(gff.operon[,7])
+```
+
+#### Read and subset depth over operon region
+```{R}
+depth_f <- read.delim(DEPTH_F_PATH,header = F)
+depth_r <- read.delim(DEPTH_R_PATH,header = F)
+
+if(strand == "+"){
+  depth <- depth_f[depth_f[,2] >= operon_start &
+                   depth_f[,2] <= operon_stop,]
+}else{
+  depth <- depth_r[depth_r[,2] >= operon_start &
+                   depth_r[,2] <= operon_stop,]
+}
+```
+
+#### Calculate normalized relative count values
+```{R}
+counts.operon <- counts[[3]][rownames(counts[[3]]) %in% operon_genes,]
+genelength.operon <- gff.operon[match(operon_genes,gff.operon[,9]),5] - gff.operon[match(operon_genes,gff.operon[,9]),4] + 1
+
+relativecounts.operon <- counts.operon/genelength.operon
+for(i in 1:ncol(relativecounts.operon)){
+  relativecounts.operon[,i] <- relativecounts.operon[,i]/median(relativecounts.operon[,i])
+}
+log2relativecounts.operon <- log2(relativecounts.operon)
+```
+
+#### Plot depth over operon region
+```{R,fig.height=2.5,fig.width=8}
+gene_color <- rep("darkgrey",nrow(gff.operon))
+gene_color[operon_genes %in% highlight_operon_genes] <- "turquoise2"
+gene_label <- rep("",nrow(gff.operon))
+gene_label[operon_genes %in% highlight_operon_genes] <- operon_genes[operon_genes %in% highlight_operon_genes]
+
+operon_depth.plot <- ggplot()+
+  geom_ribbon(mapping=aes(x=depth[,2],ymin=0,ymax=log10(depth[,3] + 1)),fill="orange")+
+  geom_gene_arrow(mapping=aes(xmin=gff.operon[,4],xmax=gff.operon[,5],y=0,forward=gff.operon[,7]),fill=gene_color)+
+  geom_text_repel(mapping=aes(x=(gff.operon[,5]+gff.operon[,4])/2,y=0,label=gene_label),ylim = c(0.5,NA),size=3)+
+  scale_x_continuous(expand=c(0,0))+
+  labs(x="wBm genome position",y="log2 read depth")+
+  theme_bw()
+
+pdf(paste0(OUTPUT_DIR,"/operon_depth_plot.pdf"),
+    height=2.5,
+    width=8)
+print(operon_depth.plot)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/operon_depth_plot.png"),
+    height=2.5,
+    width=8,
+    units = "in",res=300)
+print(operon_depth.plot)
+dev.off()
+
+print(operon_depth.plot)
+```
+
+![image](/images/operon_depth_plot.png")
+
+#### Plot normalized relative count values of operon region
+```{R,fig.height=5,fig.width=8}
+log2relativecounts.operon.plot.df <- log2relativecounts.operon
+log2relativecounts.operon.plot.df$gene <- rownames(log2relativecounts.operon) 
+log2relativecounts.operon.plot.df <- melt(log2relativecounts.operon.plot.df)
+
+log2relativecounts.operon.plot.df$variable <- formalize_names(log2relativecounts.operon.plot.df$variable)
+log2relativecounts.operon.plot.df$variable <- factor(log2relativecounts.operon.plot.df$variable,levels=rev(formalize_names(colnames(counts[[3]]))))
+
+log2relativecounts.operon.plot <- ggplot(mapping=aes(x=log2relativecounts.operon.plot.df$gene,
+                          y=log2relativecounts.operon.plot.df$variable,
+                          fill=log2relativecounts.operon.plot.df$value,
+                          label=round(log2relativecounts.operon.plot.df$value,1)))+
+  geom_raster()+
+  geom_text()+
+  scale_x_discrete(expand=c(0,0))+
+  scale_y_discrete(expand=c(0,0))+
+  scale_fill_gradient2(low = "navyblue", mid = "white", high = "firebrick3",limits=c(-3,3))+
+  guides(fill = F)+
+  theme_bw()+
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 45,hjust=1))
+
+pdf(paste0(OUTPUT_DIR,"/operon_log2relativecounts_plot.pdf"),
+    height=2.5,
+    width=8)
+print(log2relativecounts.operon.plot)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/operon_log2relativecounts_plot.png"),
+    height=2.5,
+    width=8,
+    units = "in",res=300)
+print(log2relativecounts.operon.plot)
+dev.off()
+
+print(log2relativecounts.operon.plot)
+```
+
+![image](/images/operon_log2relativecounts_plot.png")
+
+#### Create figure legend
+```{R}
+legend.plot <- ggplot(mapping=aes(x=log2relativecounts.operon.plot.df$gene,
+                                  y=log2relativecounts.operon.plot.df$variable,
+                                  fill=log2relativecounts.operon.plot.df$value,
+                                  label=round(log2relativecounts.operon.plot.df$value,1)))+
+  geom_raster()+
+  geom_text()+
+  scale_x_discrete(expand=c(0,0))+
+  scale_y_discrete(expand=c(0,0))+
+  scale_fill_gradient2(low = "navyblue", mid = "white", high = "firebrick3",limits=c(-3,3))+
+  labs(fill = "log2 normalized relative counts")+
+  theme_bw()+
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 45,hjust=1),
+        legend.position = "bottom")
+
+log2relativecounts.legend <- g_legend(legend.plot)
+
+pdf(paste0(OUTPUT_DIR,"/log2relativecounts_key.pdf"),
+    height=2,
+    width=4)
+grid.arrange(log2relativecounts.legend)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/log2relativecounts_key.png"),
+    height=2,
+    width=4,
+    units = "in",res=300)
+grid.arrange(log2relativecounts.legend)
+dev.off()
+
+grid.arrange(log2relativecounts.legend)
+```
+
+![image](/images/log2relativecounts_key.png")
+
+#### Combine plots
+```{R,fig.height=8,fig.width=8}
+pdf(paste0(OUTPUT_DIR,"/operon_full_plot.pdf"),
+    height=8,
+    width=8)
+plot_grid(plotlist = list(operon_depth.plot,
+                          log2relativecounts.operon.plot),
+          #align = 'v',
+          rel_heights = c(1,3),
+          labels="AUTO",
+          ncol=1)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/operon_full_plot.png"),
+    height=8,
+    width=8,
+    units = "in",res=300)
+plot_grid(plotlist = list(operon_depth.plot,
+                          log2relativecounts.operon.plot),
+          #align = 'v',
+          rel_heights = c(1,3),
+          labels="AUTO",
+          ncol=1)
+dev.off()
+
+plot_grid(plotlist = list(operon_depth.plot,
+                          log2relativecounts.operon.plot),
+          #align = 'v',
+          rel_heights = c(1,3),
+          labels="AUTO",
+          ncol=1)
+```
+
+![image](/images/operon_full_plot.png")
+
+### Examine counts for genes under-counted by FADU
+
+#### Set under-counted genes and start and stop coordinates
+```{R}
+undercount_genes <- c("gene776","gene777","gene778")
+highlight_undercount_genes <- c("gene776")
+
+gff.undercount <- gff[gff[,9] %in% undercount_genes,]
+
+undercount_start <- min(c(gff.undercount[,4],gff.undercount[,5]))
+undercount_stop <- max(c(gff.undercount[,4],gff.undercount[,5]))
+
+undercount_start <- min(c(gff.undercount[,4],gff.undercount[,5])) - 0.1*(undercount_stop-undercount_start)
+undercount_stop <- max(c(gff.undercount[,4],gff.undercount[,5])) + 0.1*(undercount_stop-undercount_start)
+
+strand <- unique(gff.undercount[,7])
+```
+
+#### Read and subset depth over under-counted gene region
+```{R}
+if(strand == "+"){
+  depth <- depth_f[depth_f[,2] >= undercount_start &
+                   depth_f[,2] <= undercount_stop,]
+}else{
+  depth <- depth_r[depth_r[,2] >= undercount_start &
+                   depth_r[,2] <= undercount_stop,]
+}
+```
+
+#### Plot depth over under-counted gene region
+```{R,fig.height=2.5,fig.width=8}
+gene_color <- rep("darkgrey",nrow(gff.undercount))
+gene_color[undercount_genes %in% highlight_undercount_genes] <- "red"
+gene_label <- rep("",nrow(gff.undercount))
+gene_label[undercount_genes %in% highlight_undercount_genes] <- undercount_genes[undercount_genes %in% highlight_undercount_genes]
+
+undercount_depth.plot <- ggplot()+
+  geom_ribbon(mapping=aes(x=depth[,2],ymin=0,ymax=log10(depth[,3] + 1)),fill="orange")+
+  geom_gene_arrow(mapping=aes(xmin=gff.undercount[,4],xmax=gff.undercount[,5],y=0,forward=gff.undercount[,7]),fill=gene_color)+
+  geom_text_repel(mapping=aes(x=(gff.undercount[,5]+gff.undercount[,4])/2,y=0,label=gene_label),ylim = c(0.5,NA),size=3)+
+  scale_x_continuous(expand=c(0,0))+
+  labs(x="wBm genome position",y="log2 read depth")+
+  theme_bw()
+
+pdf(paste0(OUTPUT_DIR,"/undercountgenes_depth_plot.pdf"),
+    height=2.5,
+    width=8)
+print(undercount_depth.plot)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/undercountgenes_depth_plot.png"),
+    height=2.5,
+    width=8,
+    units = "in",res=300)
+print(undercount_depth.plot)
+dev.off()
+
+print(undercount_depth.plot)
+```
+
+![image](/images/undercountgenes_depth_plot.png")
+
+#### Plot count values of operon region
+```{R,fig.height=5,fig.width=6}
+counts.undercount <- counts[[3]][rownames(counts[[3]]) %in% undercount_genes,]
+counts.undercount$genes <- rownames(counts.undercount)
+
+counts.undercount.plot.df <- counts.undercount
+counts.undercount.plot.df$gene <- rownames(counts.undercount) 
+counts.undercount.plot.df <- melt(counts.undercount.plot.df)
+
+counts.undercount.plot.df$variable <- formalize_names(counts.undercount.plot.df$variable)
+counts.undercount.plot.df$variable <- factor(counts.undercount.plot.df$variable,levels=rev(formalize_names(colnames(counts[[3]]))))
+
+counts.undercount.plot <- ggplot(mapping=aes(x=counts.undercount.plot.df$gene,
+                          y=counts.undercount.plot.df$variable,
+                          label=round(counts.undercount.plot.df$value,1)))+
+  geom_raster(fill="white")+
+  geom_text()+
+  scale_x_discrete(expand=c(0,0))+
+  scale_y_discrete(expand=c(0,0))+
+  guides(fill = F)+
+  theme_bw()+
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 45,hjust=1))
+
+pdf(paste0(OUTPUT_DIR,"/undercountgenes_counts_plot.pdf"),
+    height=5,
+    width=6)
+print(counts.undercount.plot)
+dev.off()
+
+png(paste0(OUTPUT_DIR,"/undercountgenes_counts_plot.png"),
+    height=5,
+    width=6,
+    units = "in",res=300)
+print(counts.undercount.plot)
+dev.off()
+
+print(counts.undercount.plot)
+```
+
+![image](/images/undercountgenes_counts_plot.png)
+
+# Generate scripts for benchmarking 
+
+## Create benchmarking scripts directory
+
+```{bash, eval = F}
+mkdir "$WORKING_DIR"/benchmarking_scripts
+mkdir "$WORKING_DIR"/benchmarking_scripts/outputs/
+```
+
+## Create benchmarking scripts
+
+##### Inputs
+```{bash, eval = F}
+FEAT_TYPE=gene
+ATTR_ID=ID
+
+## 1 Core
+THREADS=1
+
+## 4 Cores
+THREADS=4
+
+### Simulation
+OUTPUT_PREFIX=simulation
+BAM_DIR="$WORKING_DIR"/bam
+READS_DIR="$WORKING_DIR"/simulation/reads
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.gff
+STRANDED=yes
 
 ### E. chaffeensis
+OUTPUT_PREFIX=echaffeensis
+BAM_DIR="$WORKING_DIR"/echaffeensis
+READS_DIR="$WORKING_DIR"/echaffeensis
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000013145.1_ASM1314v1_genomic.fna
+GFF3="$REFERENCES_DIR"/canine_echaf.gff
+STRANDED=no
 
-#### Align reads to their respective combined references
+### E. coli
+OUTPUT_PREFIX=ecoli
+BAM_DIR="$WORKING_DIR"/ecoli
+READS_DIR="$WORKING_DIR"/ecoli
+NUC_GENE_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.fna
+GFF3="$REFERENCES_DIR"/GCF_000005845.2_ASM584v2_genomic.gene.gff
+STRANDED=no
 
-##### Inputs
-```{bash, eval = F}
-OUTPUT_DIR="$WORKING_DIR"/bam
-REFERENCES_DIR="$WORKING_DIR"/references
-READS_DIR="$WORKING_DIR"/reads
-SRR_MAP="$WORKING_DIR"/pecha_groups.tsv
-THREADS=16
+### wBm
+OUTPUT_PREFIX=wbm
+BAM_DIR="$WORKING_DIR"/wbm
+READS_DIR="$WORKING_DIR"/wbm
+NUC_GENE_FNA="$REFERENCES_DIR"/bmalayi_wbm.gene.fna
+NUC_GENOME_FNA="$REFERENCES_DIR"/bmalayi_wbm.fna
+GFF3="$REFERENCES_DIR"/bmalayi_wbm.gff
+STRANDED=reverse
 ```
 
 ##### Commands
 ```{bash, eval = F}
-cat "$SRR_MAP" | while read LINE
+for SAMPLE in $(find "$BAM_DIR" -name "*[.]bam" | sed "s/.*\\///g" | sort | sed "s/[.].*//g" | uniq)
 do
-SRR="$(echo "$LINE" | awk -F "\t" '{print $1}')"
-ORG1="$(echo "$LINE" | awk -F "\t" '{print $2}' | awk -F "_" '{print $2}')"
-ORG2="$(echo "$LINE" | awk -F "\t" '{print $2}' | awk -F "_" '{print $3}' | sed "s/totalRNA.//g")"
+echo -e ""$HISAT2_BIN_DIR"/hisat2-build -p "$THREADS" --large-index "$NUC_GENOME_FNA" "$NUC_GENOME_FNA"" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_hisat2_genome_index_pe"$THREADS".sh
+echo -e ""$HISAT2_BIN_DIR"/hisat2-build -p "$THREADS" --large-index "$NUC_GENE_FNA" "$NUC_GENE_FNA"" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_hisat2_gene_index_pe"$THREADS".sh
 
-if [ "$ORG1"  == "DH82" ]; then
-FNA="$REFERENCES_DIR"/canine.fna
-elif [ "$ORG1"  == "ISE6" ] && [ "$ORG2"  == "" ]; then
-FNA="$REFERENCES_DIR"/tick.fna
-elif [ "$ORG1"  == "ISE6" ] && [[ "$ORG2"  =~ "mRNA" ]]; then
-FNA="$REFERENCES_DIR"/tick.fna
-elif [ "$ORG1"  == "ISE6" ]; then
-FNA="$REFERENCES_DIR"/"$ORG2"_tick.combined.fna
+echo -e ""$HISAT2_BIN_DIR"/hisat2 -p "$THREADS" -k 200 -X 1000 -x "$NUC_GENOME_FNA" -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz --no-spliced-alignment --no-discordant | "$SAMTOOLS_BIN_DIR"/samtools view -bhSo "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".genome.bam -" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_hisat2_genome_align_pe"$THREADS".sh
+echo -e ""$HISAT2_BIN_DIR"/hisat2 -p "$THREADS" -k 200 -X 1000 -x "$NUC_GENE_FNA" -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz --no-spliced-alignment --no-discordant | "$SAMTOOLS_BIN_DIR"/samtools view -bhSo "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".transcript.bam -" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_hisat2_gene_align_pe"$THREADS".sh
+
+echo -e ""$SAMTOOLS_BIN_DIR"/samtools sort "$BAM_DIR"/"$SAMPLE".genome.bam -@ "$THREADS" -o "$WORKING_DIR"/benchmarking_scripts/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_samtools_genome_sort_pe"$THREADS".sh
+echo -e ""$SAMTOOLS_BIN_DIR"/samtools sort "$BAM_DIR"/"$SAMPLE".transcript.bam -@ "$THREADS" -n -o "$WORKING_DIR"/benchmarking_scripts/"$SAMPLE".transcript.sortedbyname.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_samtools_gene_sort_pe"$THREADS".sh
+echo -e ""$SAMTOOLS_BIN_DIR"/samtools index "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -@ "$THREADS"" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_samtools_genome_index_pe"$THREADS".sh
+
+echo -e ""$KALLISTO_BIN_DIR"/kallisto index -i "$NUC_GENE_FNA".kallisto.index --make-unique "$NUC_GENE_FNA"" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_kallisto_index_pe"$THREADS".sh
+echo -e ""$SALMON_BIN_DIR"/salmon index -p "$THREADS" --keepDuplicates -t "$NUC_GENE_FNA" -i "$NUC_GENE_FNA".salmon.index" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_salmon_index_pe"$THREADS".sh
+
+echo -e ""$SALMON_BIN_DIR"/salmon quant -i "$NUC_GENE_FNA".salmon.index --libType A -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz -p "$THREADS" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".salmon_default.counts --validateMappings" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_salmon_default_pe"$THREADS".sh
+echo -e ""$SALMON_BIN_DIR"/salmon quant -i "$NUC_GENE_FNA".salmon.index --libType A -1 "$READS_DIR"/"$SAMPLE"_1.fastq.gz -2 "$READS_DIR"/"$SAMPLE"_2.fastq.gz -p "$THREADS" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".salmon_optimized.counts --validateMappings  --allowDovetail"  > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_salmon_optimized_pe"$THREADS".sh
+
+if [ "$STRANDED" == reverse ]
+then
+
+echo -e ""$EXPRESS_BIN_DIR"/express --rf-stranded -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_express_default_pe"$THREADS".sh
+echo -e ""$EXPRESS_BIN_DIR"/express --rf-stranded -B10 --no-bias-correct -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_express_optimized_pe"$THREADS".sh
+
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_default.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID"" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_default_pe"$THREADS".sh
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_10em.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_10em_pe"$THREADS".sh
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_nomm.counts -s reverse -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_nomm_pe"$THREADS".sh
+
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_union.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_union_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_intersectionstrict.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_intersectionstrict_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_intersectionnonempty.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_intersectionnonempty_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s reverse "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_unionnonuniqueall.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_unionnonuniqueall_pe"$THREADS".sh
+
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_default_pe"$THREADS".sh
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -O -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_overlap_pe"$THREADS".sh
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 2 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_fractionaloverlap_pe"$THREADS".sh
+
+echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" --rf-stranded -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".kallisto_default.counts "$READS_DIR"/"$SAMPLE"_1.fastq.gz "$READS_DIR"/"$SAMPLE"_2.fastq.gz" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_kallisto_default_pe"$THREADS".sh
+elif [ "$STRANDED" == yes ]
+then
+
+echo -e ""$EXPRESS_BIN_DIR"/express --fr-stranded -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_express_default_pe"$THREADS".sh
+echo -e ""$EXPRESS_BIN_DIR"/express --fr-stranded -B10 --no-bias-correct -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_express_optimized_pe"$THREADS".sh
+
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_default.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID"" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_default_pe"$THREADS".sh
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_10em.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_10em_pe"$THREADS".sh
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_nomm.counts -s yes -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_nomm_pe"$THREADS".sh
+
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_union.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_union_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_intersectionstrict.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_intersectionstrict_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_intersectionnonempty.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_intersectionnonempty_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s yes "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_unionnonuniqueall.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_unionnonuniqueall_pe"$THREADS".sh
+
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_default_pe"$THREADS".sh
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -O -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_overlap_pe"$THREADS".sh
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 1 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_fractionaloverlap_pe"$THREADS".sh
+
+echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" --fr-stranded -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".kallisto_default.counts "$READS_DIR"/"$SAMPLE"_1.fastq.gz "$READS_DIR"/"$SAMPLE"_2.fastq.gz" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_kallisto_default_pe"$THREADS".sh
+
 else
-FNA="$REFERENCES_DIR"/"$ORG1"_canine.combined.fna
-fi 
 
-if [ ! -f "$OUTPUT_DIR"/"$SRR".bam ]; then
-echo ""$HISAT2_BIN_DIR"/hisat2 -p "$THREADS" -x "$FNA" -1 "$READS_DIR"/"$SRR"_1.fastq.gz -2 "$READS_DIR"/"$SRR"_2.fastq.gz | "$SAMTOOLS_BIN_DIR"/samtools view -bhSo "$OUTPUT_DIR"/"$SRR".bam -"  | qsub -q threaded.q  -pe thread "$THREADS" -P jdhotopp-lab -l mem_free=20G -N hisat2 -wd "$OUTPUT_DIR"
+echo -e ""$EXPRESS_BIN_DIR"/express -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".express_default.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_express_default_pe"$THREADS".sh
+echo -e ""$EXPRESS_BIN_DIR"/express -B10 --no-bias-correct -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".express_optimized.counts "$NUC_GENE_FNA" "$BAM_DIR"/"$SAMPLE".transcript.sortedbyname.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_express_optimized_pe"$THREADS".sh
+
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_default.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID"" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_default_pe"$THREADS".sh
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_10em.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID" --em_iterations 10" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_10em_pe"$THREADS".sh
+echo -e "export JULIA_DEPOT_PATH="$JULIA_LIB_DIR"\nexport JULIA_NUM_THREADS="$THREADS"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -b "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam -g "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".fadu_nomm.counts -s no -f "$FEAT_TYPE" -a "$ATTR_ID" --remove_multimapped" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_fadu_nomm_pe"$THREADS".sh
+
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_union.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_union_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-strict --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_intersectionstrict.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_intersectionstrict_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m intersection-nonempty --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_intersectionnonempty.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_intersectionnonempty_pe"$THREADS".sh
+echo -e "export LD_LIBRARY_PATH="$PYTHON_LIB_DIR":"$LD_LIBRARY_PATH"\n"$PYTHON_BIN_DIR"/python -m HTSeq.scripts.count -m union --nonunique all --order pos -f bam -t "$FEAT_TYPE" -i "$ATTR_ID" -s no "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam "$GFF3" > "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".htseq_unionnonuniqueall.counts" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_htseq_unionnonuniqueall_pe"$THREADS".sh
+
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_default.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_default_pe"$THREADS".sh
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -O -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_overlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_overlap_pe"$THREADS".sh
+echo -e ""$SUBREAD_BIN_DIR"/featureCounts -T "$THREADS" -p -O --fraction -a "$GFF3" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".featurecounts_fractionaloverlap.counts -t "$FEAT_TYPE" -g "$ATTR_ID" -s 0 "$BAM_DIR"/"$SAMPLE".genome.sortedbyposition.bam" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_featurecounts_fractionaloverlap_pe"$THREADS".sh
+
+echo -e ""$KALLISTO_BIN_DIR"/kallisto quant -i "$NUC_GENE_FNA".kallisto.index -t "$THREADS" -o "$WORKING_DIR"/benchmarking_scripts/outputs/"$SAMPLE".kallisto_default.counts "$READS_DIR"/"$SAMPLE"_1.fastq.gz "$READS_DIR"/"$SAMPLE"_2.fastq.gz" > "$WORKING_DIR"/benchmarking_scripts/"$OUTPUT_PREFIX"_"$SAMPLE"_kallisto_default_pe"$THREADS".sh
+
 fi
 done
 ```
 
-#### Sort BAM files
-
-##### Inputs
-```{bash, eval = F}
-BAM_DIR="$WORKING_DIR"/bam
-THREADS=4
-```
+## Remove extra scripts that do not need to be benchmarked
 
 ##### Commands
 ```{bash, eval = F}
-for BAM in $(find $BAM_DIR -name "*[.]bam" | grep -v "sortedbyposition")
-do
-if [ ! -f "$OUTPUT_DIR"/"$SRR".sortedbyposition.bam ]; then
-qsub -q threaded.q -pe thread "$THREADS" -P jdhotopp-lab -l mem_free=2G -N sort -wd "$BAM_DIR" -b y "$SAMTOOLS_BIN_DIR"/samtools sort "$BAM" -@ "$THREADS" -o "$(echo $BAM | sed "s/[.]bam$/.sortedbyposition.bam"/g)"
-fi
-done
+rm "$WORKING_DIR"/benchmarking_scripts/*pseudo*
+rm "$WORKING_DIR"/benchmarking_scripts/*sample_02*
+rm "$WORKING_DIR"/benchmarking_scripts/*sample_03*
+rm "$WORKING_DIR"/benchmarking_scripts/*sample_04*
+rm "$WORKING_DIR"/benchmarking_scripts/*SRR5189260*
 ```
 
-#### Remove nonsorted BAM files
+## Download Shaun's benchmarking stats
 
-##### Inputs
-```{bash, eval = F}
-BAM_DIR="$WORKING_DIR"/bam
-SRR_MAP="$WORKING_DIR"/pecha_groups.tsv
-THREADS=4
-```
-##### Commands
-```{bash, eval = F}
-cat "$SRR_MAP" | while read LINE
-do
-SRR="$(echo "$LINE" | awk -F "\t" '{print $1}')"
+Stats can be found in this Google Sheet: https://docs.google.com/spreadsheets/d/1II4kHQKEsll27-uI4bZC8q3qU0a1Mk4iSAeXfgkpzj4/edit#gid=0
 
-if [ -f "$BAM_DIR"/"$SRR".sortedbyposition.bam ] && [ -f "$BAM_DIR"/"$SRR".bam ]; then
-rm "$BAM_DIR"/"$SRR".bam
-fi
-done
-```
-#### Index BAM files
+## Plot benchmarking data
 
-##### Inputs
-```{bash, eval = F}
-BAM_DIR="$WORKING_DIR"/bam
-```
-
-##### Commands
-```{bash, eval = F}
-for BAM in $(find $BAM_DIR -name "*[.]sortedbyposition.bam")
-do
-if [ ! -f "$BAM".bai ]; then
-qsub -P jdhotopp-lab -l mem_free=2G -N index -wd "$BAM_DIR" -b y "$SAMTOOLS_BIN_DIR"/samtools index "$BAM"
-fi
-done
-
-```
-
-#### Quantify E. chaffeensis genes from BAM files using FADU
-
-##### Inputs
-```{bash, eval = F}
-SRR_MAP="$WORKING_DIR"/pecha_groups.tsv
-BAM_DIR="$WORKING_DIR"/bam
-FEAT_TYPE="gene"
-STRANDEDNESS="no"
-ATTR_ID="ID"
-OUTPUT_DIR="$WORKING_DIR"/fadu
-```
-
-##### Commands
-```{bash, eval = F}
-cat "$SRR_MAP" | while read LINE
-do
-SRR="$(echo "$LINE" | awk -F "\t" '{print $1}')"
-ORG1="$(echo "$LINE" | awk -F "\t" '{print $2}' | awk -F "_" '{print $2}')"
-ORG2="$(echo "$LINE" | awk -F "\t" '{print $2}' | awk -F "_" '{print $3}' | sed "s/totalRNA.//g")"
-
-if [ "$ORG1"  == "DH82" ]; then
-GFF=""
-elif [ "$ORG1"  == "ISE6" ] && [ "$ORG2"  == "" ]; then
-GFF=""
-elif [ "$ORG1"  == "ISE6" ] && [[ "$ORG2"  =~ "mRNA" ]]; then
-GFF=""
-elif [ "$ORG1"  == "ISE6" ]; then
-GFF="$REFERENCES_DIR"/"$ORG2".gff
-else
-GFF="$REFERENCES_DIR"/"$ORG1".gff
-fi 
-
-if [ "$GFF"  != "" ]; then
-echo -e "export JULIA_DEPOT_PATH="$JULIA_DEPOT_PATH"\n"$JULIA_BIN_DIR"/julia "$FADU_BIN_DIR"/fadu.jl -g "$GFF" -b "$BAM_DIR"/"$SRR".sortedbyposition.bam -o "$OUTPUT_DIR" -s "$STRANDEDNESS" -f "$FEAT_TYPE" -a "$ATTR_ID"" | qsub -P jdhotopp-lab -l mem_free=5G -N fadu -wd "$OUTPUT_DIR"
-fi
-done
-```
-
-### Canine/Tick
-
-#### Quantify canine/tick transcripts directly from reads using Salmon
-
-##### Inputs
-```{bash, eval = F}
-OUTPUT_DIR="$WORKING_DIR"/salmon
-REFERENCES_DIR="$WORKING_DIR"/references
-READS_DIR="$WORKING_DIR"/reads
-SRR_MAP="$WORKING_DIR"/pecha_groups.tsv
-THREADS=4
-```
-
-##### Commands
-```{bash, eval = F}
-cat "$SRR_MAP" | while read LINE
-do
-	SRR="$(echo "$LINE" | awk -F "\t" '{print $1}')"
-	ORG1="$(echo "$LINE" | awk -F "\t" '{print $2}' | awk -F "_" '{print $2}')"
-	ORG2="$(echo "$LINE" | awk -F "\t" '{print $2}' | awk -F "_" '{print $3}' | sed "s/totalRNA.//g")"
-
-	if [ "$ORG1"  == "DH82" ]; then
-		FNA="$REFERENCES_DIR"/canine.cds.fna
-	elif [ "$ORG1"  == "ISE6" ] && [ "$ORG2"  == "" ]; then
-		FNA="$REFERENCES_DIR"/tick.cds.fna
-	elif [ "$ORG1"  == "ISE6" ] && [[ "$ORG2"  =~ "mRNA" ]]; then
-		FNA="$REFERENCES_DIR"/tick.cds.fna
-	elif [ "$ORG1"  == "ISE6" ]; then
-		FNA="$REFERENCES_DIR"/"$ORG2"_tick.cds.combined.fna
-	else
-		FNA="$REFERENCES_DIR"/"$ORG1"_canine.cds.combined.fna
-	fi 
-
-	if [ ! -f "$OUTPUT_DIR"/"$SRR"/quant.sf ]; then
-	echo -e ""$SALMON_BIN_DIR"/salmon quant -i "$FNA".salmon.index --libType A -1 "$READS_DIR"/"$SRR"_1.fastq.gz -2 "$READS_DIR"/"$SRR"_2.fastq.gz -p "$THREADS" -o "$OUTPUT_DIR"/"$SRR" --validateMappings  --allowDovetail" | qsub -P jdhotopp-lab -q threaded.q -pe thread "$THREADS" -l mem_free=5G -N salmon -wd "$OUTPUT_DIR"
-	fi
-done
-```
-
-## Conduct differential expression analysis
-
-### Canine
-#### Set R inputs
+### Set R inputs
 ```{R}
-WORKING.DIR <- "Z:/EBMAL/mchung_dir/PECHA/"
-SALMON_OUTPUT.DIR <- "Z:/EBMAL/mchung_dir/PECHA/salmon"
-GROUPS.PATH <- "Z:/EBMAL/mchung_dir/PECHA/pecha_groups.tsv"
+BENCHMARKING_INFO.PATH <- "C:/Users/MChung.SOM/Documents/benchmarking_info.txt"
+
+OUTPUT_DIR <- "C:/Users/MChung.SOM/Documents/plots"
 ```
 
-#### Load R functions
+### Load R packages and view sessionInfo
+
 ```{R}
-g_legend <- function(a.gplot){ 
+library(cowplot)
+library(ggplot2)
+
+sessionInfo()
+```
+
+```{R, eval = F} 
+R version 3.5.1 (2018-07-02)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 7 x64 (build 7601) Service Pack 1
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252    LC_MONETARY=English_United States.1252
+[4] LC_NUMERIC=C                           LC_TIME=English_United States.1252    
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] cowplot_0.9.4 ggplot2_3.2.1
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.1       withr_2.1.2      assertthat_0.2.1 crayon_1.3.4     dplyr_0.8.3      grid_3.5.1       R6_2.4.0        
+ [8] gtable_0.3.0     magrittr_1.5     scales_1.0.0     pillar_1.3.1     rlang_0.4.0      lazyeval_0.2.2   rstudioapi_0.10 
+[15] tools_3.5.1      glue_1.3.1       purrr_0.3.2      munsell_0.5.0    xfun_0.6         yaml_2.2.0       compiler_3.5.1  
+[22] pkgconfig_2.0.2  colorspace_1.4-1 knitr_1.22       tidyselect_0.2.5 tibble_2.1.1    
+```
+
+### Load R functions
+```{R}
+formalize_names <- function(vector){
+	vector <- gsub("express_default","eXpress",vector)
+	vector <- gsub("express_optimized","eXpress\n-B10 --no-bias-correct",vector)
+
+	vector <- gsub("fadu_default","FADU",vector)
+	vector <- gsub("fadu_10em","FADU\n--em_iterations 10",vector)
+	vector <- gsub("fadu_nomm","FADU\n--remove_multimapped",vector)
+
+	vector <- gsub("htseq_unionnonuniqueall","HTSeq\n-m union --nonunique all",vector)
+	vector <- gsub("htseq_union","HTSeq\n-m union",vector)
+	vector <- gsub("htseq_intersectionstrict","HTSeq\n-m intersection-strict",vector)
+	vector <- gsub("htseq_intersectionnonempty","HTSeq\n-m intersection-nonempty",vector)
+	
+	vector <- gsub("featurecounts_default","featureCounts",vector)
+	vector <- gsub("featurecounts_overlap","featureCounts\n-O",vector)
+	vector <- gsub("featurecounts_fractionaloverlap","featureCounts\n-O --fraction",vector)
+
+	vector <- gsub("salmon_default","Salmon\n--validateMappings",vector)
+	vector <- gsub("salmon_optimized","Salmon\n--validateMappings --allowDovetail",vector)
+
+	vector <- gsub("kallisto_default","kallisto",vector)
+}
+
+g_legend<-function(a.gplot){ 
   tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
   legend <- tmp$grobs[[leg]] 
   return(legend)
 } 
-
-get_dendro_structure <- function(result){
-  structure <- hang.dendrogram(as.dendrogram(result$hclust))
-  structure <- capture.output(str(structure))
-  structure <- structure[grepl("leaf", structure)]
-  structure <- as.numeric(as.character(substr(structure, regexpr("h=", structure ) + 3, regexpr("  )", structure))))
-  return(structure)
-}
-
-get_dendro_data <- function(result){
-  dendro.data <- dendro_data(result$hclust)
-  dendro.data <- dendro.data$segments[which(dendro.data$segments$y == dendro.data$segments$yend),]
-  for(i in 1:nrow(dendro.data)){
-    dendro.data$minx[i] <- min(c(dendro.data$x[i], dendro.data$xend[i]))
-  }
-  dendro.data <- dendro.data[order(as.numeric(as.character(dendro.data$y)), as.numeric(as.character(dendro.data$minx))),]
-  return(dendro.data)
-}
-
-get_dendro_bootstraps <- function(dendro_data){
-  bootstrap.positions <- as.data.frame(matrix(nrow = length(dendro_data$y[duplicated(dendro_data$y)]),
-                                              ncol = 2))
-  for(i in 1:length(dendro_data$y[duplicated(dendro_data$y)])){
-    dendro_data.subset <- dendro_data[which(dendro_data$y == dendro_data$y[duplicated(dendro_data$y)][i]),]
-    bootstrap.positions[i,1] <- unique(dendro_data.subset$x)
-    bootstrap.positions[i,2] <- unique(dendro_data.subset$y)
-  }
-  return(bootstrap.positions)
-}
-
-find_soft_power <- function(sft){
-  df <- as.data.frame(cbind(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2]))
-  y <- -sign(sft$fitIndices[,3])*sft$fitIndices[,2]
-  dy <- diff(y) 
-  softpower <- which(abs(dy) < 0.05)[1]
-  if(softpower == 1){
-    softpower <- which(abs(dy) < 0.05)[2]
-  }
-  return(softpower)
-}
-
-eigengene_invert_id <- function(tpm.de, mergedColors, mergedMEs){
-  tpm.de.wgcna <- tpm.de
-  tpm.de.wgcna$invert <- T
-  tpm.de.wgcna$module <- mergedColors
-  for(i in 1:nrow(tpm.de.wgcna)){
-    if(cor(t(tpm.de[i,]), mergedMEs[,which(colnames(mergedMEs) == paste0("ME",tpm.de.wgcna$module[i]))], method = "pearson") > 0){
-      tpm.de.wgcna$invert[i] <- F
-    }
-  }
-  return(tpm.de.wgcna)
-}
-
-wgcna_heatmap_reorder <- function(tpm.de.wgcna){
-  clusters <- as.data.frame(table(tpm.de.wgcna$module))
-  clusters <- clusters[order(-clusters[,2]),1]
-  
-  tpm.de.wgcna.reordered <- as.data.frame(matrix(nrow = 0,
-                                                 ncol = ncol(tpm.de.wgcna)))
-  for(i in 1:length(clusters)){
-    tpm.de.wgcna.reordered <- as.data.frame(rbind(tpm.de.wgcna.reordered,
-                                                  tpm.de.wgcna[tpm.de.wgcna$module == clusters[i] & tpm.de.wgcna$invert == F,],
-                                                  tpm.de.wgcna[tpm.de.wgcna$module == clusters[i] & tpm.de.wgcna$invert == T,]))
-  }
-  return(tpm.de.wgcna.reordered)
-}
-
-get_heatmap_separators <- function(vector){
-  sep <- c()
-  for(i in 2:length(unique(vector))){
-    sep[length(sep) + 1] <- min(which(vector == unique(vector)[i])) - 1
-  }
-  return(sep)
-}
-
-functionaltermenrichment <- function(genes, geneinfo){
-  for(i in 1:ncol(geneinfo)){geneinfo[,i] <- as.character(geneinfo[,i])}
-  geneinfo$interpro_description[which(is.na(geneinfo$interpro_description))] <- "No InterPro entry"
-  geneinfo$go_biologicalprocess[which(is.na(geneinfo$go_biologicalprocess))] <- "No GO terms for biological process"
-  geneinfo$go_cellularcomponent[which(is.na(geneinfo$go_cellularcomponent))] <- "No GO terms for cellular component"
-  geneinfo$go_molecularfunction[which(is.na(geneinfo$go_molecularfunction))] <- "No GO terms for molecular function"
-  
-  functionalterms.list <- list(ipr=as.data.frame(table(unlist(strsplit(paste(geneinfo$interpro_description, collapse = "|"),  split = "[|]")))),
-                               gobio=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_biologicalprocess, collapse = "|"),  split = "[|]")))),
-                               gocell=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_cellularcomponent, collapse = "|"),  split = "[|]")))),
-                               gomol=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_molecularfunction, collapse = "|"),  split = "[|]")))))
-  
-  geneinfo.subset <- geneinfo[geneinfo$gene %in% genes,]
-  term <- c()
-  clusteroccurences <- c()
-  genomeoccurences <- c()
-  pvalue <- c()
-  correctedpvalue <- c()
-  oddsratio <- c()
-
-  functionalterms.list.subset <- list(ipr=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$interpro_description, collapse = "|"),  split = "[|]")))),
-                                      gobio=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_biologicalprocess, collapse = "|"),  split = "[|]")))),
-                                      gocell=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_cellularcomponent, collapse = "|"),  split = "[|]")))),
-                                      gomol=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_molecularfunction, collapse = "|"),  split = "[|]")))))
-  
-  for(i in 1:length(functionalterms.list)){
-    for(j in 1:nrow(functionalterms.list[[i]])){
-      freq.all <- functionalterms.list[[i]][j,2]
-      freq.subset <- ifelse(functionalterms.list[[i]][j,1] %in% functionalterms.list.subset[[i]][,1],
-                            functionalterms.list.subset[[i]][functionalterms.list.subset[[i]][,1] == as.character(functionalterms.list[[i]][j,1]),2],
-                            0)
-      genes.all <- nrow(geneinfo)
-      genes.subset <- nrow(geneinfo.subset)
-
-      fisherexact.matrix <- matrix(c(freq.subset, freq.all - freq.subset,
-                                     genes.subset - freq.subset, genes.all - genes.subset - freq.all + freq.subset),
-                                   nrow = 2,
-                                   ncol = 2)
-      fisher.test <- fisher.test(fisherexact.matrix)
-      
-      term[length(term) + 1] <- as.character(functionalterms.list[[i]][j,1])
-      clusteroccurences[length(clusteroccurences) + 1] <- as.numeric(as.character(freq.subset))
-      genomeoccurences[length(genomeoccurences) + 1] <- as.numeric(as.character(freq.all))
-      pvalue[length(pvalue) + 1] <- as.numeric(as.character(fisher.test$p.value))
-      correctedpvalue[length(correctedpvalue) + 1] <- p.adjust(as.numeric(as.character(fisher.test$p.value)), method = "fdr", n = nrow(functionalterms.list[[i]]))
-      oddsratio[length(oddsratio) + 1] <- as.numeric(as.character(fisher.test$estimate))
-    }
-  }
-  
-  terms.df <- as.data.frame(cbind(term,
-                                  clusteroccurences,
-                                  genomeoccurences,
-                                  pvalue,
-                                  correctedpvalue,
-                                  oddsratio))
-  terms.df <- terms.df[order(as.numeric(as.character(terms.df$pvalue))),]
-  return(terms.df)
-}
 ```
-
-#### Load packages and view sessionInfo
-```{R}
-library(dendextend)
-library(DESeq2)
-library(edgeR)
-library(FactoMineR)
-library(ggdendro)
-library(ggplot2)
-library(gplots)
-library(gridExtra)
-library(pvclust)
-library(vegan)
-library(WGCNA)
-
-sessionInfo()
-```
-
-```{R, eval = F}
-R version 3.5.0 (2018-04-23)
-Platform: x86_64-w64-mingw32/x64 (64-bit)
-Running under: Windows >= 8 x64 (build 9200)
-
-Matrix products: default
-
-locale:
-[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
-[3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
-[5] LC_TIME=English_United States.1252    
-
-attached base packages:
-[1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods   base     
-
-other attached packages:
- [1] WGCNA_1.68                  fastcluster_1.1.25          dynamicTreeCut_1.63-1       pvclust_2.0-0              
- [5] gplots_3.0.1.1              ggdendro_0.1-20             FactoMineR_1.42             DESeq2_1.22.2              
- [9] SummarizedExperiment_1.12.0 DelayedArray_0.8.0          BiocParallel_1.16.6         matrixStats_0.54.0         
-[13] Biobase_2.42.0              GenomicRanges_1.34.0        GenomeInfoDb_1.18.2         IRanges_2.16.0             
-[17] S4Vectors_0.20.1            BiocGenerics_0.28.0         dendextend_1.12.0           gridExtra_2.3              
-[21] ggplot2_3.2.0               vegan_2.5-5                 lattice_0.20-35             permute_0.9-5              
-[25] edgeR_3.24.3                limma_3.38.3               
-
-loaded via a namespace (and not attached):
- [1] colorspace_1.4-1       htmlTable_1.13.1       XVector_0.22.0         base64enc_0.1-3       
- [5] rstudioapi_0.10        bit64_0.9-7            mvtnorm_1.0-11         AnnotationDbi_1.44.0  
- [9] codetools_0.2-15       splines_3.5.0          leaps_3.0              doParallel_1.0.15     
-[13] impute_1.56.0          robustbase_0.93-5      geneplotter_1.60.0     knitr_1.23            
-[17] zeallot_0.1.0          Formula_1.2-3          annotate_1.60.1        cluster_2.0.7-1       
-[21] GO.db_3.7.0            rrcov_1.4-7            compiler_3.5.0         backports_1.1.4       
-[25] assertthat_0.2.1       Matrix_1.2-14          lazyeval_0.2.2         acepack_1.4.1         
-[29] htmltools_0.3.6        tools_3.5.0            gtable_0.3.0           glue_1.3.1            
-[33] GenomeInfoDbData_1.2.0 dplyr_0.8.3            Rcpp_1.0.2             vctrs_0.2.0           
-[37] gdata_2.18.0           preprocessCore_1.44.0  nlme_3.1-137           iterators_1.0.12      
-[41] xfun_0.8               stringr_1.4.0          gtools_3.8.1           XML_3.98-1.20         
-[45] DEoptimR_1.0-8         zlibbioc_1.28.0        MASS_7.3-51.4          scales_1.0.0          
-[49] RColorBrewer_1.1-2     yaml_2.2.0             memoise_1.1.0          rpart_4.1-13          
-[53] latticeExtra_0.6-28    stringi_1.4.3          RSQLite_2.1.2          genefilter_1.64.0     
-[57] pcaPP_1.9-73           foreach_1.4.7          checkmate_1.9.4        caTools_1.17.1.2      
-[61] rlang_0.4.0            pkgconfig_2.0.2        bitops_1.0-6           purrr_0.3.2           
-[65] htmlwidgets_1.3        labeling_0.3           bit_1.1-14             tidyselect_0.2.5      
-[69] robust_0.4-18.1        magrittr_1.5           R6_2.4.0               Hmisc_4.2-0           
-[73] fit.models_0.5-14      DBI_1.0.0              pillar_1.4.2           foreign_0.8-70        
-[77] withr_2.1.2            mgcv_1.8-23            survival_2.41-3        scatterplot3d_0.3-41  
-[81] RCurl_1.95-4.12        nnet_7.3-12            tibble_2.1.3           crayon_1.3.4          
-[85] KernSmooth_2.23-15     viridis_0.5.1          locfit_1.5-9.1         grid_3.5.0            
-[89] data.table_1.12.2      blob_1.2.0             digest_0.6.20          flashClust_1.01-2     
-[93] xtable_1.8-4           munsell_0.5.0          viridisLite_0.3.0     
-```
-
-#### Create counts data frame
-```{R}
-groups <- read.delim(GROUPS.PATH, header = F)
-groups <- groups[intersect(grep("mRNA", groups[,2]),grep("ISE6", groups[,2], invert = T)),]
-
-rownames <- as.character(read.delim(paste0(SALMON_OUTPUT.DIR, "/", groups[1,1],"/quant.sf"))[grep("ENSCAFT", read.delim(paste0(SALMON_OUTPUT.DIR, "/", groups[1,1],"/quant.sf"))[,1]),1])
-colnames <- unique(groups[,2])
-
-counts <- as.data.frame(matrix(0,
-                               nrow = length(rownames),
-                               ncol = length(colnames)))
-rownames(counts) <- rownames
-colnames(counts) <- colnames
-
-for(i in 1:ncol(counts)){
-  srr.vector <- groups[groups[,2] == colnames(counts[i]),1]
-  for(j in 1:length(srr.vector)){
-    counts.subset <- read.delim(paste0(SALMON_OUTPUT.DIR, "/",srr.vector[j],"/quant.sf"))
-    counts[,i] <- counts[,i] + counts.subset[match(rownames(counts),counts.subset[,1]),5]
-  }
-}
-
-write.table(counts,
-            paste0(WORKING.DIR,"/canine_counts.tsv"),
-            quote = F,
-            col.names = T,
-            row.names = T,
-            sep = "\t")
-
-colSums(counts)
-```
-
-```{R, eval = F}
- PECHA_Arkansas_mRNA1  PECHA_Arkansas_mRNA2  PECHA_Arkansas_mRNA3      PECHA_DH82_mRNA1      PECHA_DH82_mRNA2 
-          4446675.992           1118448.696           1588787.159            612736.010           1219321.996 
-     PECHA_DH82_mRNA3 PECHA_Heartland_mRNA1 PECHA_Heartland_mRNA2 PECHA_Heartland_mRNA3        PECHA_HF_mRNA1 
-          2046860.952            620001.016           1074528.431           1429786.216           1748842.155 
-       PECHA_HF_mRNA2        PECHA_HF_mRNA3       PECHA_Jax_mRNA1       PECHA_Jax_mRNA2       PECHA_Jax_mRNA3 
-          1136318.861           1523891.337           1541799.067              2288.996           1468686.449 
-  PECHA_Liberty_mRNA1   PECHA_Liberty_mRNA2   PECHA_Liberty_mRNA3   PECHA_Osceola_mRNA1   PECHA_Osceola_mRNA2 
-          1207815.323            984212.022           2720332.698           1011223.949            967659.504 
-  PECHA_Osceola_mRNA3 PECHA_StVincent_mRNA1 PECHA_StVincent_mRNA2 PECHA_StVincent_mRNA3   PECHA_Wakulla_mRNA1 
-          2091371.252            832188.255             16571.139            995731.667              8867.996 
-  PECHA_Wakulla_mRNA2   PECHA_Wakulla_mRNA3 PECHA_WestPaces_mRNA1 PECHA_WestPaces_mRNA2 PECHA_WestPaces_mRNA3 
-          1379824.521           1643445.731           1008953.088            973650.126            725770.658 
-```
-
-#### Create TPM data frame
-```{R}
-genelength <- read.delim(paste0(SALMON_OUTPUT.DIR, "/", groups[1,1],"/quant.sf"))
-genelength <- genelength[match(rownames(counts),genelength[,1]),2]
-
-tpm <- counts
-for(i in 1:ncol(tpm)){
-  tpm[,i] <- tpm[,i]/genelength
-  tpm[,i] <- tpm[,i]/(sum(tpm[,i])/1000000)
-}
-
-write.table(tpm,
-            paste0(WORKING.DIR,"/canine_tpm.tsv"),
-            quote = F,
-            col.names = T,
-            row.names = T,
-            sep = "\t")
-
-dim(tpm)
-```
-
-#### Set group levels
-```{R}
-groups <- unique(groups[2:5])
-groups[,1] <- factor(groups[,1], levels = groups[,1])
-groups[,2] <- factor(groups[,2], levels = unique(groups[,2]))
-groups[,3] <- factor(groups[,3], levels = unique(groups[,3]))
-groups[,4] <- factor(groups[,4], levels = unique(groups[,4]))
-```
-
-#### Conduct saturation analysis
-```{R, fig.height=5, fig.width=6}
-rarefy.counts <- round(counts,0)
-raremax <- round(min(rowSums(t(rarefy.counts))),0)
-srare <- rarefy(t(rarefy.counts),raremax) 
-
-rarefy.raw.df <- rarecurve(t(rarefy.counts), step = round(raremax/10,0), sample = raremax)
-
-rarefy.df <- as.data.frame(matrix(nrow = 0,
-                                  ncol = 5))
-rarefy.points.df <- rarefy.df
-for(i in 1:length(rarefy.raw.df)){
-  steps <- as.numeric(gsub("N","",names(rarefy.raw.df[[i]])))
-  detected_genes <- as.numeric(rarefy.raw.df[[i]])
-  rarefy.df <- as.data.frame(rbind(rarefy.df,
-                                   cbind(as.numeric(steps),as.numeric(detected_genes),as.character(groups[i,1]),as.character(groups[i,2]),groups[i,3])))
-  rarefy.points.df <- as.data.frame(rbind(rarefy.points.df,
-                                          cbind(as.numeric(max(steps)),as.numeric(max(detected_genes)),as.character(groups[i,1]),as.character(groups[i,2],groups[i,3]))))
-  
-}
-rarefy.plot <- ggplot()+
-  geom_line(mapping=aes(x=as.numeric(as.character(rarefy.df[,1])), y=as.numeric(as.character(rarefy.df[,2])),group=rarefy.df[,3],color=rarefy.df[,4]))+
-  #geom_point(mapping=aes(x=as.numeric(as.character(rarefy.df[,1])), y=as.numeric(as.character(rarefy.df[,2])),group=rarefy.df[,3],color=rarefy.df[,4]))+
-  geom_point(mapping=aes(x=as.numeric(as.character(rarefy.points.df[,1])), y=as.numeric(as.character(rarefy.points.df[,2])),group=rarefy.points.df[,3],color=rarefy.points.df[,4]),size = 3)+
-  guides(colour = F,shape = F)+
-  scale_color_manual(values = levels(groups[,2]))+
-  labs(x="reads mapping to genes", y="genes detected", color = "Sample")+
-  #coord_cartesian(xlim=c(0,100000))+
-  theme_bw()
-
-
-pdf(paste0(WORKING.DIR,"/plots/canine_rarefication_plot.pdf"),
-    height=5,
-    width=6)
-print(rarefy.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_rarefication_plot.png"),
-    height=5,
-    width=6,
-	units = "in",res=300)
-print(rarefy.plot)
-dev.off()
-
-print(rarefy.plot)
-```
-
-![image](/images/canine_rarefication_plot.png)
-
-#### Exclude low count samples
-
-From the rarefaction analysis, the following samples were excluded (<20k gene counts): "PECHA_Jax_mRNA2", "PECHA_Wakulla_mRNA1", "PECHA_SaintVincent_mRNA2"
 
 ```{R}
-exclude.samples <- c("PECHA_Jax_mRNA2","PECHA_Wakulla_mRNA1","PECHA_StVincent_mRNA2")
-groups <- groups[!(groups[,1] %in% exclude.samples),]
-
-groups[,1] <- factor(groups[,1], levels = groups[,1])
-groups[,2] <- factor(groups[,2], levels = unique(groups[,2]))
-groups[,3] <- factor(groups[,3], levels = unique(groups[,3]))
-groups[,4] <- factor(groups[,4], levels = unique(groups[,4]))
-
-counts <- counts[,colnames(counts) %in% groups[,1]]
-tpm <- tpm[,colnames(tpm) %in% groups[,1]]
+benchmarking_info <- read.delim(BENCHMARKING_INFO.PATH)
+benchmarking_info <- benchmarking_info[!(is.na(benchmarking_info[,4])),]
+benchmarking_info[,2] <- gsub("[.]",":",benchmarking_info[,2])
 ```
-
-#### Identify differentially expressed genes longitudinally
-
-edgeR and DESeq2 are both run with a FDR cutoff of <0.05 and a minimum CPM cutoff of 5 reads in the lowest sequenced sample in the data set.  
 
 ```{R}
-FDRcutoff <- 0.05
-cpm.cutoff <- 5/min(colSums(counts)) * 1000000
-
-y <- DGEList(counts = counts, group = groups[,4])
-y <- calcNormFactors(y)
-keep <- rowSums(cpm(y) >= cpm.cutoff) >= min(table(groups[,4]))
-keep.df <- as.data.frame(table(keep))
-print(paste0(keep.df[keep.df[,1] == F,2]," genes excluded with CPM cutoff"))
-
-y <- y[keep, , keep.lib.sizes = F]
-design <- model.matrix(~groups[,4])
-y <- estimateDisp(y , design)
-fit <- glmQLFit(y, design)
-qlf <- glmQLFTest(fit, coef = 2:ncol(fit))
-qlf$table$padj <- p.adjust(qlf$table$PValue, method="BH")
-edgeR.longitudinal.degenes <- qlf$table[qlf$table$padj < FDRcutoff,]
-print(paste0(nrow(edgeR.longitudinal.degenes)," DE genes identified using edgeR longitudinal"))
-
-write.table(edgeR.longitudinal.degenes,
-            paste0(WORKING.DIR,"/canine_counts_edgeR_longitudinal.tsv"),
-            row.names = T,
-            col.names = T,
-            quote = F,
-            sep = "\t")
-
-counts.keep <- counts[keep,]
-tpm.keep <- tpm[keep,]
+samples <- c("echaffeensis","ecoli","wbm")
 ```
 
+### Convert wallclock time units to seconds
+```{R}
+benchmarking_info[,6] <- 0
 
-```{R, eval = F}
-[1] "26024 genes excluded with CPM cutoff"
-[1] "330 DE genes identified using edgeR longitudinal"
+for(i in 1:nrow(benchmarking_info)){
+  hours <- as.numeric(as.character(unlist(strsplit(as.character(benchmarking_info[i,2]),split=":"))[1]))
+  min <- as.numeric(as.character(unlist(strsplit(as.character(benchmarking_info[i,2]),split=":"))[2]))
+  sec <- as.numeric(as.character(unlist(strsplit(as.character(benchmarking_info[i,2]),split=":"))[3]))
+
+  benchmarking_info[i,6] <- hours*360 + min*60 + sec
+}
+
 ```
 
-#### Conduct PCA and hierarchical clustering analyses on genes that passed the CPM cutoff
+### Parse benchmarking data to create timing data frames for each dataset
+```{R}
+benchmarking_timingplotdata_pe1.list <- list()
+benchmarking_timingplotdata_pe4.list <- list()
 
-##### Create sample legend for PCA and hierarchical clustering plots
+for(i in 1:length(samples)){
+  benchmarking_info.subset <- benchmarking_info[grep(samples[i],benchmarking_info[,1]),]
+  genome_alignindex <- mean(benchmarking_info.subset[grep("hisat2_genome_align_pe1",benchmarking_info.subset[,1]),6]) + mean(benchmarking_info.subset[grep("samtools_genome_sort_pe1",benchmarking_info.subset[,1]),6]) + mean(benchmarking_info.subset[grep("samtools_genome_index_pe1",benchmarking_info.subset[,1]),6])
+  gene_alignindex <- mean(benchmarking_info.subset[grep("hisat2_gene_align_pe1",benchmarking_info.subset[,1]),6]) + mean(benchmarking_info.subset[grep("samtools_gene_sort_pe1",benchmarking_info.subset[,1]),6]) + mean(benchmarking_info.subset[grep("hisat2_gene_index_pe1",benchmarking_info.subset[,1]),6])
+  kallisto_alignindex <- mean(benchmarking_info.subset[grep("kallisto_index_pe1",benchmarking_info.subset[,1]),6])
+  salmon_alignindex <- mean(benchmarking_info.subset[grep("salmon_index_pe1",benchmarking_info.subset[,1]),6])
+  
+  benchmarking_timingplotdata_pe1.list[[i]] <- as.data.frame(rbind(
+    c("salmon_optimized","align",salmon_alignindex),
+    c("salmon_optimized","quant",mean(benchmarking_info.subset[grep("salmon_optimized_pe1",benchmarking_info.subset[,1]),6])),
+    c("salmon_default","align",salmon_alignindex),
+    c("salmon_default","quant",mean(benchmarking_info.subset[grep("salmon_default_pe1",benchmarking_info.subset[,1]),6])),
+    c("kallisto_default","align",kallisto_alignindex),
+    c("kallisto_default","quant",mean(benchmarking_info.subset[grep("kallisto_default_pe1",benchmarking_info.subset[,1]),6])),
+    c("express_optimized","align",gene_alignindex),
+    c("express_optimized","quant",mean(benchmarking_info.subset[grep("express_optimized_pe1",benchmarking_info.subset[,1]),6])),
+    c("express_default","align",gene_alignindex),
+    c("express_default","quant",mean(benchmarking_info.subset[grep("express_default_pe1",benchmarking_info.subset[,1]),6])),
+    c("featurecounts_default","align",genome_alignindex),
+    c("featurecounts_default","quant",mean(benchmarking_info.subset[grep("featurecounts_default_pe1",benchmarking_info.subset[,1]),6])),  
+    c("fadu_nomm","align",genome_alignindex),
+    c("fadu_nomm","quant",mean(benchmarking_info.subset[grep("fadu_nomm_pe1",benchmarking_info.subset[,1]),6])),  
+    c("htseq_intersectionnonempty","align",genome_alignindex),
+    c("htseq_intersectionnonempty","quant",mean(benchmarking_info.subset[grep("htseq_intersectionnonempty_pe1",benchmarking_info.subset[,1]),6])),
+    c("htseq_union","align",genome_alignindex),
+    c("htseq_union","quant",mean(benchmarking_info.subset[grep("htseq_union_pe1",benchmarking_info.subset[,1]),6])),
+    c("htseq_intersectionstrict","align",genome_alignindex),
+    c("htseq_intersectionstrict","quant",mean(benchmarking_info.subset[grep("htseq_intersectionstrict_pe1",benchmarking_info.subset[,1]),6])),
+    c("htseq_unionnonuniqueall","align",genome_alignindex),
+    c("htseq_unionnonuniqueall","quant",mean(benchmarking_info.subset[grep("htseq_unionnonuniqueall_pe1",benchmarking_info.subset[,1]),6])),
+    c("featurecounts_overlap","align",genome_alignindex),
+    c("featurecounts_overlap","quant",mean(benchmarking_info.subset[grep("featurecounts_overlap_pe1",benchmarking_info.subset[,1]),6])),  
+    c("featurecounts_fractionaloverlap","align",genome_alignindex),
+    c("featurecounts_fractionaloverlap","quant",mean(benchmarking_info.subset[grep("featurecounts_fractionaloverlap_pe1",benchmarking_info.subset[,1]),6])),  
+    c("fadu_10em","align",genome_alignindex),
+    c("fadu_10em","quant",mean(benchmarking_info.subset[grep("fadu_10em_pe1",benchmarking_info.subset[,1]),6])),  
+    c("fadu_default","align",genome_alignindex),
+    c("fadu_default","quant",mean(benchmarking_info.subset[grep("fadu_default_pe1",benchmarking_info.subset[,1]),6]))
+  ))
+  
+  genome_alignindex <- max(c(benchmarking_info.subset[grep("hisat2_genome_align_pe4",benchmarking_info.subset[,1]),6], 
+                             benchmarking_info.subset[grep("samtools_genome_sort_pe4",benchmarking_info.subset[,1]),6],
+                             benchmarking_info.subset[grep("samtools_genome_index_pe4",benchmarking_info.subset[,1]),6]))
+  gene_alignindex <- max(c(benchmarking_info.subset[grep("hisat2_gene_align_pe4",benchmarking_info.subset[,1]),6], 
+                           benchmarking_info.subset[grep("samtools_gene_sort_pe4",benchmarking_info.subset[,1]),6],
+                           benchmarking_info.subset[grep("hisat2_gene_index_pe4",benchmarking_info.subset[,1]),6]))
+  kallisto_alignindex <- max(benchmarking_info.subset[grep("kallisto_index_pe4",benchmarking_info.subset[,1]),6])
+  salmon_alignindex <- max(benchmarking_info.subset[grep("salmon_index_pe4",benchmarking_info.subset[,1]),6])
+  
+  benchmarking_timingplotdata_pe4.list[[i]] <- as.data.frame(rbind(
+    c("salmon_optimized","align",salmon_alignindex),
+    c("salmon_optimized","quant",mean(benchmarking_info.subset[grep("salmon_optimized_pe4",benchmarking_info.subset[,1]),6])),
+    c("salmon_default","align",salmon_alignindex),
+    c("salmon_default","quant",mean(benchmarking_info.subset[grep("salmon_default_pe4",benchmarking_info.subset[,1]),6])),
+    c("kallisto_default","align",kallisto_alignindex),
+    c("kallisto_default","quant",mean(benchmarking_info.subset[grep("kallisto_default_pe4",benchmarking_info.subset[,1]),6])),
+    c("express_optimized","align",gene_alignindex),
+    c("express_optimized","quant",mean(benchmarking_info.subset[grep("express_optimized_pe4",benchmarking_info.subset[,1]),6])),
+    c("express_default","align",gene_alignindex),
+    c("express_default","quant",mean(benchmarking_info.subset[grep("express_default_pe4",benchmarking_info.subset[,1]),6])),
+    c("featurecounts_default","align",genome_alignindex),
+    c("featurecounts_default","quant",mean(benchmarking_info.subset[grep("featurecounts_default_pe4",benchmarking_info.subset[,1]),6])),  
+    c("fadu_nomm","align",genome_alignindex),
+    c("fadu_nomm","quant",mean(benchmarking_info.subset[grep("fadu_nomm_pe4",benchmarking_info.subset[,1]),6])),  
+    c("htseq_intersectionnonempty","align",genome_alignindex),
+    c("htseq_intersectionnonempty","quant",mean(benchmarking_info.subset[grep("htseq_intersectionnonempty_pe4",benchmarking_info.subset[,1]),6])),
+    c("htseq_union","align",genome_alignindex),
+    c("htseq_union","quant",mean(benchmarking_info.subset[grep("htseq_union_pe4",benchmarking_info.subset[,1]),6])),
+    c("htseq_intersectionstrict","align",genome_alignindex),
+    c("htseq_intersectionstrict","quant",mean(benchmarking_info.subset[grep("htseq_intersectionstrict_pe4",benchmarking_info.subset[,1]),6])),
+    c("htseq_unionnonuniqueall","align",genome_alignindex),
+    c("htseq_unionnonuniqueall","quant",mean(benchmarking_info.subset[grep("htseq_unionnonuniqueall_pe4",benchmarking_info.subset[,1]),6])),
+    c("featurecounts_overlap","align",genome_alignindex),
+    c("featurecounts_overlap","quant",mean(benchmarking_info.subset[grep("featurecounts_overlap_pe4",benchmarking_info.subset[,1]),6])),  
+    c("featurecounts_fractionaloverlap","align",genome_alignindex),
+    c("featurecounts_fractionaloverlap","quant",mean(benchmarking_info.subset[grep("featurecounts_fractionaloverlap_pe4",benchmarking_info.subset[,1]),6])),  
+    c("fadu_10em","align",genome_alignindex),
+    c("fadu_10em","quant",mean(benchmarking_info.subset[grep("fadu_10em_pe4",benchmarking_info.subset[,1]),6])),  
+    c("fadu_default","align",genome_alignindex),
+    c("fadu_default","quant",mean(benchmarking_info.subset[grep("fadu_default_pe4",benchmarking_info.subset[,1]),6]))
+  ))
+}
+```
 
-```{R, fig.height = 2, fig.width = 10}
-legend.plot <- ggplot(mapping=aes(x=groups[,1], y=seq(1,length(groups[,1]),1), group = groups[,4]))+
-    geom_point(aes(color = groups[,4],shape=groups[,4]), size = 4)+
-    scale_shape_manual(values = as.numeric(as.character(groups[,3])))+
-    scale_color_manual(values = as.character(unique(groups[,2])))+
-    guides(shape = guide_legend(title = "Samples", title.position = "top",nrow=2),
-           colour = guide_legend(title = "Samples", title.position = "top",nrow=2))+
+### Parse benchmarking data to create VMem data frames for each dataset
+```{R}
+benchmarking_vmemplotdata_pe1.list <- list()
+benchmarking_vmemplotdata_pe4.list <- list()
+
+for(i in 1:length(samples)){
+  benchmarking_info.subset <- benchmarking_info[grep(samples[i],benchmarking_info[,1]),]
+  genome_alignindex <- max(c(benchmarking_info.subset[grep("hisat2_genome_align_pe1",benchmarking_info.subset[,1]),4], 
+                             benchmarking_info.subset[grep("samtools_genome_sort_pe1",benchmarking_info.subset[,1]),4],
+                             benchmarking_info.subset[grep("samtools_genome_index_pe1",benchmarking_info.subset[,1]),4]))
+  gene_alignindex <- max(c(benchmarking_info.subset[grep("hisat2_gene_align_pe1",benchmarking_info.subset[,1]),4], 
+                           benchmarking_info.subset[grep("samtools_gene_sort_pe1",benchmarking_info.subset[,1]),4],
+                           benchmarking_info.subset[grep("hisat2_gene_index_pe1",benchmarking_info.subset[,1]),4]))
+  kallisto_alignindex <- max(benchmarking_info.subset[grep("kallisto_index_pe1",benchmarking_info.subset[,1]),4])
+  salmon_alignindex <- max(benchmarking_info.subset[grep("salmon_index_pe1",benchmarking_info.subset[,1]),4])
+  
+  benchmarking_vmemplotdata_pe1.list[[i]] <- as.data.frame(rbind(
+    c("salmon_optimized",max(salmon_alignindex,benchmarking_info.subset[grep("salmon_optimized_pe1",benchmarking_info.subset[,1]),4])),
+    c("salmon_default",max(salmon_alignindex,benchmarking_info.subset[grep("salmon_default_pe1",benchmarking_info.subset[,1]),4])),
+    c("kallisto_default",max(kallisto_alignindex,benchmarking_info.subset[grep("kallisto_default_pe1",benchmarking_info.subset[,1]),4])),
+    c("express_optimized",max(gene_alignindex,benchmarking_info.subset[grep("express_optimized_pe1",benchmarking_info.subset[,1]),4])),
+    c("express_default",max(gene_alignindex,benchmarking_info.subset[grep("express_default_pe1",benchmarking_info.subset[,1]),4])),
+    c("featurecounts_default",max(genome_alignindex,benchmarking_info.subset[grep("featurecounts_default_pe1",benchmarking_info.subset[,1]),4])),
+    c("fadu_nomm",max(genome_alignindex,benchmarking_info.subset[grep("fadu_nomm_pe1",benchmarking_info.subset[,1]),4])),
+    c("htseq_intersectionnonempty",max(genome_alignindex,benchmarking_info.subset[grep("htseq_intersectionnonempty_pe1",benchmarking_info.subset[,1]),4])),
+    c("htseq_union",max(genome_alignindex,benchmarking_info.subset[grep("htseq_union_pe1",benchmarking_info.subset[,1]),4])),
+    c("htseq_intersectionstrict",max(genome_alignindex,benchmarking_info.subset[grep("htseq_intersectionstrict_pe1",benchmarking_info.subset[,1]),4])),
+    c("htseq_unionnonuniqueall",max(genome_alignindex,benchmarking_info.subset[grep("htseq_unionnonuniqueall_pe1",benchmarking_info.subset[,1]),4])),
+    c("featurecounts_overlap",max(genome_alignindex,benchmarking_info.subset[grep("featurecounts_overlap_pe1",benchmarking_info.subset[,1]),4])),
+    c("featurecounts_fractionaloverlap",max(genome_alignindex,benchmarking_info.subset[grep("featurecounts_fractionaloverlap_pe1",benchmarking_info.subset[,1]),4])),
+    c("fadu_10em",max(genome_alignindex,benchmarking_info.subset[grep("fadu_10em_pe1",benchmarking_info.subset[,1]),4])),
+    c("fadu_default",max(genome_alignindex,benchmarking_info.subset[grep("fadu_default_pe1",benchmarking_info.subset[,1]),4]))
+  ))
+  
+  genome_alignindex <- max(c(benchmarking_info.subset[grep("hisat2_genome_align_pe4",benchmarking_info.subset[,1]),4], 
+                             benchmarking_info.subset[grep("samtools_genome_sort_pe4",benchmarking_info.subset[,1]),4],
+                             benchmarking_info.subset[grep("samtools_genome_index_pe4",benchmarking_info.subset[,1]),4]))
+  gene_alignindex <- max(c(benchmarking_info.subset[grep("hisat2_gene_align_pe4",benchmarking_info.subset[,1]),4], 
+                           benchmarking_info.subset[grep("samtools_gene_sort_pe4",benchmarking_info.subset[,1]),4],
+                           benchmarking_info.subset[grep("hisat2_gene_index_pe4",benchmarking_info.subset[,1]),4]))
+  kallisto_alignindex <- max(benchmarking_info.subset[grep("kallisto_index_pe4",benchmarking_info.subset[,1]),4])
+  salmon_alignindex <- max(benchmarking_info.subset[grep("salmon_index_pe4",benchmarking_info.subset[,1]),4])
+  
+  benchmarking_vmemplotdata_pe4.list[[i]] <- as.data.frame(rbind(
+    c("salmon_optimized",max(salmon_alignindex,benchmarking_info.subset[grep("salmon_optimized_pe4",benchmarking_info.subset[,1]),4])),
+    c("salmon_default",max(salmon_alignindex,benchmarking_info.subset[grep("salmon_default_pe4",benchmarking_info.subset[,1]),4])),
+    c("kallisto_default",max(kallisto_alignindex,benchmarking_info.subset[grep("kallisto_default_pe4",benchmarking_info.subset[,1]),4])),
+    c("express_optimized",max(gene_alignindex,benchmarking_info.subset[grep("express_optimized_pe4",benchmarking_info.subset[,1]),4])),
+    c("express_default",max(gene_alignindex,benchmarking_info.subset[grep("express_default_pe4",benchmarking_info.subset[,1]),4])),
+    c("featurecounts_default",max(genome_alignindex,benchmarking_info.subset[grep("featurecounts_default_pe4",benchmarking_info.subset[,1]),4])),
+    c("fadu_nomm",max(genome_alignindex,benchmarking_info.subset[grep("fadu_nomm_pe4",benchmarking_info.subset[,1]),4])),
+    c("htseq_intersectionnonempty",max(genome_alignindex,benchmarking_info.subset[grep("htseq_intersectionnonempty_pe4",benchmarking_info.subset[,1]),4])),
+    c("htseq_union",max(genome_alignindex,benchmarking_info.subset[grep("htseq_union_pe4",benchmarking_info.subset[,1]),4])),
+    c("htseq_intersectionstrict",max(genome_alignindex,benchmarking_info.subset[grep("htseq_intersectionstrict_pe4",benchmarking_info.subset[,1]),4])),
+    c("htseq_unionnonuniqueall",max(genome_alignindex,benchmarking_info.subset[grep("htseq_unionnonuniqueall_pe4",benchmarking_info.subset[,1]),4])),
+    c("featurecounts_overlap",max(genome_alignindex,benchmarking_info.subset[grep("featurecounts_overlap_pe4",benchmarking_info.subset[,1]),4])),
+    c("featurecounts_fractionaloverlap",max(genome_alignindex,benchmarking_info.subset[grep("featurecounts_fractionaloverlap_pe4",benchmarking_info.subset[,1]),4])),
+    c("fadu_10em",max(genome_alignindex,benchmarking_info.subset[grep("fadu_10em_pe4",benchmarking_info.subset[,1]),4])),
+    c("fadu_default",max(genome_alignindex,benchmarking_info.subset[grep("fadu_default_pe4",benchmarking_info.subset[,1]),4]))
+  ))
+}
+```
+
+### Set plot order
+```{R}
+colorder <- c("salmon_optimized","salmon_default","kallisto_default","express_optimized","express_default",
+              "featurecounts_default","fadu_nomm","htseq_intersectionnonempty","htseq_union","htseq_intersectionstrict",
+              "htseq_unionnonuniqueall","featurecounts_overlap","featurecounts_fractionaloverlap",
+              "fadu_10em","fadu_default")
+```
+
+### Create timing plots
+```{R,fig.width=8,fig.height=4}
+benchmarking_pe1.timingplot.list <- list()
+benchmarking_pe4.timingplot.list <- list()
+
+for(i in 1:length(benchmarking_timingplotdata_pe1.list)){
+  benchmarking_timingplotdata_pe1.list[[i]][,1] <- factor(benchmarking_timingplotdata_pe1.list[[i]][,1], levels = rev(colorder))
+  
+  benchmarking_pe1.timingplot.list[[i]] <- ggplot()+
+    geom_bar(mapping=aes_string(x=benchmarking_timingplotdata_pe1.list[[i]][,1],
+                                y=as.numeric(as.character(benchmarking_timingplotdata_pe1.list[[i]][,3])),
+                                fill=benchmarking_timingplotdata_pe1.list[[i]][,2]),stat="identity")+
+    coord_flip()+
+    guides(fill = F)+
     theme_bw()+
-    theme(legend.position="top",legend.title.align=0.5)
-
-sample.legend <- g_legend(legend.plot)
-
-pdf(paste0(WORKING.DIR,"/plots/canine_pca_hc_samplekey.pdf"),
-    height=2,
-    width=10)
-grid.arrange(sample.legend)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_pca_hc_samplekey.png"),
-    height=2,
-    width=10,
-    units = "in",res=300)
-grid.arrange(sample.legend)
-dev.off()
-
-grid.arrange(sample.legend)
-```
-
-![image](/images/canine_pca_hc_samplekey.png)
-
-##### Conduct a hierarchical cluster analysis on the TPM values of all genes that passed CPM cutoff
-
-```{R, fig.height=5, fig.width=10}
-dendrogram <- as.data.frame(t(scale(t(log2(tpm.keep+1)))))
-
-result <- pvclust(dendrogram, method.dist="cor", method.hclust="average", nboot=100)
-
-structure <- get_dendro_structure(result)
-dendro.data <- get_dendro_data(result)
-bootstrap.positions <- get_dendro_bootstraps(dendro.data)
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank())
   
-points.df <- as.data.frame(cbind(seq(1,length(structure),1),
-                                 structure))
-dendrogroups <- groups[,4][result$hclust$order]
-dendrocol <- groups[,2][result$hclust$order]
-dendroshape <- groups[,3][result$hclust$order]
-dendrosize <- colSums(counts.keep)[result$hclust$order]
-#dendrosize <- 1
-
-dendrogram.plot <- ggdendrogram(hang.dendrogram(as.dendrogram(result$hclust)), theme_dendro = T)+
-  geom_point(aes(x=seq(1,length(structure)), y = structure, color = dendrogroups, size = dendrosize, shape = dendroshape))+
-  scale_shape_manual(values= as.numeric(as.character(levels(dendroshape))))+
-  scale_color_manual(values = levels(groups[,2]))+
-  labs(x = "", y = "", col = "Samples", size = "Reads Mapped\nto Features")+
-  guides(colour = guide_legend(ncol = 2), size = F, shape = F)+
-  #scale_x_discrete(limits = as.character(dendrolabels))+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0, hjust = 1),
-        axis.text.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-
-for(i in 1:length(result$edges$bp)){
-  text <- round(result$edges$bp[i] * 100,0)
-  dendrogram.plot <- dendrogram.plot + annotate("text", label = text, x=bootstrap.positions[i,1] + 0.4, y=bootstrap.positions[i,2] + 0.02, size = 2)
-}
-pdf(paste0(WORKING.DIR,"/plots/canine_tpm_kept_dendrogram.pdf"),
-    height=5,
-    width=10)
-print(dendrogram.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_tpm_kept_dendrogram.png"),
-    height=5,
-    width=10,
-	units = "in",res=300)
-print(dendrogram.plot)
-dev.off()
-
-print(dendrogram.plot)
-```
-
-![image](/images/canine_tpm_kept_dendrogram.png)
-
-##### Conduct a PCA on the TPM values of all genes that passed CPM cutoff
-
-```{R,fig.height=5,fig.width=5}
-pca.df <- t(scale(t(log2(tpm.keep + 1))))
-pca.df <- pca.df[rowSums(pca.df == 0) != ncol(pca.df),]
-pca <- PCA(as.data.frame(scale(t(pca.df))), graph = FALSE, ncp = ncol(tpm.keep) - 1)
-
-pca.plot <- ggplot()+
-  geom_point(aes(x=pca$ind$coord[,1], y=pca$ind$coord[,2], color = dendrocol,size = dendrosize, shape = dendroshape))+
-  labs(col = "Samples", size = "Reads Mapped\nto Features", 
-       x = paste0("PC1 (", round(pca$eig[1,2],1), "%)"), 
-       y = paste0("PC2 (", round(pca$eig[2,2],1), "%)"))+
-  guides(color = F,size = F, shape = F)+
-  # guides(colour = guide_legend(ncol = 2))+
-  scale_color_manual(values = levels(groups[,2]))+
-  scale_shape_manual(values= as.numeric(as.character(levels(dendroshape))))+
-  theme_bw()
-
-pdf(paste0(WORKING.DIR,"/plots/canine_tpm_kept_pca.pdf"),
-    height=5,
-    width=5)
-print(pca.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_tpm_kept_pca.png"),
-    height=5,
-    width=5,
-	units = "in",res=300)
-print(pca.plot)
-dev.off()
-
-print(pca.plot)
-```
-
-![image](/images/canine_tpm_kept_pca.png)
-
-#### Divide differentially expressed genes into expression modules
-
-##### Find soft power value for WGCNA
-
-```{R}
-tpm.de <- tpm[rownames(tpm) %in% rownames(edgeR.longitudinal.degenes),]
-
-wgcna <- as.data.frame(t(tpm.de))
-powers <- c(c(1:10), seq(from = 12, to=20, by=2))
-sft <- pickSoftThreshold(wgcna, powerVector = powers, verbose = 5)
-softpower <- find_soft_power(sft)
-
-text.color <- rep("black",length(sft$fitIndices[,1]))
-text.color[which(sft$fitIndices[,1] == softpower)] <- "red"
-
-scale_independence.plot <- ggplot()+
-  geom_text(mapping = aes(x = sft$fitIndices[,1], y = -sign(sft$fitIndices[,3])*sft$fitIndices[,2], label=sft$fitIndices[,1]), color = text.color)+
-  labs(title = "Scale Independence", x = "soft threshold (power)", y = "scale free topology model fit, signed R^2")+
-  theme_bw()
-
-mean_connectivity.plot <- ggplot()+
-  geom_text(mapping = aes(x = sft$fitIndices[,1], y = sft$fitIndices[,5], label=sft$fitIndices[,1]), color = text.color)+
-  labs(title = "Mean Connectivity", x = "soft threshold (power)", y = "mean connectivity")+
-  theme_bw()
-
-wgcna_soft_power_plots <- list(scale_independence.plot, mean_connectivity.plot)
-lay <- rbind(c(1,2))
-
-pdf(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_soft_power_plot.pdf"),
-    width = 10, 
-    height = 5)
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_soft_power_plot.png"),
-    width = 10, 
-    height = 5,
-	units = "in",res=300)
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-dev.off()
-
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-
-```
-
-![image](/images/canine_tpm_de_wgcna_soft_power_plot.png)
-
-##### Identify expression modules 
-
-```{R, fig.height=5, fig.width=12}
-adjacency <- adjacency(wgcna, power = softpower)
-TOM <- TOMsimilarity(adjacency)
-dissTOM <- 1-TOM
-geneTree <- hclust(as.dist(dissTOM), method = "average");
-
-minModuleSize <- 1
-dynamicMods <- cutreeDynamic(dendro = geneTree, distM = dissTOM,
-                             deepSplit = 2, pamRespectsDendro = FALSE,
-                             minClusterSize = minModuleSize)
-
-dynamicColors = labels2colors(dynamicMods)
-MEList = moduleEigengenes(wgcna, colors = dynamicColors)
-MEs = MEList$eigengenes
-MEDiss = 1-cor(MEs, use = "pairwise.complete.obs")
-METree = hclust(as.dist(MEDiss), method = "average")
-
-MEDissThres = 0.25
-
-pdf(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_merge_eigengenes_plot.pdf"),
-    width = 12, 
-    height = 5)
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_merge_eigengenes_plot.png"),
-    width = 12, 
-    height = 5,
-    units = "in",res=300)
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-dev.off()
-
-
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-```
-
-![image](/images/canine_tpm_de_wgcna_merge_eigengenes_plot.png)
-
-##### Merge similar expression modules
-
-```{R}
-merge = mergeCloseModules(wgcna, dynamicColors, cutHeight = MEDissThres, verbose = 3)
-mergedColors = merge$colors
-mergedMEs = merge$newMEs
-
-tpm.de.wgcna <- eigengene_invert_id(tpm.de, mergedColors, mergedMEs)
-
-write.table(tpm.de.wgcna,
-            paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_modules.tsv"),
-            row.names = T,
-            col.names = T,
-            quote = F,
-            sep = "\t")
-
-pdf(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_eigengene_dendrogram.pdf"),
-    width = 8, 
-    height = 5)
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_eigengene_dendrogram.png"),
-    width = 8, 
-    height = 5,
-    units = "in",res=300)
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-dev.off()
-
-
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-```
-
-![image](/images/canine_tpm_de_wgcna_eigengene_dendrogram.png)
-
-##### Plot WGCNA expression modules as a heatmap
-
-```{R}
-tpm.de.wgcna <- wgcna_heatmap_reorder(tpm.de.wgcna)
-
-log2tpm.de <- log2(tpm.de.wgcna[,1:(ncol(tpm.de.wgcna) - 2)] + 1)
-zscore.log2tpm.de <- as.data.frame(t(scale(t(log2tpm.de))))
-
-hmcol <- colorRampPalette(c("navyblue","white","firebrick3"))(12)
-rowcol1 <- tpm.de.wgcna$module
-rowcol2 <- unlist(lapply(tpm.de.wgcna$invert,function(x){if(x == F){return("grey")}else{return("black")}}))
-colcol <- as.character(groups[,2])
-
-rowsep <- get_heatmap_separators(rowcol1)
-colsep <- get_heatmap_separators(colcol)
-```
-
-###### Create sample legend for WGCNA heatmap
-
-```{R}
-legend.plot <- ggplot(mapping=aes(x=groups[,1], y=seq(1,length(groups[,1]),1), group = groups[,4]))+
-    geom_line(aes(color = groups[,4]), size = 4)+
-    scale_color_manual(values = as.character(unique(groups[,2])))+
-    guides(colour = guide_legend(title = "Samples", title.position = "top",nrow=3))+
+  
+  benchmarking_timingplotdata_pe4.list[[i]][,1] <- factor(benchmarking_timingplotdata_pe4.list[[i]][,1], levels = rev(colorder))
+  
+  benchmarking_pe4.timingplot.list[[i]] <- ggplot()+
+    geom_bar(mapping=aes_string(x=benchmarking_timingplotdata_pe4.list[[i]][,1],
+                                y=as.numeric(as.character(benchmarking_timingplotdata_pe4.list[[i]][,3])),
+                                fill=benchmarking_timingplotdata_pe4.list[[i]][,2]),stat="identity")+
+    coord_flip()+
+    guides(fill = F)+
     theme_bw()+
-    theme(legend.position="top",legend.title.align=0.5)
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank())
+}
 
-sample.legend <- g_legend(legend.plot)
-
-pdf(paste0(WORKING.DIR,"/plots/canine_hm_samplekey.pdf"),
-    height=2,
-    width=10)
-grid.arrange(sample.legend)
+pdf(paste0(OUTPUT_DIR,"/timing_plot.pdf"),
+    height=4,
+    width=8)
+plot_grid(plotlist = list(benchmarking_pe1.timingplot.list[[1]],
+                          benchmarking_pe1.timingplot.list[[2]],
+                          benchmarking_pe1.timingplot.list[[3]],
+                          benchmarking_pe4.timingplot.list[[1]],
+                          benchmarking_pe4.timingplot.list[[2]],
+                          benchmarking_pe4.timingplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 dev.off()
 
-png(paste0(WORKING.DIR,"/plots/canine_hm_samplekey.png"),
-    height=2,
-    width=10,
+png(paste0(OUTPUT_DIR,"/timing_plot.png"),
+    height=4,
+    width=8,
     units = "in",res=300)
-grid.arrange(sample.legend)
+plot_grid(plotlist = list(benchmarking_pe1.timingplot.list[[1]],
+                          benchmarking_pe1.timingplot.list[[2]],
+                          benchmarking_pe1.timingplot.list[[3]],
+                          benchmarking_pe4.timingplot.list[[1]],
+                          benchmarking_pe4.timingplot.list[[2]],
+                          benchmarking_pe4.timingplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 dev.off()
 
-grid.arrange(sample.legend)
+plot_grid(plotlist = list(benchmarking_pe1.timingplot.list[[1]],
+                          benchmarking_pe1.timingplot.list[[2]],
+                          benchmarking_pe1.timingplot.list[[3]],
+                          benchmarking_pe4.timingplot.list[[1]],
+                          benchmarking_pe4.timingplot.list[[2]],
+                          benchmarking_pe4.timingplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 ```
 
-![image](/images/canine_hm_samplekey.png)
+![image](/images/timing_plot.png)
 
-###### Create z-score log2TPM legend for WGCNA heatmap
+### Create VMem plots
+```{R,fig.width=8,fig.height=4}
+benchmarking_pe1.vmemplot.list <- list()
+benchmarking_pe4.vmemplot.list <- list()
 
-```{R, fig,height = 2, fig.width = 7}
-hmcol <- colorRampPalette(c("navyblue","white","firebrick3"))(12)
-hmcolor.plot <- ggplot() + 
-  geom_raster(aes(x=seq(-3,3,0.5), y=seq(-3,3,0.5), fill = seq(-3,3,0.5)))+
-  scale_fill_gradientn(name = "z-score log2TPM",
-                       colours=hmcol,
-                       breaks=c(-3,0,3))+
-  theme(legend.position="bottom")+
-  guides(fill = guide_colorbar(title.position = "top"))
+for(i in 1:length(benchmarking_vmemplotdata_pe1.list)){
+  benchmarking_vmemplotdata_pe1.list[[i]][,1] <- factor(benchmarking_vmemplotdata_pe1.list[[i]][,1], levels = rev(colorder))
   
-
-heat.legend <- g_legend(hmcolor.plot)
-pdf(paste0(WORKING.DIR,"/plots/canine_hm_zscorelog2tpmkey.pdf"),
-    height=2,
-    width=7)
-grid.arrange(heat.legend)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/canine_hm_zscorelog2tpmkey.png"),
-    height=2,
-    width=7,
-    units = "in",res=300)
-grid.arrange(heat.legend)
-dev.off()
-
-grid.arrange(heat.legend)
-```
-
-![image](/images/canine_hm_zscorelog2tpmkey.png)
-
-###### Use module assigments as the row color bar
-
-```{R, fig.height=10, fig.width=5}
-pdf(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_zscorelog2tpm_module_heatmap.pdf"),
-    width = 5, 
-    height = 10)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-png(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_zscorelog2tpm_module_heatmap.png"),
-    width = 5, 
-    height = 10,
-    units = "in",res=300)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-```
-
-![image](/images/canine_tpm_de_wgcna_zscorelog2tpm_module_heatmap.png)
-
-###### Use inverse assigments as the row color bar
-
-```{R, fig.height=10, fig.width=5}
-pdf(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.pdf"),
-    width = 5, 
-    height = 10)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-png(paste0(WORKING.DIR,"/plots/canine_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.png"),
-    width = 5, 
-    height = 10,
-    units = "in",res=300)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-```
-
-![image](/images/canine_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.png)
-
-### Tick
-
-#### Set R inputs
-```{R}
-WORKING.DIR <- "Z:/EBMAL/mchung_dir/PECHA/"
-SALMON_OUTPUT.DIR <- "Z:/EBMAL/mchung_dir/PECHA/salmon"
-GROUPS.PATH <- "Z:/EBMAL/mchung_dir/PECHA/pecha_groups.tsv"
-```
-
-#### Load R functions
-```{R}
-g_legend <- function(a.gplot){ 
-  tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
-  legend <- tmp$grobs[[leg]] 
-  return(legend)
-} 
-
-get_dendro_structure <- function(result){
-  structure <- hang.dendrogram(as.dendrogram(result$hclust))
-  structure <- capture.output(str(structure))
-  structure <- structure[grepl("leaf", structure)]
-  structure <- as.numeric(as.character(substr(structure, regexpr("h=", structure ) + 3, regexpr("  )", structure))))
-  return(structure)
-}
-
-get_dendro_data <- function(result){
-  dendro.data <- dendro_data(result$hclust)
-  dendro.data <- dendro.data$segments[which(dendro.data$segments$y == dendro.data$segments$yend),]
-  for(i in 1:nrow(dendro.data)){
-    dendro.data$minx[i] <- min(c(dendro.data$x[i], dendro.data$xend[i]))
-  }
-  dendro.data <- dendro.data[order(as.numeric(as.character(dendro.data$y)), as.numeric(as.character(dendro.data$minx))),]
-  return(dendro.data)
-}
-
-get_dendro_bootstraps <- function(dendro_data){
-  bootstrap.positions <- as.data.frame(matrix(nrow = length(dendro_data$y[duplicated(dendro_data$y)]),
-                                              ncol = 2))
-  for(i in 1:length(dendro_data$y[duplicated(dendro_data$y)])){
-    dendro_data.subset <- dendro_data[which(dendro_data$y == dendro_data$y[duplicated(dendro_data$y)][i]),]
-    bootstrap.positions[i,1] <- unique(dendro_data.subset$x)
-    bootstrap.positions[i,2] <- unique(dendro_data.subset$y)
-  }
-  return(bootstrap.positions)
-}
-
-find_soft_power <- function(sft){
-  df <- as.data.frame(cbind(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2]))
-  y <- -sign(sft$fitIndices[,3])*sft$fitIndices[,2]
-  dy <- diff(y) 
-  softpower <- which(abs(dy) < 0.05)[1]
-  if(softpower == 1){
-    softpower <- which(abs(dy) < 0.05)[2]
-  }
-  return(softpower)
-}
-
-eigengene_invert_id <- function(tpm.de, mergedColors, mergedMEs){
-  tpm.de.wgcna <- tpm.de
-  tpm.de.wgcna$invert <- T
-  tpm.de.wgcna$module <- mergedColors
-  for(i in 1:nrow(tpm.de.wgcna)){
-    if(cor(t(tpm.de[i,]), mergedMEs[,which(colnames(mergedMEs) == paste0("ME",tpm.de.wgcna$module[i]))], method = "pearson") > 0){
-      tpm.de.wgcna$invert[i] <- F
-    }
-  }
-  return(tpm.de.wgcna)
-}
-
-wgcna_heatmap_reorder <- function(tpm.de.wgcna){
-  clusters <- as.data.frame(table(tpm.de.wgcna$module))
-  clusters <- clusters[order(-clusters[,2]),1]
-  
-  tpm.de.wgcna.reordered <- as.data.frame(matrix(nrow = 0,
-                                                 ncol = ncol(tpm.de.wgcna)))
-  for(i in 1:length(clusters)){
-    tpm.de.wgcna.reordered <- as.data.frame(rbind(tpm.de.wgcna.reordered,
-                                                  tpm.de.wgcna[tpm.de.wgcna$module == clusters[i] & tpm.de.wgcna$invert == F,],
-                                                  tpm.de.wgcna[tpm.de.wgcna$module == clusters[i] & tpm.de.wgcna$invert == T,]))
-  }
-  return(tpm.de.wgcna.reordered)
-}
-
-get_heatmap_separators <- function(vector){
-  sep <- c()
-  for(i in 2:length(unique(vector))){
-    sep[length(sep) + 1] <- min(which(vector == unique(vector)[i])) - 1
-  }
-  return(sep)
-}
-
-functionaltermenrichment <- function(genes, geneinfo){
-  for(i in 1:ncol(geneinfo)){geneinfo[,i] <- as.character(geneinfo[,i])}
-  geneinfo$interpro_description[which(is.na(geneinfo$interpro_description))] <- "No InterPro entry"
-  geneinfo$go_biologicalprocess[which(is.na(geneinfo$go_biologicalprocess))] <- "No GO terms for biological process"
-  geneinfo$go_cellularcomponent[which(is.na(geneinfo$go_cellularcomponent))] <- "No GO terms for cellular component"
-  geneinfo$go_molecularfunction[which(is.na(geneinfo$go_molecularfunction))] <- "No GO terms for molecular function"
-  
-  functionalterms.list <- list(ipr=as.data.frame(table(unlist(strsplit(paste(geneinfo$interpro_description, collapse = "|"),  split = "[|]")))),
-                               gobio=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_biologicalprocess, collapse = "|"),  split = "[|]")))),
-                               gocell=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_cellularcomponent, collapse = "|"),  split = "[|]")))),
-                               gomol=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_molecularfunction, collapse = "|"),  split = "[|]")))))
-  
-  geneinfo.subset <- geneinfo[geneinfo$gene %in% genes,]
-  term <- c()
-  clusteroccurences <- c()
-  genomeoccurences <- c()
-  pvalue <- c()
-  correctedpvalue <- c()
-  oddsratio <- c()
-
-  functionalterms.list.subset <- list(ipr=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$interpro_description, collapse = "|"),  split = "[|]")))),
-                                      gobio=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_biologicalprocess, collapse = "|"),  split = "[|]")))),
-                                      gocell=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_cellularcomponent, collapse = "|"),  split = "[|]")))),
-                                      gomol=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_molecularfunction, collapse = "|"),  split = "[|]")))))
-  
-  for(i in 1:length(functionalterms.list)){
-    for(j in 1:nrow(functionalterms.list[[i]])){
-      freq.all <- functionalterms.list[[i]][j,2]
-      freq.subset <- ifelse(functionalterms.list[[i]][j,1] %in% functionalterms.list.subset[[i]][,1],
-                            functionalterms.list.subset[[i]][functionalterms.list.subset[[i]][,1] == as.character(functionalterms.list[[i]][j,1]),2],
-                            0)
-      genes.all <- nrow(geneinfo)
-      genes.subset <- nrow(geneinfo.subset)
-
-      fisherexact.matrix <- matrix(c(freq.subset, freq.all - freq.subset,
-                                     genes.subset - freq.subset, genes.all - genes.subset - freq.all + freq.subset),
-                                   nrow = 2,
-                                   ncol = 2)
-      fisher.test <- fisher.test(fisherexact.matrix)
-      
-      term[length(term) + 1] <- as.character(functionalterms.list[[i]][j,1])
-      clusteroccurences[length(clusteroccurences) + 1] <- as.numeric(as.character(freq.subset))
-      genomeoccurences[length(genomeoccurences) + 1] <- as.numeric(as.character(freq.all))
-      pvalue[length(pvalue) + 1] <- as.numeric(as.character(fisher.test$p.value))
-      correctedpvalue[length(correctedpvalue) + 1] <- p.adjust(as.numeric(as.character(fisher.test$p.value)), method = "fdr", n = nrow(functionalterms.list[[i]]))
-      oddsratio[length(oddsratio) + 1] <- as.numeric(as.character(fisher.test$estimate))
-    }
-  }
-  
-  terms.df <- as.data.frame(cbind(term,
-                                  clusteroccurences,
-                                  genomeoccurences,
-                                  pvalue,
-                                  correctedpvalue,
-                                  oddsratio))
-  terms.df <- terms.df[order(as.numeric(as.character(terms.df$pvalue))),]
-  return(terms.df)
-}
-```
-
-#### Load packages and view sessionInfo
-```{R}
-library(dendextend)
-library(DESeq2)
-library(edgeR)
-library(FactoMineR)
-library(ggdendro)
-library(ggplot2)
-library(gplots)
-library(gridExtra)
-library(pvclust)
-library(vegan)
-library(WGCNA)
-
-sessionInfo()
-```
-
-```{R, eval = F}
-R version 3.5.0 (2018-04-23)
-Platform: x86_64-w64-mingw32/x64 (64-bit)
-Running under: Windows >= 8 x64 (build 9200)
-
-Matrix products: default
-
-locale:
-[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
-[3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
-[5] LC_TIME=English_United States.1252    
-
-attached base packages:
-[1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods   base     
-
-other attached packages:
- [1] WGCNA_1.68                  fastcluster_1.1.25          dynamicTreeCut_1.63-1       pvclust_2.0-0              
- [5] gplots_3.0.1.1              ggdendro_0.1-20             FactoMineR_1.42             DESeq2_1.22.2              
- [9] SummarizedExperiment_1.12.0 DelayedArray_0.8.0          BiocParallel_1.16.6         matrixStats_0.54.0         
-[13] Biobase_2.42.0              GenomicRanges_1.34.0        GenomeInfoDb_1.18.2         IRanges_2.16.0             
-[17] S4Vectors_0.20.1            BiocGenerics_0.28.0         dendextend_1.12.0           gridExtra_2.3              
-[21] ggplot2_3.2.0               vegan_2.5-5                 lattice_0.20-35             permute_0.9-5              
-[25] edgeR_3.24.3                limma_3.38.3               
-
-loaded via a namespace (and not attached):
- [1] colorspace_1.4-1       htmlTable_1.13.1       XVector_0.22.0         base64enc_0.1-3       
- [5] rstudioapi_0.10        bit64_0.9-7            mvtnorm_1.0-11         AnnotationDbi_1.44.0  
- [9] codetools_0.2-15       splines_3.5.0          leaps_3.0              doParallel_1.0.15     
-[13] impute_1.56.0          robustbase_0.93-5      geneplotter_1.60.0     knitr_1.23            
-[17] zeallot_0.1.0          Formula_1.2-3          annotate_1.60.1        cluster_2.0.7-1       
-[21] GO.db_3.7.0            rrcov_1.4-7            compiler_3.5.0         backports_1.1.4       
-[25] assertthat_0.2.1       Matrix_1.2-14          lazyeval_0.2.2         acepack_1.4.1         
-[29] htmltools_0.3.6        tools_3.5.0            gtable_0.3.0           glue_1.3.1            
-[33] GenomeInfoDbData_1.2.0 dplyr_0.8.3            Rcpp_1.0.2             vctrs_0.2.0           
-[37] gdata_2.18.0           preprocessCore_1.44.0  nlme_3.1-137           iterators_1.0.12      
-[41] xfun_0.8               stringr_1.4.0          gtools_3.8.1           XML_3.98-1.20         
-[45] DEoptimR_1.0-8         zlibbioc_1.28.0        MASS_7.3-51.4          scales_1.0.0          
-[49] RColorBrewer_1.1-2     yaml_2.2.0             memoise_1.1.0          rpart_4.1-13          
-[53] latticeExtra_0.6-28    stringi_1.4.3          RSQLite_2.1.2          genefilter_1.64.0     
-[57] pcaPP_1.9-73           foreach_1.4.7          checkmate_1.9.4        caTools_1.17.1.2      
-[61] rlang_0.4.0            pkgconfig_2.0.2        bitops_1.0-6           purrr_0.3.2           
-[65] htmlwidgets_1.3        labeling_0.3           bit_1.1-14             tidyselect_0.2.5      
-[69] robust_0.4-18.1        magrittr_1.5           R6_2.4.0               Hmisc_4.2-0           
-[73] fit.models_0.5-14      DBI_1.0.0              pillar_1.4.2           foreign_0.8-70        
-[77] withr_2.1.2            mgcv_1.8-23            survival_2.41-3        scatterplot3d_0.3-41  
-[81] RCurl_1.95-4.12        nnet_7.3-12            tibble_2.1.3           crayon_1.3.4          
-[85] KernSmooth_2.23-15     viridis_0.5.1          locfit_1.5-9.1         grid_3.5.0            
-[89] data.table_1.12.2      blob_1.2.0             digest_0.6.20          flashClust_1.01-2     
-[93] xtable_1.8-4           munsell_0.5.0          viridisLite_0.3.0     
-```
-
-#### Create counts data frame
-```{R}
-groups <- read.delim(GROUPS.PATH, header = F)
-groups <- groups[intersect(grep("mRNA", groups[,2]),grep("ISE6", groups[,2])),]
-
-rownames <- as.character(read.delim(paste0(SALMON_OUTPUT.DIR, "/", groups[1,1],"/quant.sf"))[grep("ISCW", read.delim(paste0(SALMON_OUTPUT.DIR, "/", groups[1,1],"/quant.sf"))[,1]),1])
-colnames <- unique(groups[,2])
-
-counts <- as.data.frame(matrix(0,
-                               nrow = length(rownames),
-                               ncol = length(colnames)))
-rownames(counts) <- rownames
-colnames(counts) <- colnames
-
-for(i in 1:ncol(counts)){
-  srr.vector <- groups[groups[,2] == colnames(counts[i]),1]
-  for(j in 1:length(srr.vector)){
-    counts.subset <- read.delim(paste0(SALMON_OUTPUT.DIR, "/",srr.vector[j],"/quant.sf"))
-    counts[,i] <- counts[,i] + counts.subset[match(rownames(counts),counts.subset[,1]),5]
-  }
-}
-
-write.table(counts,
-            paste0(WORKING.DIR,"/tick_counts.tsv"),
-            quote = F,
-            col.names = T,
-            row.names = T,
-            sep = "\t")
-
-colSums(counts)
-```
-
-```{R, eval = F}
- PECHA_ISE6_Arkansas_mRNA1  PECHA_ISE6_Arkansas_mRNA4  PECHA_ISE6_Arkansas_mRNA5 PECHA_ISE6_Heartland_mRNA1 PECHA_ISE6_Heartland_mRNA2 
-                17371256.1                   965294.2                   415261.1                   535804.0                   716451.0 
-PECHA_ISE6_Heartland_mRNA3        PECHA_ISE6_HF_mRNA1        PECHA_ISE6_HF_mRNA2        PECHA_ISE6_HF_mRNA3       PECHA_ISE6_Jax_mRNA1 
-                  613679.0                   592531.2                   426703.1                  1029629.3                   741714.0 
-      PECHA_ISE6_Jax_mRNA2       PECHA_ISE6_Jax_mRNA3   PECHA_ISE6_Liberty_mRNA1   PECHA_ISE6_Liberty_mRNA2   PECHA_ISE6_Liberty_mRNA3 
-                 1351246.5                  1105501.0                  1042668.0                  1006309.1                   535050.0 
-          PECHA_ISE6_mRNA1           PECHA_ISE6_mRNA2           PECHA_ISE6_mRNA3   PECHA_ISE6_Osceola_mRNA1   PECHA_ISE6_Osceola_mRNA2 
-                  363096.0                   594353.0                   533546.0                   618000.0                   619140.0 
-  PECHA_ISE6_Osceola_mRNA3 PECHA_ISE6_StVincent_mRNA1 PECHA_ISE6_StVincent_mRNA2 PECHA_ISE6_StVincent_mRNA3   PECHA_ISE6_Wakulla_mRNA1 
-                  618716.0                   942616.0                   468259.0                   698992.0                   985561.0 
-  PECHA_ISE6_Wakulla_mRNA2   PECHA_ISE6_Wakulla_mRNA3 PECHA_ISE6_WestPaces_mRNA1 PECHA_ISE6_WestPaces_mRNA2 PECHA_ISE6_WestPaces_mRNA3 
-                  622454.0                   564877.8                   913495.0                  1779219.9                  2108551.0
-```
-
-#### Create TPM data frame
-```{R}
-genelength <- read.delim(paste0(SALMON_OUTPUT.DIR, "/", groups[1,1],"/quant.sf"))
-genelength <- genelength[match(rownames(counts),genelength[,1]),2]
-
-tpm <- counts
-for(i in 1:ncol(tpm)){
-  tpm[,i] <- tpm[,i]/genelength
-  tpm[,i] <- tpm[,i]/(sum(tpm[,i])/1000000)
-}
-
-write.table(tpm,
-            paste0(WORKING.DIR,"/tick_tpm.tsv"),
-            quote = F,
-            col.names = T,
-            row.names = T,
-            sep = "\t")
-
-dim(tpm)
-```
-
-#### Set group levels
-```{R}
-groups <- unique(groups[2:5])
-groups[,1] <- factor(groups[,1], levels = groups[,1])
-groups[,2] <- factor(groups[,2], levels = unique(groups[,2]))
-groups[,3] <- factor(groups[,3], levels = unique(groups[,3]))
-groups[,4] <- factor(groups[,4], levels = unique(groups[,4]))
-```
-
-#### Conduct saturation analysis
-```{R, fig.height=5, fig.width=6}
-rarefy.counts <- round(counts,0)
-raremax <- round(min(rowSums(t(rarefy.counts))),0)
-srare <- rarefy(t(rarefy.counts),raremax) 
-
-rarefy.raw.df <- rarecurve(t(rarefy.counts), step = round(raremax/10,0), sample = raremax)
-
-rarefy.df <- as.data.frame(matrix(nrow = 0,
-                                  ncol = 5))
-rarefy.points.df <- rarefy.df
-for(i in 1:length(rarefy.raw.df)){
-  steps <- as.numeric(gsub("N","",names(rarefy.raw.df[[i]])))
-  detected_genes <- as.numeric(rarefy.raw.df[[i]])
-  rarefy.df <- as.data.frame(rbind(rarefy.df,
-                                   cbind(as.numeric(steps),as.numeric(detected_genes),as.character(groups[i,1]),as.character(groups[i,2]),groups[i,3])))
-  rarefy.points.df <- as.data.frame(rbind(rarefy.points.df,
-                                          cbind(as.numeric(max(steps)),as.numeric(max(detected_genes)),as.character(groups[i,1]),as.character(groups[i,2],groups[i,3]))))
-  
-}
-rarefy.plot <- ggplot()+
-  geom_line(mapping=aes(x=as.numeric(as.character(rarefy.df[,1])), y=as.numeric(as.character(rarefy.df[,2])),group=rarefy.df[,3],color=rarefy.df[,4]))+
-  #geom_point(mapping=aes(x=as.numeric(as.character(rarefy.df[,1])), y=as.numeric(as.character(rarefy.df[,2])),group=rarefy.df[,3],color=rarefy.df[,4]))+
-  geom_point(mapping=aes(x=as.numeric(as.character(rarefy.points.df[,1])), y=as.numeric(as.character(rarefy.points.df[,2])),group=rarefy.points.df[,3],color=rarefy.points.df[,4]),size = 3)+
-  guides(colour = F,shape = F)+
-  scale_color_manual(values = levels(groups[,2]))+
-  labs(x="reads mapping to genes", y="genes detected", color = "Sample")+
-  #coord_cartesian(xlim=c(0,100000))+
-  theme_bw()
-
-
-pdf(paste0(WORKING.DIR,"/plots/tick_rarefication_plot.pdf"),
-    height=5,
-    width=6)
-print(rarefy.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/tick_rarefication_plot.png"),
-    height=5,
-    width=6,
-	units = "in",res=300)
-print(rarefy.plot)
-dev.off()
-
-print(rarefy.plot)
-```
-
-![image](/images/tick_rarefication_plot.png)
-
-#### Identify differentially expressed genes longitudinally
-
-edgeR and DESeq2 are both run with a FDR cutoff of <0.05 and a minimum CPM cutoff of 5 reads in the lowest sequenced sample in the data set.  
-
-```{R}
-FDRcutoff <- 0.05
-cpm.cutoff <- 5/min(colSums(counts)) * 1000000
-
-y <- DGEList(counts = counts, group = groups[,4])
-y <- calcNormFactors(y)
-keep <- rowSums(cpm(y) >= cpm.cutoff) >= min(table(groups[,4]))
-keep.df <- as.data.frame(table(keep))
-print(paste0(keep.df[keep.df[,1] == F,2]," genes excluded with CPM cutoff"))
-
-y <- y[keep, , keep.lib.sizes = F]
-design <- model.matrix(~groups[,4])
-y <- estimateDisp(y , design)
-fit <- glmQLFit(y, design)
-qlf <- glmQLFTest(fit, coef = 2:ncol(fit))
-qlf$table$padj <- p.adjust(qlf$table$PValue, method="BH")
-edgeR.longitudinal.degenes <- qlf$table[qlf$table$padj < FDRcutoff,]
-print(paste0(nrow(edgeR.longitudinal.degenes)," DE genes identified using edgeR longitudinal"))
-
-write.table(edgeR.longitudinal.degenes,
-            paste0(WORKING.DIR,"/tick_counts_edgeR_longitudinal.tsv"),
-            row.names = T,
-            col.names = T,
-            quote = F,
-            sep = "\t")
-
-counts.keep <- counts[keep,]
-tpm.keep <- tpm[keep,]
-```
-
-
-```{R, eval = F}
-[1] "11969 genes excluded with CPM cutoff"
-[1] "3862 DE genes identified using edgeR longitudinal"
-```
-
-#### Conduct PCA and hierarchical clustering analyses on genes that passed the CPM cutoff
-
-##### Create sample legend for PCA and hierarchical clustering plots
-
-```{R, fig.height = 2, fig.width = 10}
-legend.plot <- ggplot(mapping=aes(x=groups[,1], y=seq(1,length(groups[,1]),1), group = groups[,4]))+
-    geom_point(aes(color = groups[,4],shape=groups[,4]), size = 4)+
-    scale_shape_manual(values = as.numeric(as.character(groups[,3])))+
-    scale_color_manual(values = as.character(unique(groups[,2])))+
-    guides(shape = guide_legend(title = "Samples", title.position = "top",nrow=2),
-           colour = guide_legend(title = "Samples", title.position = "top",nrow=2))+
+  benchmarking_pe1.vmemplot.list[[i]] <- ggplot()+
+    geom_bar(mapping=aes_string(x=benchmarking_vmemplotdata_pe1.list[[i]][,1],
+                                y=as.numeric(as.character(benchmarking_vmemplotdata_pe1.list[[i]][,2]))),
+             fill="#7cae00",
+             stat="identity")+
+    scale_y_continuous(limits = c(0,5))+
+    coord_flip()+
+    guides(fill = F)+
     theme_bw()+
-    theme(legend.position="top",legend.title.align=0.5)
-
-sample.legend <- g_legend(legend.plot)
-
-pdf(paste0(WORKING.DIR,"/plots/tick_pca_hc_samplekey.pdf"),
-    height=2,
-    width=10)
-grid.arrange(sample.legend)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/tick_pca_hc_samplekey.png"),
-    height=2,
-    width=10,
-    units = "in",res=300)
-grid.arrange(sample.legend)
-dev.off()
-
-grid.arrange(sample.legend)
-```
-
-![image](/images/tick_pca_hc_samplekey.png)
-
-##### Conduct a hierarchical cluster analysis on the TPM values of all genes that passed CPM cutoff
-
-```{R, fig.height=5, fig.width=10}
-dendrogram <- as.data.frame(t(scale(t(log2(tpm.keep+1)))))
-
-result <- pvclust(dendrogram, method.dist="cor", method.hclust="average", nboot=100)
-
-structure <- get_dendro_structure(result)
-dendro.data <- get_dendro_data(result)
-bootstrap.positions <- get_dendro_bootstraps(dendro.data)
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank())
   
-points.df <- as.data.frame(cbind(seq(1,length(structure),1),
-                                 structure))
-dendrogroups <- groups[,4][result$hclust$order]
-dendrocol <- groups[,2][result$hclust$order]
-dendroshape <- groups[,3][result$hclust$order]
-dendrosize <- colSums(counts.keep)[result$hclust$order]
-#dendrosize <- 1
-
-dendrogram.plot <- ggdendrogram(hang.dendrogram(as.dendrogram(result$hclust)), theme_dendro = T)+
-  geom_point(aes(x=seq(1,length(structure)), y = structure, color = dendrogroups, size = dendrosize, shape = dendroshape))+
-  scale_shape_manual(values= as.numeric(as.character(levels(dendroshape))))+
-  scale_color_manual(values = levels(groups[,2]))+
-  labs(x = "", y = "", col = "Samples", size = "Reads Mapped\nto Features")+
-  guides(colour = guide_legend(ncol = 2), size = F, shape = F)+
-  #scale_x_discrete(limits = as.character(dendrolabels))+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0, hjust = 1),
-        axis.text.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-
-for(i in 1:length(result$edges$bp)){
-  text <- round(result$edges$bp[i] * 100,0)
-  dendrogram.plot <- dendrogram.plot + annotate("text", label = text, x=bootstrap.positions[i,1] + 0.4, y=bootstrap.positions[i,2] + 0.04, size = 2)
-}
-pdf(paste0(WORKING.DIR,"/plots/tick_tpm_kept_dendrogram.pdf"),
-    height=5,
-    width=10)
-print(dendrogram.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/tick_tpm_kept_dendrogram.png"),
-    height=5,
-    width=10,
-	units = "in",res=300)
-print(dendrogram.plot)
-dev.off()
-
-print(dendrogram.plot)
-```
-
-![image](/images/tick_tpm_kept_dendrogram.png)
-##### Conduct a PCA on the TPM values of all genes that passed CPM cutoff
-
-```{R,fig.height=5,fig.width=5}
-pca.df <- t(scale(t(log2(tpm.keep + 1))))
-pca.df <- pca.df[rowSums(pca.df == 0) != ncol(pca.df),]
-pca <- PCA(as.data.frame(scale(t(pca.df))), graph = FALSE, ncp = ncol(tpm.keep) - 1)
-
-pca.plot <- ggplot()+
-  geom_point(aes(x=pca$ind$coord[,1], y=pca$ind$coord[,2], color = dendrocol,size = dendrosize, shape = dendroshape))+
-  labs(col = "Samples", size = "Reads Mapped\nto Features", 
-       x = paste0("PC1 (", round(pca$eig[1,2],1), "%)"), 
-       y = paste0("PC2 (", round(pca$eig[2,2],1), "%)"))+
-  guides(color = F,size = F, shape = F)+
-  # guides(colour = guide_legend(ncol = 2))+
-  scale_color_manual(values = levels(groups[,2]))+
-  scale_shape_manual(values= as.numeric(as.character(levels(dendroshape))))+
-  theme_bw()
-
-pdf(paste0(WORKING.DIR,"/plots/tick_tpm_kept_pca.pdf"),
-    height=5,
-    width=5)
-print(pca.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/tick_tpm_kept_pca.png"),
-    height=5,
-    width=5,
-	units = "in",res=300)
-print(pca.plot)
-dev.off()
-
-print(pca.plot)
-```
-
-![image](/images/tick_tpm_kept_pca.png)
-
-
-#### Divide differentially expressed genes into expression modules
-
-##### Find soft power value for WGCNA
-
-```{R}
-tpm.de <- tpm[rownames(tpm) %in% rownames(edgeR.longitudinal.degenes),]
-
-wgcna <- as.data.frame(t(tpm.de))
-powers <- c(c(1:10), seq(from = 12, to=20, by=2))
-sft <- pickSoftThreshold(wgcna, powerVector = powers, verbose = 5)
-softpower <- find_soft_power(sft)
-
-text.color <- rep("black",length(sft$fitIndices[,1]))
-text.color[which(sft$fitIndices[,1] == softpower)] <- "red"
-
-scale_independence.plot <- ggplot()+
-  geom_text(mapping = aes(x = sft$fitIndices[,1], y = -sign(sft$fitIndices[,3])*sft$fitIndices[,2], label=sft$fitIndices[,1]), color = text.color)+
-  labs(title = "Scale Independence", x = "soft threshold (power)", y = "scale free topology model fit, signed R^2")+
-  theme_bw()
-
-mean_connectivity.plot <- ggplot()+
-  geom_text(mapping = aes(x = sft$fitIndices[,1], y = sft$fitIndices[,5], label=sft$fitIndices[,1]), color = text.color)+
-  labs(title = "Mean Connectivity", x = "soft threshold (power)", y = "mean connectivity")+
-  theme_bw()
-
-wgcna_soft_power_plots <- list(scale_independence.plot, mean_connectivity.plot)
-lay <- rbind(c(1,2))
-
-pdf(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_soft_power_plot.pdf"),
-    width = 10, 
-    height = 5)
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_soft_power_plot.png"),
-    width = 10, 
-    height = 5,
-	units = "in",res=300)
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-dev.off()
-
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-
-```
-
-![image](/images/tick_tpm_de_wgcna_soft_power_plot.png)
-
-##### Identify expression modules 
-
-```{R, fig.height=5, fig.width=12}
-adjacency <- adjacency(wgcna, power = softpower)
-TOM <- TOMsimilarity(adjacency)
-dissTOM <- 1-TOM
-geneTree <- hclust(as.dist(dissTOM), method = "average");
-
-minModuleSize <- 1
-dynamicMods <- cutreeDynamic(dendro = geneTree, distM = dissTOM,
-                             deepSplit = 2, pamRespectsDendro = FALSE,
-                             minClusterSize = minModuleSize)
-
-dynamicColors = labels2colors(dynamicMods)
-MEList = moduleEigengenes(wgcna, colors = dynamicColors)
-MEs = MEList$eigengenes
-MEDiss = 1-cor(MEs, use = "pairwise.complete.obs")
-METree = hclust(as.dist(MEDiss), method = "average")
-
-MEDissThres = 0.25
-
-pdf(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_merge_eigengenes_plot.pdf"),
-    width = 12, 
-    height = 5)
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_merge_eigengenes_plot.png"),
-    width = 12, 
-    height = 5,
-    units = "in",res=300)
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-dev.off()
-
-
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-```
-
-![image](/images/tick_tpm_de_wgcna_merge_eigengenes_plot.png)
-
-##### Merge similar expression modules
-
-```{R}
-merge = mergeCloseModules(wgcna, dynamicColors, cutHeight = MEDissThres, verbose = 3)
-mergedColors = merge$colors
-mergedMEs = merge$newMEs
-
-tpm.de.wgcna <- eigengene_invert_id(tpm.de, mergedColors, mergedMEs)
-
-write.table(tpm.de.wgcna,
-            paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_modules.tsv"),
-            row.names = T,
-            col.names = T,
-            quote = F,
-            sep = "\t")
-
-pdf(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_eigengene_dendrogram.pdf"),
-    width = 8, 
-    height = 5)
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_eigengene_dendrogram.png"),
-    width = 8, 
-    height = 5,
-    units = "in",res=300)
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-dev.off()
-
-
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-```
-
-![image](/images/tick_tpm_de_wgcna_eigengene_dendrogram.png)
-
-##### Plot WGCNA expression modules as a heatmap
-
-```{R}
-tpm.de.wgcna <- wgcna_heatmap_reorder(tpm.de.wgcna)
-
-log2tpm.de <- log2(tpm.de.wgcna[,1:(ncol(tpm.de.wgcna) - 2)] + 1)
-zscore.log2tpm.de <- as.data.frame(t(scale(t(log2tpm.de))))
-
-hmcol <- colorRampPalette(c("navyblue","white","firebrick3"))(12)
-rowcol1 <- tpm.de.wgcna$module
-rowcol2 <- unlist(lapply(tpm.de.wgcna$invert,function(x){if(x == F){return("grey")}else{return("black")}}))
-colcol <- as.character(groups[,2])
-
-rowsep <- get_heatmap_separators(rowcol1)
-colsep <- get_heatmap_separators(colcol)
-```
-
-###### Create sample legend for WGCNA heatmap
-
-```{R}
-legend.plot <- ggplot(mapping=aes(x=groups[,1], y=seq(1,length(groups[,1]),1), group = groups[,4]))+
-    geom_line(aes(color = groups[,4]), size = 4)+
-    scale_color_manual(values = as.character(unique(groups[,2])))+
-    guides(colour = guide_legend(title = "Samples", title.position = "top",nrow=3))+
+  
+  benchmarking_vmemplotdata_pe4.list[[i]][,1] <- factor(benchmarking_vmemplotdata_pe4.list[[i]][,1], levels = rev(colorder))
+  
+  benchmarking_pe4.vmemplot.list[[i]] <- ggplot()+
+    geom_bar(mapping=aes_string(x=benchmarking_vmemplotdata_pe1.list[[i]][,1],
+                                y=as.numeric(as.character(benchmarking_vmemplotdata_pe1.list[[i]][,2]))),
+             fill="#7cae00",
+             stat="identity")+
+    scale_y_continuous(limits = c(0,5))+
+    coord_flip()+
+    guides(fill = F)+
     theme_bw()+
-    theme(legend.position="top",legend.title.align=0.5)
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank())
+}
 
-sample.legend <- g_legend(legend.plot)
 
-pdf(paste0(WORKING.DIR,"/plots/tick_hm_samplekey.pdf"),
-    height=2,
-    width=10)
-grid.arrange(sample.legend)
+pdf(paste0(OUTPUT_DIR,"/vmem_plot.pdf"),
+    height=4,
+    width=8)
+plot_grid(plotlist = list(benchmarking_pe1.vmemplot.list[[1]],
+                          benchmarking_pe1.vmemplot.list[[2]],
+                          benchmarking_pe1.vmemplot.list[[3]],
+                          benchmarking_pe4.vmemplot.list[[1]],
+                          benchmarking_pe4.vmemplot.list[[2]],
+                          benchmarking_pe4.vmemplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 dev.off()
 
-png(paste0(WORKING.DIR,"/plots/tick_hm_samplekey.png"),
-    height=2,
-    width=10,
+png(paste0(OUTPUT_DIR,"/vmem_plot.png"),
+    height=4,
+    width=8,
     units = "in",res=300)
-grid.arrange(sample.legend)
+plot_grid(plotlist = list(benchmarking_pe1.vmemplot.list[[1]],
+                          benchmarking_pe1.vmemplot.list[[2]],
+                          benchmarking_pe1.vmemplot.list[[3]],
+                          benchmarking_pe4.vmemplot.list[[1]],
+                          benchmarking_pe4.vmemplot.list[[2]],
+                          benchmarking_pe4.vmemplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 dev.off()
 
-grid.arrange(sample.legend)
+plot_grid(plotlist = list(benchmarking_pe1.vmemplot.list[[1]],
+                          benchmarking_pe1.vmemplot.list[[2]],
+                          benchmarking_pe1.vmemplot.list[[3]],
+                          benchmarking_pe4.vmemplot.list[[1]],
+                          benchmarking_pe4.vmemplot.list[[2]],
+                          benchmarking_pe4.vmemplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 ```
 
-![image](/images/tick_hm_samplekey.png)
+![image](/images/vmem_plot.png)
 
-###### Create z-score log2TPM legend for WGCNA heatmap
-
-```{R, fig,height = 2, fig.width = 7}
-hmcol <- colorRampPalette(c("navyblue","white","firebrick3"))(12)
-hmcolor.plot <- ggplot() + 
-  geom_raster(aes(x=seq(-3,3,0.5), y=seq(-3,3,0.5), fill = seq(-3,3,0.5)))+
-  scale_fill_gradientn(name = "z-score log2TPM",
-                       colours=hmcol,
-                       breaks=c(-3,0,3))+
-  theme(legend.position="bottom")+
-  guides(fill = guide_colorbar(title.position = "top"))
-  
-
-heat.legend <- g_legend(hmcolor.plot)
-pdf(paste0(WORKING.DIR,"/plots/tick_hm_zscorelog2tpmkey.pdf"),
-    height=2,
-    width=7)
-grid.arrange(heat.legend)
+### Combine timing and VMem plots
+```{R,fig.width=8,fig.height=8}
+pdf(paste0(OUTPUT_DIR,"/timing_vmem_plot.pdf"),
+    height=8,
+    width=8)
+plot_grid(plotlist = list(benchmarking_pe1.timingplot.list[[1]],
+                          benchmarking_pe1.timingplot.list[[2]],
+                          benchmarking_pe1.timingplot.list[[3]],
+                          benchmarking_pe4.timingplot.list[[1]],
+                          benchmarking_pe4.timingplot.list[[2]],
+                          benchmarking_pe4.timingplot.list[[3]],
+                          benchmarking_pe1.vmemplot.list[[1]],
+                          benchmarking_pe1.vmemplot.list[[2]],
+                          benchmarking_pe1.vmemplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 dev.off()
 
-png(paste0(WORKING.DIR,"/plots/tick_hm_zscorelog2tpmkey.png"),
-    height=2,
-    width=7,
+png(paste0(OUTPUT_DIR,"/timing_vmem_plot.png"),
+    height=8,
+    width=8,
     units = "in",res=300)
-grid.arrange(heat.legend)
+plot_grid(plotlist = list(benchmarking_pe1.timingplot.list[[1]],
+                          benchmarking_pe1.timingplot.list[[2]],
+                          benchmarking_pe1.timingplot.list[[3]],
+                          benchmarking_pe4.timingplot.list[[1]],
+                          benchmarking_pe4.timingplot.list[[2]],
+                          benchmarking_pe4.timingplot.list[[3]],
+                          benchmarking_pe1.vmemplot.list[[1]],
+                          benchmarking_pe1.vmemplot.list[[2]],
+                          benchmarking_pe1.vmemplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 dev.off()
 
-grid.arrange(heat.legend)
+plot_grid(plotlist = list(benchmarking_pe1.timingplot.list[[1]],
+                          benchmarking_pe1.timingplot.list[[2]],
+                          benchmarking_pe1.timingplot.list[[3]],
+                          benchmarking_pe4.timingplot.list[[1]],
+                          benchmarking_pe4.timingplot.list[[2]],
+                          benchmarking_pe4.timingplot.list[[3]],
+                          benchmarking_pe1.vmemplot.list[[1]],
+                          benchmarking_pe1.vmemplot.list[[2]],
+                          benchmarking_pe1.vmemplot.list[[3]]),
+          align = 'v',
+          ncol=3)
 ```
 
-![image](/images/tick_hm_zscorelog2tpmkey.png)
-
-###### Use module assigments as the row color bar
-
-```{R, fig.height=10, fig.width=5}
-pdf(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_zscorelog2tpm_module_heatmap.pdf"),
-    width = 5, 
-    height = 10)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-png(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_zscorelog2tpm_module_heatmap.png"),
-    width = 5, 
-    height = 10,
-    units = "in",res=300)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-```
-
-![image](/images/tick_tpm_de_wgcna_zscorelog2tpm_module_heatmap.png)
-
-###### Use inverse assigments as the row color bar
-
-```{R, fig.height=10, fig.width=5}
-pdf(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.pdf"),
-    width = 5, 
-    height = 10)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-png(paste0(WORKING.DIR,"/plots/tick_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.png"),
-    width = 5, 
-    height = 10,
-    units = "in",res=300)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-```
-
-![image](/images/tick_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.png)
-
-
-### Ehrlichia
-
-#### Set R inputs
-
-```{R}
-WORKING.DIR <- "Z:/EBMAL/mchung_dir/PECHA/"
-FADU_OUTPUT.DIR <- "Z:/EBMAL/mchung_dir/PECHA/fadu"
-INTERPROSCAN_OUTPUT.DIR <- "Z:/EBMAL/mchung_dir/PECHA/references"
-PANOCT_OUTPUT.DIR <- "Z:/EBMAL/mchung_dir/PECHA/panoct"
-GROUPS.PATH <- "Z:/EBMAL/mchung_dir/PECHA/pecha_groups.tsv"
-```
-
-#### Load R functions
-
-```{R}
-g_legend <- function(a.gplot){ 
-  tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
-  legend <- tmp$grobs[[leg]] 
-  return(legend)
-} 
-
-get_dendro_structure <- function(result){
-  structure <- hang.dendrogram(as.dendrogram(result$hclust))
-  structure <- capture.output(str(structure))
-  structure <- structure[grepl("leaf", structure)]
-  structure <- as.numeric(as.character(substr(structure, regexpr("h=", structure ) + 3, regexpr("  )", structure))))
-  return(structure)
-}
-
-get_dendro_data <- function(result){
-  dendro.data <- dendro_data(result$hclust)
-  dendro.data <- dendro.data$segments[which(dendro.data$segments$y == dendro.data$segments$yend),]
-  for(i in 1:nrow(dendro.data)){
-    dendro.data$minx[i] <- min(c(dendro.data$x[i], dendro.data$xend[i]))
-  }
-  dendro.data <- dendro.data[order(as.numeric(as.character(dendro.data$y)), as.numeric(as.character(dendro.data$minx))),]
-  return(dendro.data)
-}
-
-get_dendro_bootstraps <- function(dendro_data){
-  bootstrap.positions <- as.data.frame(matrix(nrow = length(dendro_data$y[duplicated(dendro_data$y)]),
-                                              ncol = 2))
-  for(i in 1:length(dendro_data$y[duplicated(dendro_data$y)])){
-    dendro_data.subset <- dendro_data[which(dendro_data$y == dendro_data$y[duplicated(dendro_data$y)][i]),]
-    bootstrap.positions[i,1] <- unique(dendro_data.subset$x)
-    bootstrap.positions[i,2] <- unique(dendro_data.subset$y)
-  }
-  return(bootstrap.positions)
-}
-
-find_soft_power <- function(sft){
-  df <- as.data.frame(cbind(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2]))
-  y <- -sign(sft$fitIndices[,3])*sft$fitIndices[,2]
-  dy <- diff(y) 
-  softpower <- which(abs(dy) < 0.05)[1]
-  if(softpower == 1){
-    softpower <- which(abs(dy) < 0.05)[2]
-  }
-  return(softpower)
-}
-
-eigengene_invert_id <- function(tpm.de, mergedColors, mergedMEs){
-  tpm.de.wgcna <- tpm.de
-  tpm.de.wgcna$invert <- T
-  tpm.de.wgcna$module <- mergedColors
-  for(i in 1:nrow(tpm.de.wgcna)){
-    if(cor(t(tpm.de[i,]), mergedMEs[,which(colnames(mergedMEs) == paste0("ME",tpm.de.wgcna$module[i]))], method = "pearson") > 0){
-      tpm.de.wgcna$invert[i] <- F
-    }
-  }
-  return(tpm.de.wgcna)
-}
-
-wgcna_heatmap_reorder <- function(tpm.de.wgcna){
-  clusters <- as.data.frame(table(tpm.de.wgcna$module))
-  clusters <- clusters[order(-clusters[,2]),1]
-  
-  tpm.de.wgcna.reordered <- as.data.frame(matrix(nrow = 0,
-                                                 ncol = ncol(tpm.de.wgcna)))
-  for(i in 1:length(clusters)){
-    tpm.de.wgcna.reordered <- as.data.frame(rbind(tpm.de.wgcna.reordered,
-                                                  tpm.de.wgcna[tpm.de.wgcna$module == clusters[i] & tpm.de.wgcna$invert == F,],
-                                                  tpm.de.wgcna[tpm.de.wgcna$module == clusters[i] & tpm.de.wgcna$invert == T,]))
-  }
-  return(tpm.de.wgcna.reordered)
-}
-
-get_heatmap_separators <- function(vector){
-  sep <- c()
-  for(i in 2:length(unique(vector))){
-    sep[length(sep) + 1] <- min(which(vector == unique(vector)[i])) - 1
-  }
-  return(sep)
-}
-
-functionaltermenrichment <- function(genes, geneinfo){
-  for(i in 1:ncol(geneinfo)){geneinfo[,i] <- as.character(geneinfo[,i])}
-  geneinfo$interpro_description[which(is.na(geneinfo$interpro_description))] <- "No InterPro entry"
-  geneinfo$go_biologicalprocess[which(is.na(geneinfo$go_biologicalprocess))] <- "No GO terms for biological process"
-  geneinfo$go_cellularcomponent[which(is.na(geneinfo$go_cellularcomponent))] <- "No GO terms for cellular component"
-  geneinfo$go_molecularfunction[which(is.na(geneinfo$go_molecularfunction))] <- "No GO terms for molecular function"
-  
-  functionalterms.list <- list(ipr=as.data.frame(table(unlist(strsplit(paste(geneinfo$interpro_description, collapse = "|"),  split = "[|]")))),
-                               gobio=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_biologicalprocess, collapse = "|"),  split = "[|]")))),
-                               gocell=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_cellularcomponent, collapse = "|"),  split = "[|]")))),
-                               gomol=as.data.frame(table(unlist(strsplit(paste(geneinfo$go_molecularfunction, collapse = "|"),  split = "[|]")))))
-  
-  geneinfo.subset <- geneinfo[geneinfo$gene %in% genes,]
-  term <- c()
-  clusteroccurences <- c()
-  genomeoccurences <- c()
-  pvalue <- c()
-  correctedpvalue <- c()
-  oddsratio <- c()
-
-  functionalterms.list.subset <- list(ipr=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$interpro_description, collapse = "|"),  split = "[|]")))),
-                                      gobio=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_biologicalprocess, collapse = "|"),  split = "[|]")))),
-                                      gocell=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_cellularcomponent, collapse = "|"),  split = "[|]")))),
-                                      gomol=as.data.frame(table(unlist(strsplit(paste(geneinfo.subset$go_molecularfunction, collapse = "|"),  split = "[|]")))))
-  
-  for(i in 1:length(functionalterms.list)){
-    for(j in 1:nrow(functionalterms.list[[i]])){
-      freq.all <- functionalterms.list[[i]][j,2]
-      freq.subset <- ifelse(functionalterms.list[[i]][j,1] %in% functionalterms.list.subset[[i]][,1],
-                            functionalterms.list.subset[[i]][functionalterms.list.subset[[i]][,1] == as.character(functionalterms.list[[i]][j,1]),2],
-                            0)
-      genes.all <- nrow(geneinfo)
-      genes.subset <- nrow(geneinfo.subset)
-
-      fisherexact.matrix <- matrix(c(freq.subset, freq.all - freq.subset,
-                                     genes.subset - freq.subset, genes.all - genes.subset - freq.all + freq.subset),
-                                   nrow = 2,
-                                   ncol = 2)
-      fisher.test <- fisher.test(fisherexact.matrix)
-      
-      term[length(term) + 1] <- as.character(functionalterms.list[[i]][j,1])
-      clusteroccurences[length(clusteroccurences) + 1] <- as.numeric(as.character(freq.subset))
-      genomeoccurences[length(genomeoccurences) + 1] <- as.numeric(as.character(freq.all))
-      pvalue[length(pvalue) + 1] <- as.numeric(as.character(fisher.test$p.value))
-      correctedpvalue[length(correctedpvalue) + 1] <- p.adjust(as.numeric(as.character(fisher.test$p.value)), method = "fdr", n = nrow(functionalterms.list[[i]]))
-      oddsratio[length(oddsratio) + 1] <- as.numeric(as.character(fisher.test$estimate))
-    }
-  }
-  
-  terms.df <- as.data.frame(cbind(term,
-                                  clusteroccurences,
-                                  genomeoccurences,
-                                  pvalue,
-                                  correctedpvalue,
-                                  oddsratio))
-  terms.df <- terms.df[order(as.numeric(as.character(terms.df$pvalue))),]
-  return(terms.df)
-}
-```
-
-#### Load packages and view sessionInfo
-
-```{R}
-library(dendextend)
-library(DESeq2)
-library(edgeR)
-library(FactoMineR)
-library(ggdendro)
-library(ggplot2)
-library(gplots)
-library(gridExtra)
-library(pvclust)
-library(vegan)
-library(WGCNA)
-
-sessionInfo()
-```
-
-```{R, eval = F}
-R version 3.5.0 (2018-04-23)
-Platform: x86_64-w64-mingw32/x64 (64-bit)
-Running under: Windows >= 8 x64 (build 9200)
-
-Matrix products: default
-
-locale:
-[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
-[3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
-[5] LC_TIME=English_United States.1252    
-
-attached base packages:
-[1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods   base     
-
-other attached packages:
- [1] WGCNA_1.68                  fastcluster_1.1.25          dynamicTreeCut_1.63-1       pvclust_2.0-0              
- [5] gplots_3.0.1.1              ggdendro_0.1-20             FactoMineR_1.42             DESeq2_1.22.2              
- [9] SummarizedExperiment_1.12.0 DelayedArray_0.8.0          BiocParallel_1.16.6         matrixStats_0.54.0         
-[13] Biobase_2.42.0              GenomicRanges_1.34.0        GenomeInfoDb_1.18.2         IRanges_2.16.0             
-[17] S4Vectors_0.20.1            BiocGenerics_0.28.0         dendextend_1.12.0           gridExtra_2.3              
-[21] ggplot2_3.2.0               vegan_2.5-5                 lattice_0.20-35             permute_0.9-5              
-[25] edgeR_3.24.3                limma_3.38.3               
-
-loaded via a namespace (and not attached):
- [1] colorspace_1.4-1       htmlTable_1.13.1       XVector_0.22.0         base64enc_0.1-3       
- [5] rstudioapi_0.10        bit64_0.9-7            mvtnorm_1.0-11         AnnotationDbi_1.44.0  
- [9] codetools_0.2-15       splines_3.5.0          leaps_3.0              doParallel_1.0.15     
-[13] impute_1.56.0          robustbase_0.93-5      geneplotter_1.60.0     knitr_1.23            
-[17] zeallot_0.1.0          Formula_1.2-3          annotate_1.60.1        cluster_2.0.7-1       
-[21] GO.db_3.7.0            rrcov_1.4-7            compiler_3.5.0         backports_1.1.4       
-[25] assertthat_0.2.1       Matrix_1.2-14          lazyeval_0.2.2         acepack_1.4.1         
-[29] htmltools_0.3.6        tools_3.5.0            gtable_0.3.0           glue_1.3.1            
-[33] GenomeInfoDbData_1.2.0 dplyr_0.8.3            Rcpp_1.0.2             vctrs_0.2.0           
-[37] gdata_2.18.0           preprocessCore_1.44.0  nlme_3.1-137           iterators_1.0.12      
-[41] xfun_0.8               stringr_1.4.0          gtools_3.8.1           XML_3.98-1.20         
-[45] DEoptimR_1.0-8         zlibbioc_1.28.0        MASS_7.3-51.4          scales_1.0.0          
-[49] RColorBrewer_1.1-2     yaml_2.2.0             memoise_1.1.0          rpart_4.1-13          
-[53] latticeExtra_0.6-28    stringi_1.4.3          RSQLite_2.1.2          genefilter_1.64.0     
-[57] pcaPP_1.9-73           foreach_1.4.7          checkmate_1.9.4        caTools_1.17.1.2      
-[61] rlang_0.4.0            pkgconfig_2.0.2        bitops_1.0-6           purrr_0.3.2           
-[65] htmlwidgets_1.3        labeling_0.3           bit_1.1-14             tidyselect_0.2.5      
-[69] robust_0.4-18.1        magrittr_1.5           R6_2.4.0               Hmisc_4.2-0           
-[73] fit.models_0.5-14      DBI_1.0.0              pillar_1.4.2           foreign_0.8-70        
-[77] withr_2.1.2            mgcv_1.8-23            survival_2.41-3        scatterplot3d_0.3-41  
-[81] RCurl_1.95-4.12        nnet_7.3-12            tibble_2.1.3           crayon_1.3.4          
-[85] KernSmooth_2.23-15     viridis_0.5.1          locfit_1.5-9.1         grid_3.5.0            
-[89] data.table_1.12.2      blob_1.2.0             digest_0.6.20          flashClust_1.01-2     
-[93] xtable_1.8-4           munsell_0.5.0          viridisLite_0.3.0     
-```
-
-#### Constructs core genome table that consists of only gene clusters consisting of one gene per strain
-
-```{R}
-ortho_table <- read.delim(paste0(PANOCT_OUTPUT.DIR,"/matchtable.txt"),header = F,row.names = 1)
-ortho_table[ortho_table == "----------"] <- NA
-rownames(ortho_table) <- paste0("PANOCT_",rownames(ortho_table))
-colnames(ortho_table) <- c("Arkansas","Heartland","HF","Jacksonville","Liberty","Osceola","St. Vincent","Wakulla","West Paces")
-ortho_table <- ortho_table[rowSums(!is.na(ortho_table)) == ncol(ortho_table),]
-
-dim(ortho_table)
-```
-
-```{R, eval = F}
-[1] 795   9
-```
-
-#### Create counts data frame
-
-```{R}
-groups <- read.delim(GROUPS.PATH, header = F)
-groups <- groups[grep("totalRNA", groups[,2]),]
-groups <- groups[intersect(grep("DH82_totalRNA",groups[,2],invert = T),grep("ISE6_totalRNA",groups[,2],invert = T)),]
-
-rownames <- rownames(ortho_table)
-colnames <- unique(groups[,2])
-
-counts <- as.data.frame(matrix(0,
-                               nrow = length(rownames),
-                               ncol = length(colnames)))
-rownames(counts) <- rownames
-colnames(counts) <- colnames
-
-for(i in 1:ncol(counts)){
-  srr.vector <- groups[groups[,2] == colnames(counts[i]),1]
-  for(j in 1:length(srr.vector)){
-    counts.subset <- read.delim(paste0(FADU_OUTPUT.DIR, "/",srr.vector[j],".sortedbyposition.counts.txt"))
-    counts[,i] <- counts[,i] + counts.subset[match(ortho_table[,colnames(ortho_table) == groups[groups[,1] == srr.vector[j],5]],counts.subset[,1]),4]
-  }
-}
-
-write.table(counts,
-            paste0(WORKING.DIR,"/ehrlichia_counts.tsv"),
-            quote = F,
-            col.names = T,
-            row.names = T,
-            sep = "\t")
-
-sort(colSums(counts))
-```
-
-```{R, eval = F}
-     PECHA_Heartland_totalRNA1 PECHA_ISE6_StVincent_totalRNA1 PECHA_ISE6_StVincent_totalRNA2 
-                         10.00                          11.00                          47.07 
-PECHA_ISE6_StVincent_totalRNA3   PECHA_ISE6_Liberty_totalRNA3       PECHA_ISE6_Jax_totalRNA3 
-                         52.11                          60.32                          93.90 
-       PECHA_Liberty_totalRNA1   PECHA_ISE6_Wakulla_totalRNA1   PECHA_ISE6_Wakulla_totalRNA2 
-                        113.33                         114.41                         117.64 
-  PECHA_ISE6_Liberty_totalRNA2        PECHA_Osceola_totalRNA1            PECHA_Jax_totalRNA2 
-                        326.45                         363.98                         375.77 
-       PECHA_ISE6_HF_totalRNA2 PECHA_ISE6_WestPaces_totalRNA1       PECHA_ISE6_Jax_totalRNA2 
-                        794.11                         798.03                         868.50 
-            PECHA_HF_totalRNA3       PECHA_ISE6_Jax_totalRNA1 PECHA_ISE6_WestPaces_totalRNA2 
-                        931.12                         935.71                         958.66 
-  PECHA_ISE6_Liberty_totalRNA1   PECHA_ISE6_Wakulla_totalRNA3      PECHA_WestPaces_totalRNA1 
-                        978.41                        1107.44                        1352.07 
-     PECHA_StVincent_totalRNA1 PECHA_ISE6_WestPaces_totalRNA3  PECHA_ISE6_Arkansas_totalRNA1 
-                       1520.59                        1580.12                        1587.59 
-            PECHA_HF_totalRNA1      PECHA_Heartland_totalRNA2        PECHA_Osceola_totalRNA3 
-                       1683.63                        1789.97                        1840.64 
-     PECHA_Heartland_totalRNA3             PECHA_HF_totalRNA2        PECHA_Wakulla_totalRNA2 
-                       1927.69                        2000.25                        2006.11 
-       PECHA_Liberty_totalRNA3  PECHA_ISE6_Arkansas_totalRNA5        PECHA_Wakulla_totalRNA3 
-                       2410.99                        2757.66                        3272.84 
-     PECHA_StVincent_totalRNA2        PECHA_ISE6_HF_totalRNA3        PECHA_Liberty_totalRNA2 
-                       3440.50                        4446.62                        4836.25 
-       PECHA_Wakulla_totalRNA1            PECHA_Jax_totalRNA3        PECHA_Osceola_totalRNA2 
-                       5078.48                        5428.62                        5583.33 
-       PECHA_ISE6_HF_totalRNA1      PECHA_WestPaces_totalRNA3      PECHA_WestPaces_totalRNA2 
-                       5678.74                        5994.43                        6079.31 
-           PECHA_Jax_totalRNA1       PECHA_Arkansas_totalRNA3  PECHA_ISE6_Arkansas_totalRNA4 
-                       6599.09                       16390.22                       22221.51 
-      PECHA_Arkansas_totalRNA1      PECHA_StVincent_totalRNA3       PECHA_Arkansas_totalRNA2 
-                      24960.98                       27061.62                       27902.70 
-```
-
-#### Calculate average gene length for all core genes
-
-```{R}
-genelength.ortho_table <- ortho_table
-for(i in 1:ncol(ortho_table)){
-  counts.subset <- read.delim(paste0(FADU_OUTPUT.DIR, "/",groups[groups[,5] == colnames(ortho_table)[i],1][1],".sortedbyposition.counts.txt"))
-  genelength.ortho_table[,i] <- counts.subset[match(ortho_table[,i],counts.subset[,1]),2]
-}
-genelength <- rowMeans(genelength.ortho_table)
-```
-
-#### Create TPM data frame
-
-```{R}
-tpm <- counts
-for(i in 1:ncol(tpm)){
-  tpm[,i] <- tpm[,i]/genelength
-  tpm[,i] <- tpm[,i]/(sum(tpm[,i])/1000000)
-}
-
-write.table(tpm,
-            paste0(WORKING.DIR,"/ehrlichia_tpm.tsv"),
-            quote = F,
-            col.names = T,
-            row.names = T,
-            sep = "\t")
-
-dim(tpm)
-```
-
-```{R, eval = F}
-[1] 795  54
-```
-
-#### Set group levels
-
-```{R}
-groups <- unique(groups[2:5])
-groups[,1] <- factor(groups[,1], levels = groups[,1])
-groups[,2] <- factor(groups[,2], levels = unique(groups[,2]))
-groups[,3] <- factor(groups[,3], levels = unique(groups[,3]))
-groups[,4] <- factor(groups[,4], levels = unique(groups[,4]))
-```
-
-#### Conduct saturation analysis
-
-```{R, fig.height=5, fig.width=6}
-counts <- counts[,colSums(counts) != 0]
-
-rarefy.counts <- round(counts,0)
-raremax <- round(min(rowSums(t(rarefy.counts))),0)
-srare <- rarefy(t(rarefy.counts),raremax) 
-
-rarefy.raw.df <- rarecurve(t(rarefy.counts), step = round(raremax/10,0), sample = raremax)
-
-rarefy.df <- as.data.frame(matrix(nrow = 0,
-                                  ncol = 5))
-rarefy.points.df <- rarefy.df
-for(i in 1:length(rarefy.raw.df)){
-  steps <- as.numeric(gsub("N","",names(rarefy.raw.df[[i]])))
-  detected_genes <- as.numeric(rarefy.raw.df[[i]])
-  rarefy.df <- as.data.frame(rbind(rarefy.df,
-                                    cbind(as.numeric(steps),as.numeric(detected_genes),as.character(groups[i,1]),as.character(groups[i,2]),groups[i,3])))
-  rarefy.points.df <- as.data.frame(rbind(rarefy.points.df,
-                                          cbind(as.numeric(max(steps)),                                                                                                     as.numeric(max(detected_genes)),                                                                                            as.character(groups[i,1]),
-                                                as.character(groups[i,2]),
-                                                as.character(groups[i,3]))))
-  
-}
-rarefy.plot <- ggplot()+
-  geom_line(mapping=aes(x=as.numeric(as.character(rarefy.df[,1])), y=as.numeric(as.character(rarefy.df[,2])),group=rarefy.df[,3],color=rarefy.df[,4]))+
-  #geom_point(mapping=aes(x=as.numeric(as.character(rarefy.df[,1])), y=as.numeric(as.character(rarefy.df[,2])),group=rarefy.df[,3],color=rarefy.df[,4]))+
-  geom_point(mapping=aes(x=as.numeric(as.character(rarefy.points.df[,1])), y=as.numeric(as.character(rarefy.points.df[,2])),group=rarefy.points.df[,3],color=rarefy.points.df[,4],shape=rarefy.points.df[,5]),size = 3)+
-  guides(colour = F,shape = F)+
-  scale_shape_manual(values = as.numeric(as.character(levels(groups[,3]))))+
-  scale_color_manual(values = levels(groups[,2]))+
-  labs(x="reads mapping to genes", y="genes detected", color = "Sample")+
-  #coord_cartesian(xlim=c(0,100000))+
-  theme_bw()
-
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_rarefication_plot.pdf"),
-    height=5,
-    width=6)
-print(rarefy.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_rarefication_plot.png"),
-    height=5,
-    width=6,
-	units = "in",res=300)
-print(rarefy.plot)
-dev.off()
-
-print(rarefy.plot)
-```
-
-![image](/images/ehrlichia_rarefication_plot.png)
-
-#### Exclude low count samples and samples with only 1 replicate
-
-From the rarefaction analysis, these filters were used to exclude samples: (<4k gene counts, approximately 5x the number of core Ehrlichia genes).
-
-```{R}
-include.samples <- colnames(counts)[colSums(counts) > 4000]
-groups <- groups[groups[,1] %in% include.samples,]
-
-groups[,4] <- as.character(groups[,4])
-for(i in 1:nrow(groups)){
-  if(grepl("ISE6",groups[i,1])){
-    groups[i,4] <- paste0(as.character(groups[i,4]),", Tick")
-  }else{
-    groups[i,4] <- paste0(as.character(groups[i,4]),", Canine")
-  }
-}
-
-exclude.samples <- names(table(groups[,4])[table(groups[,4]) == 1])
-groups <- groups[!(groups[,4] %in% exclude.samples),]
-
-groups[,1] <- factor(groups[,1], levels = groups[,1])
-groups[,2] <- factor(groups[,2], levels = unique(groups[,2]))
-groups[,3] <- factor(groups[,3], levels = unique(groups[,3]))
-groups[,4] <- factor(groups[,4], levels = unique(groups[,4]))
-
-counts <- counts[,colnames(counts) %in% groups[,1]]
-tpm <- tpm[,colnames(tpm) %in% groups[,1]]
-
-dim(tpm)
-```
-
-```{R, eval = F}
-[1] 795   9
-```
-
-#### Identify differentially expressed genes longitudinally
-
-edgeR and DESeq2 are both run with a FDR cutoff of <0.05 and a minimum CPM cutoff of 5 reads in the lowest sequenced sample in the data set.  
-
-```{R}
-FDRcutoff <- 0.05
-cpm.cutoff <- 5/min(colSums(counts)) * 1000000
-
-y <- DGEList(counts = counts, group = groups[,4])
-y <- calcNormFactors(y)
-keep <- rowSums(cpm(y) >= cpm.cutoff) >= min(table(groups[,4]))
-keep.df <- as.data.frame(table(keep))
-print(paste0(keep.df[keep.df[,1] == F,2]," genes excluded with CPM cutoff"))
-
-y <- y[keep, , keep.lib.sizes = F]
-design <- model.matrix(~groups[,4])
-y <- estimateDisp(y , design)
-fit <- glmQLFit(y, design)
-qlf <- glmQLFTest(fit, coef = 2:ncol(fit))
-qlf$table$padj <- p.adjust(qlf$table$PValue, method="BH")
-edgeR.longitudinal.degenes <- qlf$table[qlf$table$padj < FDRcutoff,]
-print(paste0(nrow(edgeR.longitudinal.degenes)," DE genes identified using edgeR longitudinal"))
-
-write.table(edgeR.longitudinal.degenes,
-            paste0(WORKING.DIR,"/ehrlichia_counts_edgeR_longitudinal.tsv"),
-            row.names = T,
-            col.names = T,
-            quote = F,
-            sep = "\t")
-
-counts.keep <- counts[keep,]
-tpm.keep <- tpm[keep,]
-```
-
-
-```{R, eval = F}
-[1] "484 genes excluded with CPM cutoff"
-[1] "163 DE genes identified using edgeR longitudinal"
-```
-
-#### Conduct PCA and hierarchical clustering analyses on genes that passed the CPM cutoff
-
-##### Create sample legend for PCA and hierarchical clustering plots
-
-```{R, fig.height = 2, fig.width = 10}
-legend.plot <- ggplot(mapping=aes(x=groups[,1], y=seq(1,length(groups[,1]),1), group = groups[,4]))+
-    geom_point(aes(color = groups[,4],shape=groups[,3]), size = 4)+
-    #scale_shape_manual(values = levels(groups[,3]))+
-    scale_color_manual(values = levels(groups[,2]))+
-    guides(shape = guide_legend(title = "Samples", title.position = "top",nrow=2),
-           colour = guide_legend(title = "Samples", title.position = "top",nrow=2))+
-    theme_bw()+
-    theme(legend.position="top",legend.title.align=0.5)
-
-sample.legend <- g_legend(legend.plot)
-
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_pca_hc_samplekey.pdf"),
-    height=2,
-    width=10)
-grid.arrange(sample.legend)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_pca_hc_samplekey.png"),
-    height=2,
-    width=10,
-    units = "in",res=300)
-grid.arrange(sample.legend)
-dev.off()
-
-grid.arrange(sample.legend)
-```
-
-![image](/images/ehrlichia_pca_hc_samplekey.png)
-
-##### Conduct a hierarchical cluster analysis on the TPM values of all genes that passed CPM cutoff
-
-```{R, fig.height=5, fig.width=10}
-dendrogram <- as.data.frame(t(scale(t(log2(tpm.keep+1)))))
-
-result <- pvclust(dendrogram, method.dist="cor", method.hclust="average", nboot=100)
-
-structure <- get_dendro_structure(result)
-dendro.data <- get_dendro_data(result)
-bootstrap.positions <- get_dendro_bootstraps(dendro.data)
-  
-points.df <- as.data.frame(cbind(seq(1,length(structure),1),
-                                 structure))
-dendrogroups <- groups[,4][result$hclust$order]
-dendrocol <- groups[,2][result$hclust$order]
-dendroshape <- groups[,3][result$hclust$order]
-dendrosize <- colSums(counts.keep)[result$hclust$order]
-#dendrosize <- 1
-
-dendrogram.plot <- ggdendrogram(hang.dendrogram(as.dendrogram(result$hclust)), theme_dendro = T)+
-  geom_point(aes(x=seq(1,length(structure)), y = structure, color = dendrogroups, size = dendrosize, shape = dendroshape))+
-  scale_shape_manual(values= as.numeric(as.character(levels(dendroshape))))+
-  scale_color_manual(values = levels(groups[,2]))+
-  labs(x = "", y = "", col = "Samples", size = "Reads Mapped\nto Features")+
-  guides(colour = guide_legend(ncol = 2), size = F, shape = F)+
-  #scale_x_discrete(limits = as.character(dendrolabels))+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0, hjust = 1),
-        axis.text.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-
-for(i in 1:length(result$edges$bp)){
-  text <- round(result$edges$bp[i] * 100,0)
-  dendrogram.plot <- dendrogram.plot + annotate("text", label = text, x=bootstrap.positions[i,1] + 0.4, y=bootstrap.positions[i,2] + 0.04, size = 2)
-}
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_kept_dendrogram.pdf"),
-    height=5,
-    width=10)
-print(dendrogram.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_kept_dendrogram.png"),
-    height=5,
-    width=10,
-	units = "in",res=300)
-print(dendrogram.plot)
-dev.off()
-
-print(dendrogram.plot)
-```
-
-![image](/images/ehrlichia_tpm_kept_dendrogram.png)
-##### Conduct a PCA on the TPM values of all genes that passed CPM cutoff
-
-```{R,fig.height=5,fig.width=5}
-pca.df <- t(scale(t(log2(tpm.keep + 1))))
-pca.df <- pca.df[rowSums(pca.df == 0) != ncol(pca.df),]
-pca <- PCA(as.data.frame(scale(t(pca.df))), graph = FALSE, ncp = ncol(tpm.keep) - 1)
-
-pca.plot <- ggplot()+
-  geom_point(aes(x=pca$ind$coord[,1], y=pca$ind$coord[,2], color = dendrocol,size = dendrosize, shape = dendroshape))+
-  labs(col = "Samples", size = "Reads Mapped\nto Features", 
-       x = paste0("PC1 (", round(pca$eig[1,2],1), "%)"), 
-       y = paste0("PC2 (", round(pca$eig[2,2],1), "%)"))+
-  guides(color = F,size = F, shape = F)+
-  # guides(colour = guide_legend(ncol = 2))+
-  scale_color_manual(values = levels(groups[,2]))+
-  scale_shape_manual(values= as.numeric(as.character(levels(dendroshape))))+
-  theme_bw()
-
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_kept_pca.pdf"),
-    height=5,
-    width=5)
-print(pca.plot)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_kept_pca.png"),
-    height=5,
-    width=5,
-	units = "in",res=300)
-print(pca.plot)
-dev.off()
-
-print(pca.plot)
-```
-
-![image](/images/ehrlichia_tpm_kept_pca.png)
-
-
-#### Divide differentially expressed genes into expression modules
-
-##### Find soft power value for WGCNA
-
-```{R}
-tpm.de <- tpm[rownames(tpm) %in% rownames(edgeR.longitudinal.degenes),]
-
-wgcna <- as.data.frame(t(tpm.de))
-powers <- c(c(1:10), seq(from = 12, to=20, by=2))
-sft <- pickSoftThreshold(wgcna, powerVector = powers, verbose = 5)
-softpower <- find_soft_power(sft)
-
-text.color <- rep("black",length(sft$fitIndices[,1]))
-text.color[which(sft$fitIndices[,1] == softpower)] <- "red"
-
-scale_independence.plot <- ggplot()+
-  geom_text(mapping = aes(x = sft$fitIndices[,1], y = -sign(sft$fitIndices[,3])*sft$fitIndices[,2], label=sft$fitIndices[,1]), color = text.color)+
-  labs(title = "Scale Independence", x = "soft threshold (power)", y = "scale free topology model fit, signed R^2")+
-  theme_bw()
-
-mean_connectivity.plot <- ggplot()+
-  geom_text(mapping = aes(x = sft$fitIndices[,1], y = sft$fitIndices[,5], label=sft$fitIndices[,1]), color = text.color)+
-  labs(title = "Mean Connectivity", x = "soft threshold (power)", y = "mean connectivity")+
-  theme_bw()
-
-wgcna_soft_power_plots <- list(scale_independence.plot, mean_connectivity.plot)
-lay <- rbind(c(1,2))
-
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_soft_power_plot.pdf"),
-    width = 10, 
-    height = 5)
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_soft_power_plot.png"),
-    width = 10, 
-    height = 5,
-	units = "in",res=300)
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-dev.off()
-
-grid.arrange(grobs = wgcna_soft_power_plots,
-             widths = c(5,5),
-             heights = c(5),
-             layout_matrix = lay)
-
-```
-
-![image](/images/ehrlichia_tpm_de_wgcna_soft_power_plot.png)
-
-##### Identify expression modules 
-
-```{R, fig.height=5, fig.width=12}
-adjacency <- adjacency(wgcna, power = softpower)
-TOM <- TOMsimilarity(adjacency)
-dissTOM <- 1-TOM
-geneTree <- hclust(as.dist(dissTOM), method = "average");
-
-minModuleSize <- 1
-dynamicMods <- cutreeDynamic(dendro = geneTree, distM = dissTOM,
-                             deepSplit = 2, pamRespectsDendro = FALSE,
-                             minClusterSize = minModuleSize)
-
-dynamicColors = labels2colors(dynamicMods)
-MEList = moduleEigengenes(wgcna, colors = dynamicColors)
-MEs = MEList$eigengenes
-MEDiss = 1-cor(MEs, use = "pairwise.complete.obs")
-METree = hclust(as.dist(MEDiss), method = "average")
-
-MEDissThres = 0.25
-
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_merge_eigengenes_plot.pdf"),
-    width = 12, 
-    height = 5)
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_merge_eigengenes_plot.png"),
-    width = 12, 
-    height = 5,
-    units = "in",res=300)
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-dev.off()
-
-
-plot(METree, main = "Clustering of Module Eigengenes",
-     xlab = "", sub = "")
-abline(h=MEDissThres, col = "red")
-```
-
-![image](/images/ehrlichia_tpm_de_wgcna_merge_eigengenes_plot.png)
-
-##### Merge similar expression modules
-
-```{R}
-merge = mergeCloseModules(wgcna, dynamicColors, cutHeight = MEDissThres, verbose = 3)
-mergedColors = merge$colors
-mergedMEs = merge$newMEs
-
-tpm.de.wgcna <- eigengene_invert_id(tpm.de, mergedColors, mergedMEs)
-
-write.table(tpm.de.wgcna,
-            paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_modules.tsv"),
-            row.names = T,
-            col.names = T,
-            quote = F,
-            sep = "\t")
-
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_eigengene_dendrogram.pdf"),
-    width = 8, 
-    height = 5)
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_eigengene_dendrogram.png"),
-    width = 8, 
-    height = 5,
-    units = "in",res=300)
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-dev.off()
-
-
-plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors), c("dynamic tree cut", "merged dynamic"),
-                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05)
-```
-
-![image](/images/ehrlichia_tpm_de_wgcna_eigengene_dendrogram.png)
-
-##### Plot WGCNA expression modules as a heatmap
-
-```{R}
-tpm.de.wgcna <- wgcna_heatmap_reorder(tpm.de.wgcna)
-
-log2tpm.de <- log2(tpm.de.wgcna[,1:(ncol(tpm.de.wgcna) - 2)] + 1)
-zscore.log2tpm.de <- as.data.frame(t(scale(t(log2tpm.de))))
-
-hmcol <- colorRampPalette(c("navyblue","white","firebrick3"))(12)
-rowcol1 <- tpm.de.wgcna$module
-rowcol2 <- unlist(lapply(tpm.de.wgcna$invert,function(x){if(x == F){return("grey")}else{return("black")}}))
-colcol <- as.character(groups[,2])
-
-rowsep <- get_heatmap_separators(rowcol1)
-colsep <- get_heatmap_separators(colcol)
-```
-
-###### Create sample legend for WGCNA heatmap
-
-```{R}
-legend.plot <- ggplot(mapping=aes(x=groups[,1], y=seq(1,length(groups[,1]),1), group = groups[,4]))+
-    geom_line(aes(color = groups[,4]), size = 4)+
-    scale_color_manual(values = as.character(unique(groups[,2])))+
-    guides(colour = guide_legend(title = "Samples", title.position = "top",nrow=3))+
-    theme_bw()+
-    theme(legend.position="top",legend.title.align=0.5)
-
-sample.legend <- g_legend(legend.plot)
-
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_hm_samplekey.pdf"),
-    height=2,
-    width=10)
-grid.arrange(sample.legend)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_hm_samplekey.png"),
-    height=2,
-    width=10,
-    units = "in",res=300)
-grid.arrange(sample.legend)
-dev.off()
-
-grid.arrange(sample.legend)
-```
-
-![image](/images/ehrlichia_hm_samplekey.png)
-
-###### Create z-score log2TPM legend for WGCNA heatmap
-
-```{R, fig,height = 2, fig.width = 7}
-hmcol <- colorRampPalette(c("navyblue","white","firebrick3"))(12)
-hmcolor.plot <- ggplot() + 
-  geom_raster(aes(x=seq(-3,3,0.5), y=seq(-3,3,0.5), fill = seq(-3,3,0.5)))+
-  scale_fill_gradientn(name = "z-score log2TPM",
-                       colours=hmcol,
-                       breaks=c(-3,0,3))+
-  theme(legend.position="bottom")+
-  guides(fill = guide_colorbar(title.position = "top"))
-  
-
-heat.legend <- g_legend(hmcolor.plot)
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_hm_zscorelog2tpmkey.pdf"),
-    height=2,
-    width=7)
-grid.arrange(heat.legend)
-dev.off()
-
-png(paste0(WORKING.DIR,"/plots/ehrlichia_hm_zscorelog2tpmkey.png"),
-    height=2,
-    width=7,
-    units = "in",res=300)
-grid.arrange(heat.legend)
-dev.off()
-
-grid.arrange(heat.legend)
-```
-
-![image](/images/ehrlichia_hm_zscorelog2tpmkey.png)
-
-###### Use module assigments as the row color bar
-
-```{R, fig.height=10, fig.width=5}
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_zscorelog2tpm_module_heatmap.pdf"),
-    width = 5, 
-    height = 10)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-png(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_zscorelog2tpm_module_heatmap.png"),
-    width = 5, 
-    height = 10,
-    units = "in",res=300)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol1,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-```
-
-![image](/images/ehrlichia_tpm_de_wgcna_zscorelog2tpm_module_heatmap.png)
-
-###### Use inverse assigments as the row color bar
-
-```{R, fig.height=10, fig.width=5}
-pdf(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.pdf"),
-    width = 5, 
-    height = 10)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-png(paste0(WORKING.DIR,"/plots/ehrlichia_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.png"),
-    width = 5, 
-    height = 10,
-    units = "in",res=300)
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-dev.off()
-
-heatmap.2(as.matrix(zscore.log2tpm.de),
-              col=hmcol,
-              trace="none",
-              labRow=vector(mode = "character", length = nrow(zscore.log2tpm.de)),
-              Rowv = F,
-              Colv = F,
-              RowSideColors=rowcol2,
-              ColSideColors=colcol,
-              lhei = c(2,8),
-              breaks = seq(-3,3,by=.5),
-              rowsep = rowsep,
-              colsep = colsep,
-              dendrogram = "none")
-```
-
-![image](/images/ehrlichia_tpm_de_wgcna_zscorelog2tpm_inverse_heatmap.png)
-
-##### Construct geneinfo for Ehrlichia core genome
-
-```{R}
-geneinfo <- as.data.frame(matrix(nrow=nrow(ortho_table),
-                                 ncol=5))
-colnames(geneinfo) <- c("gene","interpro_description","go_biologicalprocess","go_cellularcomponent","go_molecularfunction")
-geneinfo[,1] <- rownames(ortho_table)
-
-for(i in 1:ncol(ortho_table)){
-  if(colnames(ortho_table)[i] == "Jacksonville"){
-    geneinfo.subset <- read.delim(paste0(INTERPROSCAN_OUTPUT.DIR,"/Jax.cds.fna.interproscan.geneinfo.tsv"))
-  }else if(colnames(ortho_table)[i] == "St. Vincent"){
-    geneinfo.subset <- read.delim(paste0(INTERPROSCAN_OUTPUT.DIR,"/StVincent.cds.fna.interproscan.geneinfo.tsv"))
-  }else if(colnames(ortho_table)[i] == "West Paces"){
-    geneinfo.subset <- read.delim(paste0(INTERPROSCAN_OUTPUT.DIR,"/WestPaces.cds.fna.interproscan.geneinfo.tsv"))
-  }else{
-    geneinfo.subset <- read.delim(paste0(INTERPROSCAN_OUTPUT.DIR,"/",colnames(ortho_table)[i],".cds.fna.interproscan.geneinfo.tsv"))
-  }
-  
-  geneinfo[,2] <- paste0(geneinfo[,2],"|",geneinfo.subset[match(ortho_table[,i],geneinfo.subset[,1]),2])
-  geneinfo[,3] <- paste0(geneinfo[,3],"|",geneinfo.subset[match(ortho_table[,i],geneinfo.subset[,1]),3])
-  geneinfo[,4] <- paste0(geneinfo[,4],"|",geneinfo.subset[match(ortho_table[,i],geneinfo.subset[,1]),4])
-  geneinfo[,5] <- paste0(geneinfo[,5],"|",geneinfo.subset[match(ortho_table[,i],geneinfo.subset[,1]),5])
-}
-
-geneinfo <- apply(geneinfo,c(1,2),function(x){return(paste(unique(unlist(strsplit(x,split="[|]"))),collapse="|"))})
-geneinfo <- gsub("^NA[|]","",geneinfo)
-geneinfo[geneinfo == "NA"] <- NA
-
-geneinfo <- as.data.frame(geneinfo)
-```
-
-#### Test each module partition for over-represented functional terms
-
-```{R}
-terms.colnames <- c("term","clusteroccurences","genomeoccurences","pvalue","correctedpvalue","oddsratio","module","invert")
-
-terms.wgcna <- as.data.frame(matrix(nrow = 0,
-                                     ncol = 8))
-colnames(terms.wgcna) <- terms.colnames
-for(j in 1:length(unique(tpm.de.wgcna$module))){
-  terms.wgcna.f <- as.data.frame(cbind(functionaltermenrichment(rownames(tpm.de.wgcna)[tpm.de.wgcna$module == unique(tpm.de.wgcna$module)[j] & tpm.de.wgcna$invert == F],geneinfo),unique(tpm.de.wgcna$module)[j],F))
-  terms.wgcna.t <- as.data.frame(cbind(functionaltermenrichment(rownames(tpm.de.wgcna)[tpm.de.wgcna$module == unique(tpm.de.wgcna$module)[j] & tpm.de.wgcna$invert == T],geneinfo),unique(tpm.de.wgcna$module)[j],T))
-  
-  colnames(terms.wgcna.f) <- terms.colnames
-  colnames(terms.wgcna.t) <- terms.colnames
-  terms.wgcna <- as.data.frame(rbind(terms.wgcna,
-                                     terms.wgcna.f, 
-                                     terms.wgcna.t))
-}
-write.table(terms.wgcna,
-            paste0(WORKING.DIR,"/ehrlichia_functionalterms_wgcna.tsv"),
-            quote = F,
-            col.names = T,
-            row.names = F,
-            sep = "\t")
-```
+![image](/images/timing_vmem_plot.png)
