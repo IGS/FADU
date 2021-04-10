@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# v1.8.1
+
+* BUGFIX - Fixed edge case where the alignment overlap iterator would attempt to read a stream block past the end of the BAM.Reader file
+
 ## v1.8
 
 * Update packages to be compatible with Julia v1.4.2

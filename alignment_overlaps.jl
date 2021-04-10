@@ -71,11 +71,19 @@ end
 function Base.iterate(iter::OverlapIterator, state)
     while state.chunkid ≤ lastindex(state.chunks)
         chunk = state.chunks[state.chunkid]
+
+        # Ran into issue where the BAM.Reader processed all records but kept going which 
+        # lead to the stream block_index to exceed the number of blocks.  This solves that.
+        if eof(iter.reader.stream)
+            break
+        end
+
         while BGZFStreams.virtualoffset(iter.reader.stream) < chunk.stop
             read!(iter.reader, state.record)
             # Determine if fragment or read alignment.  Fragment alignments may overlap the interval whereas the single read may be to the right
             alignmentinterval = get_alignment_interval(state.record, iter.max_frag_size, iter.strand_type)
             alignmentinterval === nothing && continue
+
             c = GenomicFeatures.compare_overlap(alignmentinterval, Interval(iter.refname, iter.interval), isless)
             if c == 0
                 alignmentstrand = getstrand(alignmentinterval, isstranded(iter.strand_type))
@@ -84,6 +92,7 @@ function Base.iterate(iter::OverlapIterator, state)
                 # no more overlapping records in this chunk since records are sorted
                 break
             end
+
         end
         state.chunkid += 1
         if state.chunkid ≤ lastindex(state.chunks)
