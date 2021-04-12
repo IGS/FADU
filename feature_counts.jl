@@ -91,8 +91,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
         alignmenttype = alignment_type(first(templatealignments))
 
         # I do not use "unique" for this because there may be a chance that the template aligns to the same feature multiple times
-        # Also, yay vectorized operations!
-        overlappingfeatures = featurename.(templatealignments)
+        overlappingfeatures = [featurename(a) for a in templatealignments] 
 
         template_feature_counter = Dict{String, UInt}(fn => zero(UInt) for fn in unique(overlappingfeatures))
         template_feat_counts = Dict{String, Float32}(fn => zero(Float32) for fn in unique(overlappingfeatures))
