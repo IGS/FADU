@@ -182,6 +182,10 @@ Currently at this time, only fragment depth is supported.  Performing calculatio
 
 Perhaps the easiest possibility would be to extract the 'featureID' and 'counts' columns and structure them like the output from htseq-count.  From there you can follow the corresponding instructions from the DESeq2 manual on using htseq-count output as input.
 
+### My dataset consists of only single-end reads, and the assigned counts only appear to be half of what was expected.  What gives?
+
+In the case of singletons, FADU gives them half the weight compared to a paired-end read in the final counts.  One reason FADU does this is because we noticed that if we treated single-end and properly-paired-end reads with the same weight, there was some overcounting done with respect to certain genes or features.
+
 ## Issues
 
 If you have a question or suggestion about FADU, feel free to e-mail either of the authors above, or create an issue [here](https://github.com/IGS/FADU/issues)
