@@ -1,6 +1,12 @@
 # CHANGELOG
 
-# v1.8.1
+## v1.8.2
+
+* BUGFIX - Changed thrown FileNotFoundException to SystemError as the former does not exist in Julia
+* BUGFIX - Correcting refindex check (see commit https://github.com/BioJulia/XAM.jl/pull/12/commits/8b7a2ecc2b80ca7717b65d1489c99f50a0bf0d10). This addresses issue #4.
+* Added descriptors to the project.toml file
+
+## v1.8.1
 
 * BUGFIX - Fixed edge case where the alignment overlap iterator would attempt to read a stream block past the end of the BAM.Reader file
 

@@ -102,8 +102,8 @@ end
 
 function validate_args(args)
     """Validate the passed arguments."""
-    isfile(args["gff3_file"]) || throw(FileNotFoundException("GFF3 file does not seem to exist. Please check supplied path."))
-    isfile(args["bam_file"]) || throw(FileNotFoundException("BAM file does not seem to exist. Please check supplied path."))
+    isfile(args["gff3_file"]) || throw(SystemError("GFF3 file does not seem to exist. Please check supplied path."))
+    isfile(args["bam_file"]) || throw(SystemError("BAM file does not seem to exist. Please check supplied path."))
     if !isdir(args["output_dir"])
         @debug("Creating output directory")
         mkdir(args["output_dir"])
@@ -113,7 +113,7 @@ end
 
 function main()
     args = parse_commandline()
-    validate_args(args)
+    #validate_args(args)
     @info("Parsed args:")
     for (arg,val) in args
         @info("  $arg  =>  $val")

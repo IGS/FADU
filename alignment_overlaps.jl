@@ -39,12 +39,7 @@ struct SuperBAMRecord
     record::BAM.Record
     interval::Interval{Bool}
     strand::Char
-    #alignmenttype::T where {T<:AbstractAlignment}
 end
-
-#function SuperBAMRecord(record::BAM.Record, interval::Interval, strand::Char)
-#    return SuperBAMRecord(record, interval, strand, getalignmenttype(metadata(interval)))
-#end
 
 record(s::SuperBAMRecord) = s.record
 interval(s::SuperBAMRecord) = s.interval
@@ -56,7 +51,7 @@ alignment_type(s::SuperBAMRecord) = getalignmenttype(metadata(interval(s)))
 
 function Base.iterate(iter::OverlapIterator)
     refindex = findfirst(isequal(iter.refname), iter.reader.refseqnames)
-    if refindex == 0
+    if refindex === nothing
         throw(ArgumentError("sequence name $(iter.refname) is not found in the header"))
     end
     @assert iter.reader.index !== nothing
@@ -72,8 +67,8 @@ function Base.iterate(iter::OverlapIterator, state)
     while state.chunkid ≤ lastindex(state.chunks)
         chunk = state.chunks[state.chunkid]
 
-        # Ran into issue where the BAM.Reader processed all records but kept going which 
-        # lead to the stream block_index to exceed the number of blocks.  This solves that.
+        # Ran into issue where the BAM.Reader processed all records but kept going.
+        # This leads to the stream block_index to exceed the number of blocks.  This solves that.
         if eof(iter.reader.stream)
             break
         end

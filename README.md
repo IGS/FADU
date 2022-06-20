@@ -17,7 +17,7 @@ Most current available quantification tools for transcriptomics analyses have be
 
 ## Current FADU release
 
-v1.8
+v1.8.2
 
 ## Requirements
 
@@ -30,7 +30,7 @@ NOTE: Packages installation instructions can be found at https://docs.julialang.
 * ArgParse
 * BGZFStreams.jl - v0.3.0
 * GenomicFeatures.jl - v2.0.0
-* GFF3 - 0.1.0
+* GFF3 - v0.1.0
 * Indexes.jl - v0.1.1
 * StructArrays.jl - v0.4.4
 * XAM.jl - v0.2.6
@@ -45,6 +45,7 @@ FADU is supported for both the Linux and Mac OSX operating systems, and has been
 
 * Linux - CentOS 7
 * Mac OSX - High Sierra (v10.13.6)
+* MacOS M1 architecture- Monterrey (v12.4 - used Julia v1.7.3 for this test)
 
 ## Input
 
@@ -185,6 +186,22 @@ Perhaps the easiest possibility would be to extract the 'featureID' and 'counts'
 ### My dataset consists of only single-end reads, and the assigned counts only appear to be half of what was expected.  What gives?
 
 In the case of singletons, FADU gives them half the weight compared to a paired-end read in the final counts.  One reason FADU does this is because we noticed that if we treated single-end and properly-paired-end reads with the same weight, there was some overcounting done with respect to certain genes or features.
+
+### Is there a Docker variation of FADU that I can run instead of installing Julia?
+
+Yes! Currently, there is no Docker image for FADU on Docker Hub as their free tier removes any images that have been inactive for 6+ months. Instead, you can build the Docker image as follows (this assumes you are in the FADU root directory):
+
+```bash
+docker build -t fadu .
+```
+
+This Docker image uses Julia 1.7 and installs the various packages required to run FADU. Once the image has been built you can create and run a FADU container by running the following:
+
+```bash
+docker run -v $PWD:/opt/FADU fadu <fadu_options>
+```
+
+This command assumes that your input files are in your current working directory and that your output will be written to a space relative to your current working directory as well.
 
 ## Issues
 
