@@ -17,7 +17,7 @@ Most current available quantification tools for transcriptomics analyses have be
 
 ## Current FADU release
 
-v1.8.2
+v1.8.3
 
 ## Requirements
 

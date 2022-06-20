@@ -1,10 +1,14 @@
 # CHANGELOG
 
-## v1.8.2
+## v1.8.3
 
 * BUGFIX - Changed thrown FileNotFoundException to SystemError as the former does not exist in Julia
 * BUGFIX - Correcting refindex check (see commit https://github.com/BioJulia/XAM.jl/pull/12/commits/8b7a2ecc2b80ca7717b65d1489c99f50a0bf0d10). This addresses issue #4.
 * Added descriptors to the project.toml file
+
+## v1.8.2
+
+* BUGFIX - converting vectorized operation to array comprehension to fix an error
 
 ## v1.8.1
 
