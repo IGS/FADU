@@ -79,7 +79,7 @@ function compute_mm_adjusted_counts(total_feat_counts::Float32, template_feat_co
     return template_feat_counts * relative_abundance
 end
 
-function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, multimapped_dict::Dict{String,StructArray}, args::Dict)
+function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, multimapped_dict::Dict{String,StructArray})
     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
     # Initialize multimapped overlap feature dictionary
     featurenames = collect(keys(feat_overlaps))

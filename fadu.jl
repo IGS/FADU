@@ -170,7 +170,7 @@ function main()
             @debug("\tEM iterations left: ", args["em_iter"])
             adjusted_overlaps = merge_mm_counts(feat_overlaps, mm_feat_overlaps, false)
             args["em_iter"] -= 1
-            mm_feat_overlaps = compute_mm_counts_by_em(adjusted_overlaps, multimapped_dict, args)
+            mm_feat_overlaps = compute_mm_counts_by_em(adjusted_overlaps, multimapped_dict)
         end
         # Last iteration the alignment counts are added too
         merge_mm_counts!(feat_overlaps, mm_feat_overlaps, true)

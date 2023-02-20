@@ -4,7 +4,7 @@
 alignment_overlaps.jl - An alternative implemention of the BioAlignments.jl
 BAM overlap.jl code to convert Record types into fragment-based and read-based Interval types
 
-Original code at https://github.com/BioJulia/BioAlignments.jl/blob/master/src/bam/overlap.jl
+Original code at https://github.com/BioJulia/XAM.jl/blob/develop/src/bam/overlap.jl
 
 By: Shaun Adkins (sadkins@som.umaryland.edu)
 """
@@ -52,7 +52,7 @@ alignment_type(s::SuperBAMRecord) = getalignmenttype(metadata(interval(s)))
 function Base.iterate(iter::OverlapIterator)
     refindex = findfirst(isequal(iter.refname), iter.reader.refseqnames)
     if refindex === nothing
-        throw(ArgumentError("sequence name $(iter.refname) is not found in the header"))
+        throw(ArgumentError("GFF sequence name $(iter.refname) is not found in the BAM header"))
     end
     @assert iter.reader.index !== nothing
     chunks = Indexes.overlapchunks(iter.reader.index.index, refindex, iter.interval)
