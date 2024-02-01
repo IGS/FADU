@@ -30,7 +30,7 @@ NOTE: Packages installation instructions can be found at https://docs.julialang.
 * ArgParse
 * BGZFStreams.jl - v0.3.0
 * GenomicFeatures.jl - v2.0.0
-* GFF3 - v0.1.0
+* GFF3 - v0.2.0
 * Indexes.jl - v0.1.1
 * StructArrays.jl - v0.4.4
 * XAM.jl - v0.2.6
