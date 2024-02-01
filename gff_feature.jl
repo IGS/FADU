@@ -11,7 +11,7 @@ isstranded(strand_type::String) = return (strand_type == "no" ? false : true)
 
 function create_uniq_coords_dict(features::Array{GFF3.Record,1}, stranded_type::String)
     uniq_coords = Dict{String, Dict}()
-    seqids = Set(map(x -> GFF3.seqid(x), features))
+    seqids = Set(GFF3.seqid(x) for x in features)
     for seqid in seqids
         uniq_coords[seqid] = get_nonoverlapping_coords_by_seqid(features, seqid)
         # If alignment data is unstranded, then symdiff both strands to + strand
@@ -25,7 +25,7 @@ end
 
 function get_feature_coords_set(feature::GFF3.Record)
     """Get the range of coordinates for this feature, returned as a Set."""
-    return BitSet(GFF3.leftposition(feature) : GFF3.rightposition(feature))
+    return BitSet(GFF3.seqstart(feature) : GFF3.seqend(feature))
 end
 
 function get_featurename_from_attrs(feature::GFF3.Record, attr_type::String)
@@ -51,7 +51,7 @@ function get_nonoverlapping_coords_by_seqid(features::Array{GFF3.Record,1}, seqi
     strand = Set(map(x -> GFF3.strand(x), seqid_feats))
     for s in strand
         strandchar = convert(Char, s)
-        uniq_seqid_coords[strandchar] = get_nonoverlapping_coords_by_seqid_and_strand(seqid_feats, s)
+        get!(uniq_seqid_coords, strandchar, get_nonoverlapping_coords_by_seqid_and_strand(seqid_feats, s))
     end
     return uniq_seqid_coords
 end
@@ -59,8 +59,7 @@ end
 function get_nonoverlapping_coords_by_seqid_and_strand(features::Array{GFF3.Record,1}, strand::Strand)
     """ Get set of nonoverlapping coordinates based on the features for this strand of this sequence ID."""
     # Get features one strand at a time
-    seqid_feats_by_strand = filter(x-> GFF3.strand(x) == strand, features)
-    return BitSet(mapreduce(x -> get_feature_coords_set(x), symdiff, seqid_feats_by_strand))
+    return BitSet(mapreduce((x -> GFF3.strand(x) == strand ? get_feature_coords_set(x) : BitSet()), symdiff, features))
 end
 
 function getstrand(feature::GFF3.Record, stranded::Bool)

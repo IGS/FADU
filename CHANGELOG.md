@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.9
+
+* FEATURE - Adding --no_output_header option to not print the header line in output. Useful for when you want to pipe this output to another tool.
+* FEATURE - Adding --exclude_regions option to exclude any regions found in a passed-in BED file.
+
 ## v1.8.3
 
 * BUGFIX - Changed thrown FileNotFoundException to SystemError as the former does not exist in Julia

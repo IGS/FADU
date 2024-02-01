@@ -1,10 +1,11 @@
 name = "FADU"
-uuid = "44863213-1f1a-4b16-9620-9a32ef1dd2e6"
-authors = ["Shaun Adkins sadkins@som.umaryland.edu"]
-version = "1.8.2"
+uuid = "866296ad-388f-4871-8691-d7485d094d7e"
+authors = ["adkinsrs <sadkins@som.umaryland.edu>"]
+version = "1.9.0"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+BED = "8e4a8c10-cb6b-11e8-08d2-83478d609d67"
 BGZFStreams = "28d598bf-9b8f-59f1-b38c-5a06b4a0f5e6"
 GFF3 = "af1dc308-cb6b-11e8-32f0-31192efa90f6"
 GenomicFeatures = "899a7d2d-5c61-547b-bef9-6698a8d05446"
@@ -14,10 +15,11 @@ StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 XAM = "d759349c-bcba-11e9-07c2-5b90f8f05f7c"
 
 [compat]
-julia = "1.4.2"
+BED = "0.3.0"
 BGZFStreams = "0.3.0"
 GFF3 = "0.1.0"
 GenomicFeatures = "2.0.0"
 Indexes = "0.1.1"
 StructArrays = "0.4.4"
 XAM = "0.2.6"
+julia = "1.4.2"

@@ -9,10 +9,11 @@ Requires (version number listed is earliest supported version):
     * Packages *
     BGZFStreams.jl - v0.3.0
     GenomicFeatures.jl - v2.0.0
-    GFF3 - 0.1.0
+    GFF3 - v0.2.0
     Indexes.jl - v0.1.1
     StructArrays.jl - v0.4.4
     XAM.jl - v0.2.6
+    BED.jl - v0.3.0
 
 By: Shaun Adkins (sadkins@som.umaryland.edu)
     Matthew Chung (mattchung@umaryland.edu)
@@ -27,17 +28,65 @@ using GFF3
 using Indexes
 using Printf
 using StructArrays
+using BED
 
 include("alignment_overlaps.jl")
 include("bam_record.jl")
 include("feature_counts.jl")
 include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.8"    # Version number of the FADU program
+const VERSION_NUMBER = "1.9"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
 ### Functions to clean up, then move to their proper "include" script
+
+function remove_excluded_regions!(uniq_coords::Dict{String, Dict}, excluded_regions_file, stranded::Bool=false)
+    """Remove any coordinates that overlap the regions in the BED file. Edits "uniq_coords" in-place."""
+
+    @info("Removing alignments that overlap excluded regions...")
+    # if file does not exist, throw error
+    isfile(excluded_regions_file) || throw(SystemError("Excluded regions file does not seem to exist. Please check supplied path."))
+
+    exclude_regions = open(collect, BED.Reader, excluded_regions_file)
+    exclude_coords = Dict{String, Dict}()
+    # Read in all excluded regions, by strand if the "stranded" argument is passed
+    for region in exclude_regions
+        # Store chrom since that should match seqid
+        seqid = BED.chrom(region)
+        if !haskey(uniq_coords, seqid)
+            continue
+        end
+
+        # "get!" will create the key if it doesn't exist in addition to returning the value
+        seqid_exclude_coords = get!(exclude_coords, seqid, Dict{Char, BitSet}())
+
+        start = BED.chromstart(region)
+        stop = BED.chromend(region)
+
+        # Store coordinates to exclude
+        # If unstranded, then everything goes in "+"
+        if stranded
+            strand = convert(Char, BED.strand(region))
+            union!(get!(seqid_exclude_coords, strand, BitSet()), BitSet(start:stop))
+        else
+            union!(get!(seqid_exclude_coords, "+", BitSet()), BitSet(start:stop))
+        end
+    end
+
+
+    # Remove any alignments that overlap these regions
+    for (seqid, strand_coords) in exclude_coords
+        if haskey(uniq_coords, seqid)
+            for (strand, coords) in strand_coords
+                if haskey(uniq_coords[seqid], strand)
+                    setdiff!(uniq_coords[seqid][strand], coords)
+                end
+            end
+        end
+    end
+
+end
 
 
 ########
@@ -65,6 +114,13 @@ function parse_commandline()
             help = "Directory to write the output."
             metavar = "/path/to/output/dir/"
             required = true
+        "--no_output_header"
+            help = "If enabled, do not write the header line to the output file."
+            action = :store_true
+            dest_name = "no_header"
+        "--exclude_regions_file", "-x"
+            help = "Path to BED file containing regions to exclude from analysis.  Any alignments that overlap these regions will be ignored."
+            metavar = "/path/to/regions.bed"
         "--stranded", "-s"
             help = "Indicate if BAM reads are from a strand-specific assay. Choose between 'yes', 'no', or 'reverse'."
             default = "no"
@@ -125,7 +181,6 @@ function main()
     catch e
         println(stderr, "ERROR: GFF3 file was unable to be read, due to possible improper formatting.  Please consult https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md for how to properly format the GFF3 file.  Actual error is below.  Program will now exit.\n")
         showerror(stderr, e)
-        println(stderr, "")
         exit(1)
     end
 
@@ -134,6 +189,17 @@ function main()
 
     @info("Getting unique coordinates per contig and feature...")
     uniq_coords = create_uniq_coords_dict(features, args["stranded"])
+
+    # If exclude_regions is passed, then remove any alignments that overlap these regions
+    if args["exclude_regions_file"] !== nothing
+        try
+            remove_excluded_regions!(uniq_coords, args["exclude_regions_file"], isstranded(args["stranded"]))
+        catch e
+            println(stderr, "ERROR: Excluded regions file was unable to be read, due to possible improper formatting.  Please consult https://genome.ucsc.edu/FAQ/FAQformat.html#format1 for how to properly format the BED file.  Actual error is below.  Program will now exit.\n")
+            showerror(stderr, e)
+            exit(1)
+        end
+    end
 
     @info("Initializing dictionary of feature count information")
     feat_overlaps = create_feat_overlaps_dict(features, uniq_coords, args["attribute_type"], args["stranded"])
@@ -182,7 +248,9 @@ function main()
     @info("Writing counts output to file...")
     out_file = joinpath(args["output_dir"], splitext(basename(args["bam_file"]))[1]) * ".counts.txt"
     out_f = open(out_file, "w")
-    write(out_f, "featureID\tuniq_len\tnum_alignments\tcounts\ttpm\n")
+    if !args["no_header"]
+        write(out_f, "featureID\tuniq_len\tnum_alignments\tcounts\ttpm\n")
+    end
     # Write output, sorted alphabetically
     for featurename in sort(collect(keys(feat_overlaps)))
         uniq_len::UInt = length(coordinate_set(feat_overlaps[featurename]))

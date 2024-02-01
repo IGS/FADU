@@ -64,7 +64,7 @@ function Base.iterate(iter::OverlapIterator)
 end
 
 function Base.iterate(iter::OverlapIterator, state)
-    while state.chunkid ≤ lastindex(state.chunks)
+    @inbounds while state.chunkid ≤ lastindex(state.chunks)
         chunk = state.chunks[state.chunkid]
 
         # Ran into issue where the BAM.Reader processed all records but kept going.
@@ -82,7 +82,7 @@ function Base.iterate(iter::OverlapIterator, state)
             c = GenomicFeatures.compare_overlap(alignmentinterval, Interval(iter.refname, iter.interval), isless)
             if c == 0
                 alignmentstrand = getstrand(alignmentinterval, isstranded(iter.strand_type))
-                return SuperBAMRecord(copy(state.record), alignmentinterval, alignmentstrand), state
+                return SuperBAMRecord(state.record, alignmentinterval, alignmentstrand), state
             elseif c > 0
                 # no more overlapping records in this chunk since records are sorted
                 break

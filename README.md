@@ -34,6 +34,7 @@ NOTE: Packages installation instructions can be found at https://docs.julialang.
 * Indexes.jl - v0.1.1
 * StructArrays.jl - v0.4.4
 * XAM.jl - v0.2.6
+* BED.jl - v0.3.0 (if you wish to exclude regions)
 
 ### NOTE on versions
 
