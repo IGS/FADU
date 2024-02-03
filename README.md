@@ -107,9 +107,11 @@ cds1005 816 0.0 0.00    0.00
 
 ```bash
 usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
-               -o /path/to/output/dir/ [-s STRANDED] [-f FEATURE_TYPE]
-               [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE] [-M]
-               [-e EM_ITER] [-C CHUNK_SIZE] [--version] [-h]
+               -o /path/to/output/dir/ [--no_output_header]
+               [-x /path/to/regions.bed] [-s STRANDED]
+               [-f FEATURE_TYPE] [-a ATTRIBUTE_TYPE] [-p]
+               [-m MAX_FRAGMENT_SIZE] [-M] [-e EM_ITER] [--version]
+               [-h]
 
 Generate counts of reads that map to non-overlapping portions of genes
 
@@ -121,6 +123,12 @@ optional arguments:
                         not supported).
   -o, --output_dir /path/to/output/dir/
                         Directory to write the output.
+  --no_output_header    If enabled, do not write the header line to
+                        the output file.
+  -x, --exclude_regions_file /path/to/regions.bed
+                        Path to BED file containing regions to exclude
+                        from analysis.  Any alignments that overlap
+                        these regions will be ignored.
   -s, --stranded STRANDED
                         Indicate if BAM reads are from a
                         strand-specific assay. Choose between 'yes',
@@ -141,13 +149,10 @@ optional arguments:
                         exceeds this value, process pair as single
                         reads instead of as a fragment. Setting this
                         value to 0 will make every fragment pair be
-                        processed as two individual reads. Maximum
-                        value is 65535 (to allow for use of UInt16
-                        type, and fragments typically are not that
-                        large). If --keep_only_proper_pairs is
-                        enabled, then any fragment exceeding this
-                        value will be discarded. (type: Int64,
-                        default: 1000)
+                        processed as two individual reads. If
+                        --keep_only_proper_pairs is enabled, then any
+                        fragment exceeding this value will be
+                        discarded. (type: Int64, default: 1000)
   -M, --remove_multimapped
                         If enabled, remove any reads or fragments that
                         are mapped to multiple regions of the genome,
@@ -157,11 +162,9 @@ optional arguments:
                         counted.
   -e, --em_iterations EM_ITER
                         Number of iterations to perform EM algorithm
-                        on multimapped read counts. Only applies if
+                        on multimapped read depth. Only applies if
                         --remove_multimapped flag is not passed (is
                         disabled) (type: Int64, default: 1)
-                        NOTE: Can be slow as the number of iterations
-                        is increased
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```

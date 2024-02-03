@@ -124,6 +124,7 @@ function parse_commandline()
         "--stranded", "-s"
             help = "Indicate if BAM reads are from a strand-specific assay. Choose between 'yes', 'no', or 'reverse'."
             default = "no"
+            range_tester = (x->x in ["yes", "no", "reverse"])
         "--feature_type", "-f"
             help = "Which GFF3/GTF feature type (column 3) to obtain. readcount statistics for. Case-sensitive."
             default = "gene"

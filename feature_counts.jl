@@ -173,6 +173,8 @@ function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, 
     feat_overlap = feat_overlaps[featurename]
     max_frag_size = convert(UInt, args["max_fragment_size"])
     featurestrand = getstrand(feature, isstranded(args["stranded"]))
+    pp_only = args["pp_only"]
+    rm_multimap = args["rm_multimap"]
 
     # Returning SuperBAMRecord objects instead of BAM.Record objects
     for rec in eachoverlap(reader, feature, args["stranded"], max_frag_size)
@@ -181,12 +183,12 @@ function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, 
         strand(rec) == featurestrand || continue
 
         alignmenttype = alignment_type(rec)
-        args["pp_only"] && isa(alignmenttype, ReadAlignment) && continue
+        pp_only && isa(alignmenttype, ReadAlignment) && continue
 
         align_feat_ratio =  compute_alignment_feature_ratio(coordinate_set(feat_overlap), alignmentinterval)::Float32
         # Save multimapped records as Interval objects for later, if needed, otherwise increment information for this feature now
         if ismultimapped(record(rec))
-            if !args["rm_multimap"]
+            if !rm_multimap
                 templatename = BAM.tempname(record(rec))
                 get!(multimapped_dict, templatename, StructArray{MultimappedAlignment}(undef,0))
                 push!(multimapped_dict[templatename], MultimappedAlignment(featurename, align_feat_ratio, alignmenttype))
