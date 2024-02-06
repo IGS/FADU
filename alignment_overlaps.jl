@@ -54,12 +54,14 @@ function Base.iterate(iter::OverlapIterator)
     if refindex === nothing
         throw(ArgumentError("GFF sequence name $(iter.refname) is not found in the BAM header"))
     end
-    @assert iter.reader.index !== nothing
+    @assert iter.reader.index !== nothing "Reader index cannot be nothing."
     chunks = Indexes.overlapchunks(iter.reader.index.index, refindex, iter.interval)
-    if !isempty(chunks)
-        seek(iter.reader, first(chunks).start)
+    if isempty(chunks)
+        return nothing
     end
     state = BAM.OverlapIteratorState(refindex, chunks, 1, BAM.Record())
+    seek(iter.reader, state.chunks[state.chunkid].start)
+
     return iterate(iter, state)
 end
 

@@ -27,7 +27,6 @@ using GenomicFeatures
 using GFF3
 using Indexes
 using Printf
-using StructArrays
 using BED
 
 include("alignment_overlaps.jl")
@@ -230,7 +229,7 @@ function main()
         @debug("Multimapped alignment templates: ", num_multimaps)
 
         featurenames = collect(keys(feat_overlaps))
-        mm_feat_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(coordinate_set(feat_overlaps[featurename])) for featurename in featurenames)
+        mm_feat_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(featurename, coordinate_set(feat_overlaps[featurename])) for featurename in featurenames)
 
         @info("Counting and adjusting multimapped alignment feature counts via Expectation-Maximization algorithm...")
         while args["em_iter"] > 0

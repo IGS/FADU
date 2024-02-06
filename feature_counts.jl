@@ -6,10 +6,17 @@ feature_counts.jl - Houses functions that deal with GFF feature-BAM alignment ov
 By: Shaun Adkins (sadkins@som.umaryland.edu)
 """
 
+using StructArrays
+using Base.Threads: nthreads, @spawn
+using Base.Iterators: partition
+
+# https://julialang.org/blog/2023/07/PSA-dont-use-threadid/#better_fix_work_directly_with_tasks
+tasks_per_thread = 2 # customize this as needed. More tasks have more overhead, but better load balancing
 
 ### Feature Overlap - Miscellaneous information about a feature with respect to its overlaps to alignments
 
 mutable struct FeatureOverlap
+    featurename::String
     num_alignments::Float32
     feat_counts::Float32
     coords_set::BitSet
@@ -83,7 +90,7 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
     """Adjust the feature counts of the multimapped overlaps via the Expectation-Maximization algorithm."""
     # Initialize multimapped overlap feature dictionary
     featurenames = collect(keys(feat_overlaps))
-    adjusted_mm_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(coordinate_set(feat_overlaps[featurename])) for featurename in featurenames)
+    adjusted_mm_overlaps = Dict{String, FeatureOverlap}(featurename => initialize_overlap_info(featurename, coordinate_set(feat_overlaps[featurename])) for featurename in featurenames)
 
     # Iterate through the multimaped alignments for each template
     @inbounds for (tn, templatealignments) in multimapped_dict
@@ -122,7 +129,7 @@ function create_feat_overlaps_dict(features::Array{GFF3.Record,1}, uniq_coords::
     for feature in features
         featurename = get_featurename_from_attrs(feature, attr_type)
         uniq_feat_coords = get_feature_nonoverlapping_coords(feature, uniq_coords, isstranded(stranded_type))
-        feat_overlaps[featurename] = initialize_overlap_info(uniq_feat_coords)
+        feat_overlaps[featurename] = initialize_overlap_info(featurename, uniq_feat_coords)
     end
     return feat_overlaps
 end
@@ -141,10 +148,10 @@ function increment_feature_overlap_information!(feat_overlap::FeatureOverlap, al
     inc_featurecounts!(feat_overlap, align_feat_ratio * multiplier(alignmenttype))
 end
 
-function initialize_overlap_info(uniq_feat_coords::BitSet)
+function initialize_overlap_info(featurename::String, uniq_feat_coords::BitSet)
     """Initialize overlap diction information."""
     num_alignments = zero(Float32); feat_counts = zero(Float32)
-    return FeatureOverlap(num_alignments, feat_counts, uniq_feat_coords)
+    return FeatureOverlap(featurename, num_alignments, feat_counts, uniq_feat_coords)
 end
 
 function merge_mm_counts(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_overlaps::Dict{String, FeatureOverlap}, adjust_num_alignments::Bool=true)
@@ -167,14 +174,16 @@ function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_o
     [inc_alignments!(feat_overlaps[fn], totalalignments(mm_feat_overlaps[fn])) for fn in featurenames]
 end
 
-function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, multimapped_dict::Dict{String,StructArray}, reader::BAM.Reader, feature::GFF3.Record, args)
+function process_feature_overlaps(feat_overlap::FeatureOverlap, feature::GFF3.Record, reader::BAM.Reader, args)
     """Process all alignment intervals that overlap with the given feature interval."""
-    featurename = get_featurename_from_attrs(feature, args["attribute_type"])
-    feat_overlap = feat_overlaps[featurename]
     max_frag_size = convert(UInt, args["max_fragment_size"])
     featurestrand = getstrand(feature, isstranded(args["stranded"]))
     pp_only = args["pp_only"]
     rm_multimap = args["rm_multimap"]
+
+    multimapped_dict = Dict{String, StructArray}()
+
+    #count = 0
 
     # Returning SuperBAMRecord objects instead of BAM.Record objects
     for rec in eachoverlap(reader, feature, args["stranded"], max_frag_size)
@@ -191,19 +200,54 @@ function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, 
             if !rm_multimap
                 templatename = BAM.tempname(record(rec))
                 get!(multimapped_dict, templatename, StructArray{MultimappedAlignment}(undef,0))
-                push!(multimapped_dict[templatename], MultimappedAlignment(featurename, align_feat_ratio, alignmenttype))
+                push!(multimapped_dict[templatename], MultimappedAlignment(feat_overlap.featurename, align_feat_ratio, alignmenttype))
             end
             continue
         end
         align_feat_ratio > 0.0 && increment_feature_overlap_information!(feat_overlap, align_feat_ratio, alignmenttype)
+
+        #count += 1
     end
 
+    featurename = feat_overlap.featurename
+    #println("Processed $count alignments for feature $featurename")
     # NOTE: This function modifies feat_overlaps and multimapped_dict
+
+    return feat_overlap, multimapped_dict
 end
 
 function process_all_feature_overlaps(feat_overlaps::Dict{String,FeatureOverlap}, features::Vector{GFF3.Record}, reader::BAM.Reader, args)
     """Process all features from the annotation file for overlaps with BAM alignments."""
-    multimapped_dict = Dict{String,StructArray}()
-    [process_feature_overlaps!(feat_overlaps, multimapped_dict, reader, feature, args) for feature in features]
+
+    chunk_size = max(1, length(features) ÷ (tasks_per_thread * nthreads()))
+    data_chunks = partition(features, chunk_size) # partition your data into chunks that
+                                                  # individual tasks will deal with
+    #See also ChunkSplitters.jl and SplittablesBase.jl for partitioning data
+
+    multimapped_dict = Dict{String, StructArray}()
+
+    tasks = map(data_chunks) do chunk
+        # Each chunk of your data gets its own spawned task that does its own local, sequential work
+        # and then returns the result
+        @spawn begin
+            result = nothing
+            for (i, feature) in enumerate(chunk)
+                featurename = get_featurename_from_attrs(feature, args["attribute_type"])
+                feat_overlap = feat_overlaps[featurename]
+                result = process_feature_overlaps(feat_overlap, feature, reader, args)
+            end
+            return result
+        end
+    end
+
+    results = fetch.(tasks) # get all the values returned by the individual tasks. fetch is type
+                                # unstable, so you may optionally want to assert a specific return type.
+
+    # Combine the results
+    for (fo, mm) in results
+        feat_overlaps[fo.featurename] = fo
+        merge!(multimapped_dict, mm)
+    end
+
     return multimapped_dict
 end
