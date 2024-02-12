@@ -47,7 +47,7 @@ function calc_subset_totalcounts(feat_overlaps::Dict{String, FeatureOverlap}, fe
     totalcounts = zero(Float32)
     # Worth noting if a feature overlaps multiple times, it will be reflected in totalcounts
     # This will be appropriately handled when all alignments are iterated through to increment the FeatureOverlap feat_counts for the feature.
-    for (featurename, count) in feature_counter
+    @inbounds for (featurename, count) in feature_counter
         totalcounts += featurecounts(feat_overlaps[featurename]) * count
     end
     return totalcounts
@@ -55,7 +55,7 @@ end
 
 function calc_totalcounts(feat_overlaps::Dict{String, FeatureOverlap})
     """Calculate the sum of all the feature counts."""
-    return sum(featurecounts(feat_overlaps[featurename]) for featurename in keys(feat_overlaps))
+    return @fastmath sum(featurecounts(feat_overlaps[featurename]) for featurename in keys(feat_overlaps))
 end
 
 function calc_tpm(len::UInt, totalcounts::Float32, feat_counts::Float32)
@@ -199,7 +199,7 @@ function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, 
         count += 1
     end
 
-    println("Processed $count alignments for feature $featurename")
+    @debug("Processed $count alignments for feature $featurename")
 
     # NOTE: This function modifies feat_overlaps and multimapped_dict
 end
