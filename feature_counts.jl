@@ -66,11 +66,11 @@ end
 function compute_alignment_feature_ratio(uniq_feat_coords::BitSet, alignment::Interval)::Float32
     """Calculate the ratio of fragament coordinates that intersect with non-overlapping feature coordinates."""
     # Pertinent alignment info
-    alignment_coords =  get_alignment_coords_set(alignment)
-    alignment_intersect = intersect(uniq_feat_coords, alignment_coords)
+    alignment_coords = get_alignment_coords_range(alignment)
+    intersect_count = count(x -> x in uniq_feat_coords, alignment_coords)
     # Percentage of alignment that aligned with this annotation feature
     # Return as Float32 for performance
-    return @fastmath length(alignment_intersect) / length(alignment_coords)
+    return @fastmath Float32(intersect_count) / length(alignment_coords)
 end
 
 function compute_mm_adjusted_counts(total_feat_counts::Float32, template_feat_counts::Float32, template_totalcounts::Float32)::Float32
@@ -90,12 +90,11 @@ function compute_mm_counts_by_em(feat_overlaps::Dict{String, FeatureOverlap}, mu
         # All multimapped alignments for a record should have the same alignment type
         alignmenttype = alignment_type(first(templatealignments))
 
-        # I do not use "unique" for this because there may be a chance that the template aligns to the same feature multiple times
-        overlappingfeatures = [featurename(a) for a in templatealignments]
+        overlappingfeatures = unique([featurename(a) for a in templatealignments])
 
-        template_feature_counter = Dict{String, UInt}(fn => zero(UInt) for fn in unique(overlappingfeatures))
-        template_feat_counts = Dict{String, Float32}(fn => zero(Float32) for fn in unique(overlappingfeatures))
-        Threads.@threads for fn in unique(overlappingfeatures)
+        template_feature_counter = Dict{String, UInt}(fn => zero(UInt) for fn in overlappingfeatures)
+        template_feat_counts = Dict{String, Float32}(fn => zero(Float32) for fn in overlappingfeatures)
+        Threads.@threads for fn in overlappingfeatures
             # Filter all alignments that have this particular template-feature overlap
             templatefeaturealignments = filter(x -> x.featurename == fn, templatealignments)
             template_feature_counter[fn] += length(templatefeaturealignments)
@@ -137,8 +136,9 @@ end
 
 function increment_feature_overlap_information!(feat_overlap::FeatureOverlap, align_feat_ratio::Float32, alignmenttype::T) where {T<:AbstractAlignment}
     """Increment number of alignments and feature count information for feature if alignment overlapped with uniq coords."""
-    inc_alignments!(feat_overlap, multiplier(alignmenttype))
-    inc_featurecounts!(feat_overlap, align_feat_ratio * multiplier(alignmenttype))
+    mult = multiplier(alignmenttype)
+    inc_alignments!(feat_overlap, mult)
+    inc_featurecounts!(feat_overlap, align_feat_ratio * mult)
 end
 
 function initialize_overlap_info(uniq_feat_coords::BitSet)
@@ -150,21 +150,19 @@ end
 function merge_mm_counts(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_overlaps::Dict{String, FeatureOverlap}, adjust_num_alignments::Bool=true)
     """Merge EM-computed counts for multimapped reads and singly-mapped feature counts.  Return a new Dict of FeatureOverlaps"""
     adjusted_overlaps = deepcopy(feat_overlaps)
-    featurenames = collect(keys(feat_overlaps))
-    [inc_featurecounts!(adjusted_overlaps[fn], featurecounts(mm_feat_overlaps[fn])) for fn in featurenames]
+    [inc_featurecounts!(adjusted_overlaps[fn], featurecounts(mm_feat_overlaps[fn])) for fn in keys(feat_overlaps)]
     adjust_num_alignments || return adjusted_overlaps
 
-    [inc_alignments!(adjusted_overlaps[fn], totalalignments(mm_feat_overlaps[fn])) for fn in featurenames]
+    [inc_alignments!(adjusted_overlaps[fn], totalalignments(mm_feat_overlaps[fn])) for fn in keys(feat_overlaps)]
     return adjusted_overlaps
 end
 
 function merge_mm_counts!(feat_overlaps::Dict{String, FeatureOverlap}, mm_feat_overlaps::Dict{String, FeatureOverlap}, adjust_num_alignments::Bool=true)
     """Merge EM-computed counts for multimapped reads back into the general feature overlap counts."""
-    featurenames = collect(keys(feat_overlaps))
-    [inc_featurecounts!(feat_overlaps[fn], featurecounts(mm_feat_overlaps[fn])) for fn in featurenames]
+    [inc_featurecounts!(feat_overlaps[fn], featurecounts(mm_feat_overlaps[fn])) for fn in keys(feat_overlaps)]
     adjust_num_alignments || return
 
-    [inc_alignments!(feat_overlaps[fn], totalalignments(mm_feat_overlaps[fn])) for fn in featurenames]
+    [inc_alignments!(feat_overlaps[fn], totalalignments(mm_feat_overlaps[fn])) for fn in keys(feat_overlaps)]
 end
 
 function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, multimapped_dict::Dict{String,StructArray}, reader::BAM.Reader, feature::GFF3.Record, args)
@@ -175,6 +173,8 @@ function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, 
     featurestrand = getstrand(feature, isstranded(args["stranded"]))
     pp_only = args["pp_only"]
     rm_multimap = args["rm_multimap"]
+
+    count = 0
 
     # Returning SuperBAMRecord objects instead of BAM.Record objects
     for rec in eachoverlap(reader, feature, args["stranded"], max_frag_size)
@@ -196,7 +196,10 @@ function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, 
             continue
         end
         align_feat_ratio > 0.0 && increment_feature_overlap_information!(feat_overlap, align_feat_ratio, alignmenttype)
+        count += 1
     end
+
+    println("Processed $count alignments for feature $featurename")
 
     # NOTE: This function modifies feat_overlaps and multimapped_dict
 end
@@ -204,6 +207,8 @@ end
 function process_all_feature_overlaps(feat_overlaps::Dict{String,FeatureOverlap}, features::Vector{GFF3.Record}, reader::BAM.Reader, args)
     """Process all features from the annotation file for overlaps with BAM alignments."""
     multimapped_dict = Dict{String,StructArray}()
-    [process_feature_overlaps!(feat_overlaps, multimapped_dict, reader, feature, args) for feature in features]
+    for feature in features
+        process_feature_overlaps!(feat_overlaps, multimapped_dict, reader, feature, args)
+    end
     return multimapped_dict
 end

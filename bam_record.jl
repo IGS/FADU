@@ -89,9 +89,9 @@ function canbefragment(record::BAM.Record, max_frag_size::UInt)
     return nothing
 end
 
-function get_alignment_coords_set(alignment::Interval)
-    """Get the range of coordinates for this alignment, returned as a Set."""
-    return Set{UInt}(leftposition(alignment) : rightposition(alignment))
+function get_alignment_coords_range(alignment::Interval)
+    """Get the range of coordinates for this alignment, returning a tuple of (start, end)."""
+    return leftposition(alignment) : rightposition(alignment)
 end
 
 function get_alignment_interval(record::BAM.Record, max_frag_size::UInt, reversestrand::Bool=false)

@@ -30,9 +30,8 @@ end
 
 function get_featurename_from_attrs(feature::GFF3.Record, attr_type::String)
     """Get attribute ID to use as the feature name."""
-    gene_vector = GFF3.attributes(feature, attr_type)    # col 9
-    validate_feature_attribute(gene_vector)
-    return gene_vector[1]
+    validate_feature_attribute(feature, attr_type)
+    return GFF3.attributes(feature, attr_type)[1]
 end
 
 function get_feature_nonoverlapping_coords(feature::GFF3.Record, uniq_coords::Dict{String, Dict}, stranded::Bool)
@@ -67,8 +66,9 @@ function getstrand(feature::GFF3.Record, stranded::Bool)
     return getstrand(convert(Interval, feature), stranded)
 end
 
-function validate_feature_attribute(gene_vector::Vector{String})
+function validate_feature_attribute(feature::GFF3.Record, attr_type::String)
     """Ensure only one attribute of this type exists for this feature record."""
+    gene_vector = GFF3.attributes(feature, attr_type)    # col 9
     length(gene_vector) > 0 || error("ERROR - Attribute field 'ID' found to have no entries.\n")
     length(gene_vector) == 1 || error("ERROR - Attribute field 'ID' found to have multiple entries.\n")
 end
