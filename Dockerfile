@@ -1,5 +1,5 @@
 # Wanted to do the alpine version but that tag does not support arm64 (Mac M1) architecture
-FROM julia:1.7
+FROM julia:1.9
 LABEL maintainer="Shaun Adkins (sadkins@som.umaryland.edu)"
 
 RUN mkdir -p /opt/FADU
@@ -18,6 +18,6 @@ RUN mkdir -p /tmp/.julia/environments/v1.7
 COPY ./fadu_pkgs/Manifest.toml /tmp/.julia/environments/v1.7/Manifest.toml
 COPY ./fadu_pkgs/Project.toml /tmp/.julia/environments/v1.7/Project.toml
 ENV JULIA_DEPOT_PATH=/tmp/.julia
-RUN julia -e 'using Pkg; Pkg.precompile(); Pkg.instantiate()' && julia -e 'using BGZFStreams, GenomicFeatures, GFF3, Indexes, XAM'
+RUN julia -e 'using Pkg; Pkg.precompile(); Pkg.instantiate()' && julia -e 'using BGZFStreams, GenomicFeatures, GFF3, Indexes, XAM, BED'
 
 ENTRYPOINT ["julia", "/opt/FADU/fadu.jl"]
