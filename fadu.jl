@@ -22,6 +22,7 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 
 # The macro on modules and functions makes the code available to all worker processes
 using ArgParse
+using Logging
 using XAM: BAM, SAM
 using GenomicFeatures
 using GFF3
@@ -150,6 +151,14 @@ function parse_commandline()
             arg_type = Int
             range_tester = (x->x>0)
             dest_name = "em_iter"
+        "--log_level"
+            help = "Set the log level.  Options are: DEBUG, INFO, WARNING, ERROR, CRITICAL."
+            default = "INFO"
+            metavar = "LEVEL"
+            range_tester = (x->x in ["DEBUG", "INFO", "WARNING", "ERROR"])
+        "--log_file"
+            help = "Path to log file.  If not specified, log messages will be printed to STDERR."
+            metavar = "/path/to/logfile.log"
 
     # Will not add log_file or debug options for now
     end
@@ -157,20 +166,39 @@ function parse_commandline()
     return parse_args(s)
 end
 
+function setup_logger(args)
+    """Set up logging."""
+    stream = args["log_file"] === nothing ? stderr : open(args["log_file"], "w")
+    logleveldict = Dict("DEBUG" => -1000, "INFO" => 0, "WARNING" => 1000, "ERROR" => 2000)
+    loglevel = get(logleveldict, uppercase(args["log_level"]), 0)
+    logger = ConsoleLogger(stream, loglevel)
+    global_logger(logger)
+    # TODO: prevent debug messages from printing the file and line number
+
+end
+
 function validate_args(args)
     """Validate the passed arguments."""
-    isfile(args["gff3_file"]) || throw(SystemError("GFF3 file does not seem to exist. Please check supplied path."))
-    isfile(args["bam_file"]) || throw(SystemError("BAM file does not seem to exist. Please check supplied path."))
+    @info("Validating arguments...")
+    isfile(args["bam_file"]) || error("BAM file does not exist. Please check supplied path")
+    isfile(args["gff3_file"]) || error("GFF3 file does not exist. Please check supplied path")
     if !isdir(args["output_dir"])
-        @debug("Creating output directory")
+        @info("Creating output directory at ", args["output_dir"])
         mkdir(args["output_dir"])
     end
-    args["stranded"] in ["yes", "no", "reverse"] || error("--stranded argument must be either 'yes', 'no', or 'reverse'.")
 end
 
 function main()
     args = parse_commandline()
-    #validate_args(args)
+    setup_logger(args)
+
+    try
+        validate_args(args)
+    catch e
+        @error(e)
+        exit(1)
+    end
+
     @info("Parsed args:")
     for (arg,val) in args
         @info("  $arg  =>  $val")

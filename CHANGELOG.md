@@ -4,6 +4,8 @@
 
 * FEATURE - Adding --no_output_header option to not print the header line in output. Useful for when you want to pipe this output to another tool.
 * FEATURE - Adding --exclude_regions option to exclude any regions found in a passed-in BED file.
+* FEATURE - Adding --log_file and --log_level options to display or hide log messages of varying severity. Note that currently --log_level=DEBUG will print the line number, as I haven't figured out how to disable that for debug-level messages yet.
+* Optimized some pieces of code for speed (thanks Github Copilot). This should increase the speed where a GFF feature has 100,000s of overlaps with the BAM alignments
 
 ## v1.8.3
 

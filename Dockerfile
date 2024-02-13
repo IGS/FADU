@@ -1,5 +1,5 @@
 # Wanted to do the alpine version but that tag does not support arm64 (Mac M1) architecture
-FROM julia:1.9
+FROM julia:1.7
 LABEL maintainer="Shaun Adkins (sadkins@som.umaryland.edu)"
 
 RUN mkdir -p /opt/FADU
