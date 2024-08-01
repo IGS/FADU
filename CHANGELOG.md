@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.9.1
+
+* BUGFIX - Updating BGZFStreams and XAM packages to address a BoundsError issue (https://github.com/IGS/FADU/issues/14)
+* Updating various packages to reflect versioning I cited in (https://github.com/BioJulia/BGZFStreams.jl/issues/30)
+
 ## v1.9
 
 * FEATURE - Adding --no_output_header option to not print the header line in output. Useful for when you want to pipe this output to another tool.

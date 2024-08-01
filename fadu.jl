@@ -5,14 +5,14 @@ FADU.jl - Feature Aggregate Depth Utility.
 
 Description - Generate fractional counts of alignments that map to non-overlapping portions of genes
 Requires (version number listed is earliest supported version):
-    Julia - v1.4.2
+    Julia - v1.7
     * Packages *
-    BGZFStreams.jl - v0.3.0
-    GenomicFeatures.jl - v2.0.0
-    GFF3 - v0.2.0
-    Indexes.jl - v0.1.1
-    StructArrays.jl - v0.4.4
-    XAM.jl - v0.2.6
+    BGZFStreams.jl - v0.3.2
+    GenomicFeatures.jl - v2.1.0
+    GFF3 - v0.2.3
+    Indexes.jl - v0.1.3
+    StructArrays.jl - v0.6.17
+    XAM.jl - v0.3.1
     BED.jl - v0.3.0
 
 By: Shaun Adkins (sadkins@som.umaryland.edu)
