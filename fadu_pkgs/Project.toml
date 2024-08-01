@@ -1,7 +1,7 @@
 name = "FADU"
 uuid = "866296ad-388f-4871-8691-d7485d094d7e"
 authors = ["adkinsrs <sadkins@som.umaryland.edu>"]
-version = "1.9.0"
+version = "1.9.1"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
