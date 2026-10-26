@@ -177,7 +177,7 @@ function process_feature_overlaps!(feat_overlaps::Dict{String, FeatureOverlap}, 
     count = 0
 
     # Returning SuperBAMRecord objects instead of BAM.Record objects
-    for rec in eachoverlap(reader, feature, args["stranded"], max_frag_size)
+    for rec in eachalignmentoverlap(reader, feature, args["stranded"], max_frag_size)
         alignmentinterval = interval(rec)
         @assert alignmentinterval !== nothing "All iterated records should be a validated read or fragment"
         strand(rec) == featurestrand || continue

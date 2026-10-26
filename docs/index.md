@@ -17,15 +17,15 @@ Most current available quantification tools for transcriptomics analyses have be
 
 ## Current FADU release
 
-v1.9.2
+v1.10.0
 
 ## Requirements
 
-Julia - v1.10 or later (fadu_pkgs/Manifest.toml was generated with Julia v1.12)
+Julia - v1.10 or later (Manifest.toml was generated with Julia v1.12)
 
 ### Packages
 
-NOTE: Packages installation instructions can be found at https://docs.julialang.org/en/v1.4/stdlib/Pkg/index.html#Getting-Started-1
+FADU is a Julia package, so these are installed for you by `Pkg.instantiate()` (see "Installation instructions" below).
 
 * ArgParse - v1
 * Logging
@@ -36,6 +36,7 @@ NOTE: Packages installation instructions can be found at https://docs.julialang.
 * StructArrays.jl - v0.6.17
 * XAM.jl - v0.3.1
 * BED.jl - v0.3.0
+* PrecompileTools.jl - v1
 
 ### NOTE on versions
 
@@ -76,7 +77,20 @@ First `cd` to the directory of choice to install FADU
 ```bash
 git clone https://github.com/IGS/FADU.git
 cd FADU
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
+
+The last step downloads FADU's dependencies and precompiles FADU, which takes a minute or two the first time.  After that, run FADU with `julia ./fadu.jl <options>` from anywhere (use the full path to fadu.jl if you are not in the FADU directory).
+
+### Installing a `fadu` command (Julia v1.12+, experimental)
+
+Julia v1.12 can install FADU as a command-line app:
+
+```bash
+julia -e 'using Pkg; Pkg.Apps.add(url="https://github.com/IGS/FADU.git")'
+```
+
+This puts a `fadu` executable in `~/.julia/bin` (add that directory to your PATH), which takes the same options as `julia ./fadu.jl`.  Julia's app support is still experimental, so the clone-based install above is the recommended route.
 
 ## Example command
 
@@ -107,13 +121,19 @@ cds1005 816 0.0 0.00    0.00
 
 ## Testing
 
-A small regression dataset (a ~20 kb slice of an E. coli paired-end RNA-Seq BAM, plus the matching GFF3 annotation) lives in "test_data/tiny".  To run FADU on it and compare against the expected output:
+A small regression dataset (a ~20 kb slice of an E. coli paired-end RNA-Seq BAM, plus the matching GFF3 annotation) lives in "test/data".  To run the test suite:
 
 ```bash
-bash ./test_data/tiny/run_test.sh
+julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-By default the script runs `julia --project=./fadu_pkgs ./fadu.jl`.  Set the `FADU_CMD` environment variable to test a different FADU command (e.g. an installed copy).
+To check only the command-line output against the expected counts, without Julia's test framework:
+
+```bash
+bash ./test/run_test.sh
+```
+
+By default the script runs `julia ./fadu.jl`.  Set the `FADU_CMD` environment variable to test a different FADU command (e.g. an installed copy).
 
 ## Usage
 
@@ -219,10 +239,10 @@ docker build -t fadu .
 This Docker image uses Julia 1.12 and installs the various packages required to run FADU. Once the image has been built you can create and run a FADU container by running the following:
 
 ```bash
-docker run -v $PWD:/opt/FADU fadu <fadu_options>
+docker run -v $PWD:/data fadu <fadu_options>
 ```
 
-This command assumes that your input files are in your current working directory and that your output will be written to a space relative to your current working directory as well.
+This command mounts your current working directory at /data, which is the container's working directory, so input and output paths relative to your current working directory work as-is.
 
 ## Issues
 
