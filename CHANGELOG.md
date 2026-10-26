@@ -2,6 +2,7 @@
 
 ## v1.10.0
 
+* BUGFIX - `--exclude_regions_file` crashed with "Cannot `convert` an object of type String to an object of type Char" unless `--stranded` was "yes" or "reverse". Added regression tests for both stranded and unstranded runs.
 * FADU is now a proper Julia package (module `FADU`, code in src/, Project.toml and Manifest.toml at the repository root). `julia fadu.jl <options>` still works the same way.
 * FADU's own code is now precompiled (using PrecompileTools and the tiny test dataset as the workload), so runs start about 3x faster than v1.9.2.
 * Adding `Pkg.test()` support (test/runtests.jl) and GitHub Actions CI on Julia v1.10 and v1.12.

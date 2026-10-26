@@ -75,7 +75,7 @@ function remove_excluded_regions!(uniq_coords::Dict{String, Dict}, excluded_regi
             strand = convert(Char, BED.strand(region))
             union!(get!(seqid_exclude_coords, strand, BitSet()), BitSet(start:stop))
         else
-            union!(get!(seqid_exclude_coords, "+", BitSet()), BitSet(start:stop))
+            union!(get!(seqid_exclude_coords, '+', BitSet()), BitSet(start:stop))
         end
     end
 
