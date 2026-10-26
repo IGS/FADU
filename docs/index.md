@@ -17,17 +17,17 @@ Most current available quantification tools for transcriptomics analyses have be
 
 ## Current FADU release
 
-v1.9
+v1.9.2
 
 ## Requirements
 
-Julia - v1.7 or later
+Julia - v1.10 or later (fadu_pkgs/Manifest.toml was generated with Julia v1.12)
 
 ### Packages
 
 NOTE: Packages installation instructions can be found at https://docs.julialang.org/en/v1.4/stdlib/Pkg/index.html#Getting-Started-1
 
-* ArgParse
+* ArgParse - v1
 * Logging
 * BGZFStreams.jl - v0.3.2
 * GenomicFeatures.jl - v2.1.0
@@ -104,6 +104,16 @@ cds1003 1167    0.0 0.00    0.00
 cds1004 1164    0.0 0.00    0.00
 cds1005 816 0.0 0.00    0.00
 ```
+
+## Testing
+
+A small regression dataset (a ~20 kb slice of an E. coli paired-end RNA-Seq BAM, plus the matching GFF3 annotation) lives in "test_data/tiny".  To run FADU on it and compare against the expected output:
+
+```bash
+bash ./test_data/tiny/run_test.sh
+```
+
+By default the script runs `julia --project=./fadu_pkgs ./fadu.jl`.  Set the `FADU_CMD` environment variable to test a different FADU command (e.g. an installed copy).
 
 ## Usage
 
@@ -206,7 +216,7 @@ Yes! Currently, there is no Docker image for FADU on Docker Hub as their free ti
 docker build -t fadu .
 ```
 
-This Docker image uses Julia 1.7 and installs the various packages required to run FADU. Once the image has been built you can create and run a FADU container by running the following:
+This Docker image uses Julia 1.12 and installs the various packages required to run FADU. Once the image has been built you can create and run a FADU container by running the following:
 
 ```bash
 docker run -v $PWD:/opt/FADU fadu <fadu_options>

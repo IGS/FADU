@@ -36,7 +36,7 @@ include("bam_record.jl")
 include("feature_counts.jl")
 include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.9"    # Version number of the FADU program
+const VERSION_NUMBER = "1.9.2"    # Version number of the FADU program
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 

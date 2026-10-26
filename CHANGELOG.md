@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.9.2
+
+* Raising minimum Julia version to v1.10 and regenerating fadu_pkgs/Manifest.toml under Julia v1.12. Dockerfile now uses the julia:1.12 image.
+* fadu_pkgs/Project.toml is now a plain environment (removed name/uuid/version) and adds an ArgParse compat entry. Printf (already used by fadu.jl) is now listed as a dependency.
+* Adding a tiny (<1 MB) regression dataset and test script in test_data/tiny
+
 ## v1.9.1
 
 * BUGFIX - Updating BGZFStreams and XAM packages to address a BoundsError issue (https://github.com/IGS/FADU/issues/14)
