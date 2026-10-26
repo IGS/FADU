@@ -12,6 +12,7 @@ By: Shaun Adkins (sadkins@som.umaryland.edu)
 import BGZFStreams
 
 ### OverlapIterator - Extended version of original BAM OverlapIterator
+# Kept separate from GenomicFeatures.eachoverlap so it does not overwrite the XAM method of the same signature
 
 struct OverlapIterator{T}
     reader::BAM.Reader{T}
@@ -21,15 +22,15 @@ struct OverlapIterator{T}
     max_frag_size::UInt
 end
 
-function GenomicFeatures.eachoverlap(reader::BAM.Reader, interval::Interval, strand_type::String="no", max_frag_size::UInt=1000)
-    return GenomicFeatures.eachoverlap(reader, interval.seqname, interval.first:interval.last, strand_type, max_frag_size)
+function eachalignmentoverlap(reader::BAM.Reader, interval::Interval, strand_type::String="no", max_frag_size::UInt=1000)
+    return eachalignmentoverlap(reader, interval.seqname, interval.first:interval.last, strand_type, max_frag_size)
 end
 
-function GenomicFeatures.eachoverlap(reader::BAM.Reader, interval, strand_type::String="no", max_frag_size::UInt=1000)
-    return GenomicFeatures.eachoverlap(reader, convert(Interval, interval), strand_type, max_frag_size)
+function eachalignmentoverlap(reader::BAM.Reader, interval, strand_type::String="no", max_frag_size::UInt=1000)
+    return eachalignmentoverlap(reader, convert(Interval, interval), strand_type, max_frag_size)
 end
 
-function GenomicFeatures.eachoverlap(reader::BAM.Reader, refname::AbstractString, interval::UnitRange, strand_type::String="no", max_frag_size::UInt=1000)
+function eachalignmentoverlap(reader::BAM.Reader, refname::AbstractString, interval::UnitRange, strand_type::String="no", max_frag_size::UInt=1000)
     return OverlapIterator(reader, String(refname), interval, strand_type, max_frag_size)
 end
 

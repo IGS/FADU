@@ -2,22 +2,19 @@
 FROM julia:1.12
 LABEL maintainer="Shaun Adkins (sadkins@som.umaryland.edu)"
 
-RUN mkdir -p /opt/FADU
-
 WORKDIR /opt/FADU
 
-COPY ./alignment_overlaps.jl /opt/FADU
-COPY ./bam_record.jl /opt/FADU/
-COPY ./fadu.jl /opt/FADU/
-COPY ./feature_counts.jl /opt/FADU/
-COPY ./gff_feature.jl /opt/FADU/
+COPY ./Project.toml ./Manifest.toml ./fadu.jl /opt/FADU/
+COPY ./src /opt/FADU/src
+# The tiny test dataset is used as the precompilation workload
+COPY ./test /opt/FADU/test
 
-# force compilation of external, shared packages copied in from Manifest.toml and Project.toml
-# For some reason these would not copy to the "root" home directory
-RUN mkdir -p /tmp/.julia/environments/v1.12
-COPY ./fadu_pkgs/Manifest.toml /tmp/.julia/environments/v1.12/Manifest.toml
-COPY ./fadu_pkgs/Project.toml /tmp/.julia/environments/v1.12/Project.toml
-ENV JULIA_DEPOT_PATH=/tmp/.julia
-RUN julia -e 'using Pkg; Pkg.precompile(); Pkg.instantiate()' && julia -e 'using BGZFStreams, GenomicFeatures, GFF3, Indexes, XAM, BED'
+# Install and precompile FADU and its dependencies into the image
+ENV JULIA_DEPOT_PATH=/opt/julia_depot
+ENV JULIA_PROJECT=/opt/FADU
+RUN julia -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+
+# Input and output files are expected to be mounted here
+WORKDIR /data
 
 ENTRYPOINT ["julia", "/opt/FADU/fadu.jl"]

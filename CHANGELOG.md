@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.10.0
+
+* BUGFIX - `--exclude_regions_file` crashed with "Cannot `convert` an object of type String to an object of type Char" unless `--stranded` was "yes" or "reverse". Added regression tests for both stranded and unstranded runs.
+* FADU is now a proper Julia package (module `FADU`, code in src/, Project.toml and Manifest.toml at the repository root). `julia fadu.jl <options>` still works the same way.
+* FADU's own code is now precompiled (using PrecompileTools and the tiny test dataset as the workload), so runs start about 3x faster than v1.9.2.
+* Adding `Pkg.test()` support (test/runtests.jl) and GitHub Actions CI on Julia v1.10 and v1.12.
+* Adding an experimental `fadu` command for Julia v1.12+ via `Pkg.Apps.add`, and support for `julia -m FADU <options>`.
+* Renamed FADU's internal BAM overlap iterator to `eachalignmentoverlap`. It previously overwrote XAM's `GenomicFeatures.eachoverlap` method, which is not allowed in a precompiled package. Output is unchanged.
+* Moved the tiny regression dataset from test_data/tiny to test/data and the test script to test/run_test.sh.
+* Docker: the container's working directory is now /data (mount your files there) instead of /opt/FADU.
+
 ## v1.9.2
 
 * Raising minimum Julia version to v1.10 and regenerating fadu_pkgs/Manifest.toml under Julia v1.12. Dockerfile now uses the julia:1.12 image.
