@@ -56,6 +56,54 @@ end
         @test uniq_lens(lines) == uniq_lens(baseline)
     end
 
+    @testset "BAM index lookup" begin
+        mktempdir() do dir
+            # Extensionless BAM must not be mistaken for its own index
+            bam = joinpath(dir, "sample")
+            cp(joinpath(DATA_DIR, "tiny.bam"), bam)
+            @test FADU.find_bam_index(bam) === nothing
+            cp(joinpath(DATA_DIR, "tiny.bam.bai"), bam * ".bai")
+            @test FADU.find_bam_index(bam) == bam * ".bai"
+
+            # Only the final ".bam" extension is replaced
+            sub = mkpath(joinpath(dir, "run.bam_files"))
+            bam = joinpath(sub, "x.bam")
+            cp(joinpath(DATA_DIR, "tiny.bam"), bam)
+            cp(joinpath(DATA_DIR, "tiny.bam.bai"), joinpath(sub, "x.bai"))
+            @test FADU.find_bam_index(bam) == joinpath(sub, "x.bai")
+        end
+    end
+
+    @testset "extensionless BAM runs" begin
+        mktempdir() do dir
+            bam = joinpath(dir, "sample")
+            cp(joinpath(DATA_DIR, "tiny.bam"), bam)
+            cp(joinpath(DATA_DIR, "tiny.bam.bai"), bam * ".bai")
+            args = ["-g", joinpath(DATA_DIR, "tiny.gff3"), "-b", bam, "-o", dir, "-s", "reverse", "-f", "CDS", "-a", "ID"]
+            @test with_logger(NullLogger()) do
+                FADU.main(args)
+            end == 0
+            @test readlines(joinpath(dir, "sample.counts.txt")) == expected
+        end
+    end
+
+    @testset "missing BAM index returns non-zero exit code" begin
+        mktempdir() do dir
+            bam = joinpath(dir, "tiny.bam")
+            cp(joinpath(DATA_DIR, "tiny.bam"), bam)
+            args = ["-g", joinpath(DATA_DIR, "tiny.gff3"), "-b", bam, "-o", dir]
+            @test with_logger(NullLogger()) do
+                FADU.main(args)
+            end == 1
+        end
+    end
+
+    @testset "--log_level is case-insensitive" begin
+        exit_code, lines = run_fadu(["--log_level", "warning"])
+        @test exit_code == 0
+        @test lines == expected
+    end
+
     @testset "missing BAM file returns non-zero exit code" begin
         mktempdir() do out_dir
             args = ["-g", joinpath(DATA_DIR, "tiny.gff3"), "-b", joinpath(DATA_DIR, "missing.bam"), "-o", out_dir]

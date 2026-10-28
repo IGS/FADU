@@ -17,7 +17,7 @@ Most current available quantification tools for transcriptomics analyses have be
 
 ## Current FADU release
 
-v1.10.0
+v1.10.1
 
 ## Requirements
 
@@ -137,12 +137,12 @@ By default the script runs `julia ./fadu.jl`.  Set the `FADU_CMD` environment va
 ## Usage
 
 ```bash
-usage: fadu.jl -b /path/to/file.bam -g /path/to/annotation.gff3
-               -o /path/to/output/dir/ [--no_output_header]
-               [-x /path/to/regions.bed] [-s STRANDED]
-               [-f FEATURE_TYPE] [-a ATTRIBUTE_TYPE] [-p]
-               [-m MAX_FRAGMENT_SIZE] [-M] [-e EM_ITER] [--version]
-               [-h]
+usage: fadu -b /path/to/file.bam -g /path/to/annotation.gff3
+            -o /path/to/output/dir/ [--no_output_header]
+            [-x /path/to/regions.bed] [-s STRANDED] [-f FEATURE_TYPE]
+            [-a ATTRIBUTE_TYPE] [-p] [-m MAX_FRAGMENT_SIZE] [-M]
+            [-e EM_ITER] [--log_level LEVEL]
+            [--log_file /path/to/logfile.log] [--version] [-h]
 
 Generate counts of reads that map to non-overlapping portions of genes
 
@@ -165,13 +165,13 @@ optional arguments:
                         strand-specific assay. Choose between 'yes',
                         'no', or 'reverse'. (default: "no")
   -f, --feature_type FEATURE_TYPE
-                        Which GFF3/GTF feature type (column 3) to
-                        obtain. readcount statistics for.
-                        Case-sensitive. (default: "gene")
+                        Which GFF3 feature type (column 3) to obtain
+                        readcount statistics for. Case-sensitive.
+                        (default: "gene")
   -a, --attribute_type ATTRIBUTE_TYPE
-                        Which GFF3/GTF feature type (column 9) to
-                        obtain. readcount statistics for.
-                        Case-sensitive. (default: "ID")
+                        Which GFF3 attribute (column 9) to use as the
+                        feature ID in the output. Case-sensitive.
+                        (default: "ID")
   -p, --keep_only_proper_pairs
                         If enabled, keep only properly paired reads
                         when performing calculations.
@@ -187,7 +187,7 @@ optional arguments:
   -M, --remove_multimapped
                         If enabled, remove any reads or fragments that
                         are mapped to multiple regions of the genome,
-                        indiated by the 'NH' attribute being greater
+                        indicated by the 'NH' attribute being greater
                         than 1.  Otherwise, use EM algorithm to
                         quantify reads after all other reads are
                         counted.
@@ -196,8 +196,9 @@ optional arguments:
                         on multimapped read depth. Only applies if
                         --remove_multimapped flag is not passed (is
                         disabled) (type: Int64, default: 1)
-  --log_level LEVEL     Set the log level.  Options are: DEBUG, INFO,
-                        WARNING, ERROR, CRITICAL. (default: "INFO")
+  --log_level LEVEL     Set the log level (case-insensitive).  Options
+                        are: DEBUG, INFO, WARNING, ERROR. (default:
+                        "INFO")
   --log_file /path/to/logfile.log
                         Path to log file.  If not specified, log
                         messages will be printed to STDERR.

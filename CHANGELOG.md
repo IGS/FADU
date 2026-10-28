@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.10.1
+
+* BUGFIX - BAM index lookup replaced every ".bam" in the path with ".bai". A BAM path without a ".bam" extension was treated as its own index (failing with "input is not a valid BAI file"), and ".bam" in a directory name was rewritten. Now only the final ".bam" extension is replaced, then `<name>.bam.bai` is tried. A missing index is reported during argument validation.
+* BUGFIX - `--log_level` is now case-insensitive, and CRITICAL (which was never accepted) is removed from the help text.
+* Help text now shows `fadu` as the program name and fixes the `--feature_type`/`--attribute_type` descriptions (GTF is not supported; column 9 is an attribute).
+
 ## v1.10.0
 
 * BUGFIX - `--exclude_regions_file` crashed with "Cannot `convert` an object of type String to an object of type Char" unless `--stranded` was "yes" or "reverse". Added regression tests for both stranded and unstranded runs.
