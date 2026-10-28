@@ -1,6 +1,6 @@
 name = "FADU"
 uuid = "866296ad-388f-4871-8691-d7485d094d7e"
-version = "1.10.0"
+version = "1.10.1"
 authors = ["adkinsrs <sadkins@som.umaryland.edu>"]
 
 [deps]

@@ -40,7 +40,7 @@ include("bam_record.jl")
 include("feature_counts.jl")
 include("gff_feature.jl")
 
-const VERSION_NUMBER = "1.10.0"    # Version number of the FADU program. Keep in sync with Project.toml
+const VERSION_NUMBER = "1.10.1"    # Version number of the FADU program. Keep in sync with Project.toml
 const MAX_FRAGMENT_SIZE = 1000 # Maximum size of fragment.  If exceeded, fragment will be considered two reads
 const EM_ITER_DEFAULT = 1 # Number of iterations to do EM-algorithm
 
@@ -100,7 +100,7 @@ end
 
 function parse_commandline(cli_args::AbstractVector{<:AbstractString})
     s = ArgParseSettings(description = "Generate counts of reads that map to non-overlapping portions of genes",
-    prog = "fadu.jl",
+    prog = "fadu",
 	version = VERSION_NUMBER,
 	add_version = true,
     add_help = true)
@@ -131,10 +131,10 @@ function parse_commandline(cli_args::AbstractVector{<:AbstractString})
             default = "no"
             range_tester = (x->x in ["yes", "no", "reverse"])
         "--feature_type", "-f"
-            help = "Which GFF3/GTF feature type (column 3) to obtain. readcount statistics for. Case-sensitive."
+            help = "Which GFF3 feature type (column 3) to obtain readcount statistics for. Case-sensitive."
             default = "gene"
         "--attribute_type", "-a"
-            help = "Which GFF3/GTF feature type (column 9) to obtain. readcount statistics for. Case-sensitive."
+            help = "Which GFF3 attribute (column 9) to use as the feature ID in the output. Case-sensitive."
             default = "ID"
         "--keep_only_proper_pairs", "-p"
             help = "If enabled, keep only properly paired reads when performing calculations."
@@ -146,7 +146,7 @@ function parse_commandline(cli_args::AbstractVector{<:AbstractString})
             arg_type = Int
             range_tester = (x->typemin(UInt)<=x<=typemax(UInt))
         "--remove_multimapped", "-M"
-            help = "If enabled, remove any reads or fragments that are mapped to multiple regions of the genome, indiated by the 'NH' attribute being greater than 1.  Otherwise, use EM algorithm to quantify reads after all other reads are counted."
+            help = "If enabled, remove any reads or fragments that are mapped to multiple regions of the genome, indicated by the 'NH' attribute being greater than 1.  Otherwise, use EM algorithm to quantify reads after all other reads are counted."
             action = :store_true
             dest_name = "rm_multimap"
         "--em_iterations", "-e"
@@ -156,15 +156,13 @@ function parse_commandline(cli_args::AbstractVector{<:AbstractString})
             range_tester = (x->x>0)
             dest_name = "em_iter"
         "--log_level"
-            help = "Set the log level.  Options are: DEBUG, INFO, WARNING, ERROR, CRITICAL."
+            help = "Set the log level (case-insensitive).  Options are: DEBUG, INFO, WARNING, ERROR."
             default = "INFO"
             metavar = "LEVEL"
-            range_tester = (x->x in ["DEBUG", "INFO", "WARNING", "ERROR"])
+            range_tester = (x->uppercase(x) in ["DEBUG", "INFO", "WARNING", "ERROR"])
         "--log_file"
             help = "Path to log file.  If not specified, log messages will be printed to STDERR."
             metavar = "/path/to/logfile.log"
-
-    # Will not add log_file or debug options for now
     end
     # Converts the ArgParseSettings object into key/value pairs
     return parse_args(cli_args, s)
@@ -181,11 +179,23 @@ function setup_logger(args)
 
 end
 
+function find_bam_index(bam_file::AbstractString)
+    """Return the path to the index of the BAM file (<name>.bai or <name>.bam.bai), or nothing if neither exists."""
+    root, ext = splitext(bam_file)
+    candidates = lowercase(ext) == ".bam" ? [root * ".bai", bam_file * ".bai"] : [bam_file * ".bai"]
+    for candidate in candidates
+        isfile(candidate) && return candidate
+    end
+    return nothing
+end
+
 function validate_args(args)
     """Validate the passed arguments."""
     @info("Validating arguments...")
     isfile(args["bam_file"]) || error("BAM file does not exist. Please check supplied path")
     isfile(args["gff3_file"]) || error("GFF3 file does not exist. Please check supplied path")
+    args["bam_index"] = find_bam_index(args["bam_file"])
+    args["bam_index"] === nothing && error("Could not find an index file for BAM file $(args["bam_file"]). Expected <name>.bai or <name>.bam.bai in the same directory")
     if !isdir(args["output_dir"])
         @info("Creating output directory at ", args["output_dir"])
         mkdir(args["output_dir"])
@@ -242,20 +252,9 @@ function main(cli_args::AbstractVector{<:AbstractString}=ARGS)
     @info("Initializing dictionary of feature count information")
     feat_overlaps = create_feat_overlaps_dict(features, uniq_coords, args["attribute_type"], args["stranded"])
 
-    bai_file = replace(args["bam_file"], ".bam" => ".bai")
-    # Attempt to find index file for BAM file in same directory
-    if !isfile(bai_file)
-        bai_file = args["bam_file"] * ".bai"
-        if !isfile(bai_file)
-            bam = args["bam_file"]
-            error("Attempted to find index file for BAM file $bam but could not find one")
-        end
-    end
-    @debug("Found BAM index file at $bai_file")
-
     # Open a BAM file and iterate over records overlapping GFF features.
     @info("Opening BAM alignment file...")
-    reader = open(BAM.Reader, args["bam_file"], index = bai_file)
+    reader = open(BAM.Reader, args["bam_file"], index = args["bam_index"])
 
     @info("Now finding overlaps between alignment and annotation records...")
     multimapped_dict = process_all_feature_overlaps(feat_overlaps, features, reader, args)
